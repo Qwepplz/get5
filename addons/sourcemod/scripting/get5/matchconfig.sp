@@ -1832,18 +1832,8 @@ Action Command_CreateMatch(int client, int args) {
   if (!hasTeam1 && !hasTeam2) {
     JSON_Object team1 = GetTeamObjectFromCurrentPlayers(Get5Side_CT);
     JSON_Object team2 = GetTeamObjectFromCurrentPlayers(Get5Side_T);
-    int team1PlayerLength = view_as<JSON_Array>(team1.GetObject("players")).Length;
-    int team2PlayerLength = view_as<JSON_Array>(team2.GetObject("players")).Length;
     matchConfig.SetObject("team1", team1);
     matchConfig.SetObject("team2", team2);
-    if (team1PlayerLength != playersPerTeam || team2PlayerLength != playersPerTeam) {
-      json_cleanup_and_delete(matchConfig);
-      ReplyToCommand(
-        client,
-        "Both teams must have %d player(s) in order to start a match with current teams. Use --players_per_team to change the number of players.",
-        playersPerTeam);
-      return Plugin_Handled;
-    }
   } else {
     JSON_Object teams = LoadTeamsFile(error);
     if (teams == null) {
@@ -2074,6 +2064,9 @@ JSON_Object GetTeamObjectFromCurrentPlayers(const Get5Side side, int forcedCapta
       first = false;
     }
   }
+  if (strlen(teamName) == 0 && side != Get5Side_Spec) {
+    SetTeamNameFromSideClient(side, teamName, sizeof(teamName));
+  }
   if (strlen(teamName) > 0) {
     teamObject.SetString("name", teamName);
   }
@@ -2102,6 +2095,18 @@ static void AddCoachesToAuthJSON(const JSON_Object json, const Get5Side side) {
 
 static void SetTeamNameFromClient(const int client, char[] teamName, const int teamNameLength) {
   FormatEx(teamName, teamNameLength, "team_%N", client);
+}
+
+static void SetTeamNameFromSideClient(const Get5Side side, char[] teamName, const int teamNameLength) {
+  LOOP_CLIENTS(i) {
+    if (!IsValidClient(i) || IsClientSourceTV(i) || IsClientReplay(i)) {
+      continue;
+    }
+    if (view_as<Get5Side>(GetClientTeam(i)) == side) {
+      SetTeamNameFromClient(i, teamName, teamNameLength);
+      return;
+    }
+  }
 }
 
 static bool CheckIfClientIsOnSide(const int client, const Get5Side side, const bool coaching) {
@@ -2203,6 +2208,22 @@ void CheckTeamNameStatus(Get5Team team) {
             }
           }
           break;
+        }
+      }
+    }
+    if (StrEqual(g_TeamNames[team], "")) {
+      SetTeamNameFromSideClient(view_as<Get5Side>(Get5TeamToCSTeam(team)), g_TeamNames[team], MAX_CVAR_LENGTH);
+      if (!StrEqual(g_TeamNames[team], "")) {
+        if (team == Get5Team_1) {
+          if (g_StatsKv.JumpToKey("team1")) {
+            g_StatsKv.SetString(STAT_SERIES_TEAM_NAME, g_TeamNames[team]);
+            g_StatsKv.GoBack();
+          }
+        } else if (team == Get5Team_2) {
+          if (g_StatsKv.JumpToKey("team2")) {
+            g_StatsKv.SetString(STAT_SERIES_TEAM_NAME, g_TeamNames[team]);
+            g_StatsKv.GoBack();
+          }
         }
       }
     }

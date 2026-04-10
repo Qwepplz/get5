@@ -45,15 +45,7 @@ bool CheckForSuccessfulResponse(const Handle request, const EHTTPStatusCode stat
 }
 
 static bool SetGet5UserAgent(const Handle request) {
-  static char userAgent[128];
-  static bool didWriteBuffer;
-  if (!didWriteBuffer) {
-    // Since this never changes during the lifetime of the plugin, we only need to write it once.
-    FormatEx(userAgent, 128, "SourceMod Get5 %s+https://%s", PLUGIN_VERSION, GET5_GITHUB_PAGE);
-    didWriteBuffer = true;
-  }
-  return SteamWorks_SetHTTPRequestUserAgentInfo(request, userAgent) &&
-         SteamWorks_SetHTTPRequestHeaderValue(request, GET5_HEADER_VERSION, PLUGIN_VERSION);
+  return SteamWorks_SetHTTPRequestHeaderValue(request, GET5_HEADER_VERSION, PLUGIN_VERSION);
 }
 
 bool SetHeaderKeyValuePair(const Handle request, const char[] header, const char[] value, char[] error) {

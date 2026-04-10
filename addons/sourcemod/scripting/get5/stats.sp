@@ -1269,11 +1269,7 @@ void PrintDamageInfo(int client) {
         ReplaceStringEx(message, msgSize, "{KILL_FROM}", "–");
       }
 
-      if (IsFakeClient(i)) {
-        replacedNameIndex = ReplaceStringEx(message, msgSize, "{NAME}", "BOT %N");
-      } else {
-        replacedNameIndex = ReplaceStringEx(message, msgSize, "{NAME}", "%N");
-      }
+      replacedNameIndex = ReplaceStringEx(message, msgSize, "{NAME}", "%N");
 
       ReplaceStringWithInt(message, msgSize, "{HEALTH}", health);
 

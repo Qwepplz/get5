@@ -2290,6 +2290,19 @@ int GetRoundTime() {
 }
 
 void EventLogger_LogAndDeleteEvent(Get5Event event) {
+  char logPath[PLATFORM_MAX_PATH];
+  bool writeToFile = FormatCvarString(g_EventLogFormatCvar, logPath, sizeof(logPath));
+
+  char remoteLogUrl[1024];
+  g_EventLogRemoteURLCvar.GetString(remoteLogUrl, sizeof(remoteLogUrl));
+  bool sendToUrl = strlen(remoteLogUrl) > 0;
+
+  bool hasEventListeners = GetForwardFunctionCount(g_OnEvent) > 0;
+  if (!writeToFile && !sendToUrl && !hasEventListeners) {
+    json_cleanup_and_delete(event);
+    return;
+  }
+
   int options = g_PrettyPrintJsonCvar.BoolValue ? JSON_ENCODE_PRETTY : 0;
 
   // We could use json_encode_size here from sm-json, but since we fire events *all the time*
@@ -2298,8 +2311,7 @@ void EventLogger_LogAndDeleteEvent(Get5Event event) {
   static char buffer[65536];
   event.Encode(buffer, 65536, options);
 
-  char logPath[PLATFORM_MAX_PATH];
-  if (FormatCvarString(g_EventLogFormatCvar, logPath, sizeof(logPath))) {
+  if (writeToFile) {
     File logFile = OpenFile(logPath, "a+");
 
     if (logFile) {
@@ -2310,14 +2322,17 @@ void EventLogger_LogAndDeleteEvent(Get5Event event) {
     }
   }
 
-  SendEventJSONToURL(buffer);
+  if (sendToUrl) {
+    SendEventJSONToURL(buffer);
+  }
 
-  LogDebug("Calling Get5_OnEvent(data=%s)", buffer);
-
-  Call_StartForward(g_OnEvent);
-  Call_PushCell(event);
-  Call_PushString(buffer);
-  Call_Finish();
+  if (hasEventListeners) {
+    LogDebug("Calling Get5_OnEvent(data=%s)", buffer);
+    Call_StartForward(g_OnEvent);
+    Call_PushCell(event);
+    Call_PushString(buffer);
+    Call_Finish();
+  }
 
   json_cleanup_and_delete(event);
 }

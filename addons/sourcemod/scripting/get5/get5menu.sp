@@ -302,11 +302,7 @@ static int SetupMenuHandler(Menu menu, MenuAction action, int client, int param2
       ShowCaptainsMenu(client);
       return 0;
     } else if (StrEqual(infoString, SETUP_MENU_START_MATCH, true)) {
-      if (g_SetupMenuTeamSelection == Get5SetupMenu_TeamSelectionMode_Current &&
-          (GetSidePlayerCount(Get5Side_CT) != g_SetupMenuPlayersPerTeam ||
-           GetSidePlayerCount(Get5Side_T) != g_SetupMenuPlayersPerTeam)) {
-        Get5_Message(client, "Both teams must have %d player(s) when using current teams.", g_SetupMenuPlayersPerTeam);
-      } else if (g_SetupMenuTeamSelection == Get5SetupMenu_TeamSelectionMode_Fixed &&
+      if (g_SetupMenuTeamSelection == Get5SetupMenu_TeamSelectionMode_Fixed &&
                  (strlen(g_SetupMenuTeamForTeam1) == 0 || strlen(g_SetupMenuTeamForTeam2) == 0)) {
         Get5_Message(client, "You must select both teams when using fixed teams.");
       } else if (g_SetupMenuTeamSelection == Get5SetupMenu_TeamSelectionMode_Scrim &&
@@ -335,16 +331,6 @@ static int SetupMenuHandler(Menu menu, MenuAction action, int client, int param2
     delete menu;
   }
   return 0;
-}
-
-static int GetSidePlayerCount(Get5Side side) {
-  int playerCount = 0;
-  LOOP_CLIENTS(i) {
-    if (IsPlayer(i) && view_as<Get5Side>(GetClientTeam(i)) == side) {
-      playerCount++;
-    }
-  }
-  return playerCount;
 }
 
 static void ShowSelectTeamsMenu(int client) {

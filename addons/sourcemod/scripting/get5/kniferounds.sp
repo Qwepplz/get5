@@ -67,7 +67,7 @@ static void PerformSideSwap(bool swap) {
     Get5Side currentSide;
     Get5Side coachingSide;
     LOOP_CLIENTS(i) {
-      if (!IsPlayer(i)) {
+      if (!IsValidClient(i) || IsClientSourceTV(i) || IsClientReplay(i)) {
         continue;
       }
       currentSide = view_as<Get5Side>(GetClientTeam(i));

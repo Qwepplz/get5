@@ -64,13 +64,13 @@ bool IsTeamReady(Get5Team team) {
     return true;
   }
 
-  int minPlayers = GetPlayersPerTeam(team);
+  int minPlayers = GetRequiredPlayersPerTeam(team);
   int minReady = GetTeamMinReady(team);
   int playerCount = GetTeamPlayerCount(team, g_CoachesMustReady);
   int readyCount = GetTeamReadyCount(team, g_CoachesMustReady);
 
-  if (g_GameState == Get5State_PreVeto && playerCount == 0) {
-    // We cannot ready for veto with no players, regardless of force status or min_players_to_ready.
+  if (g_GameState == Get5State_PreVeto && playerCount == 0 && minPlayers > 0) {
+    // A team that is still expected to field real players cannot ready for veto while empty.
     return false;
   }
 
@@ -87,6 +87,17 @@ bool IsTeamReady(Get5Team team) {
   }
 
   return false;
+}
+
+static int GetRequiredPlayersPerTeam(Get5Team team) {
+  int playersPerTeam = GetPlayersPerTeam(team);
+  if (team == Get5Team_1 || team == Get5Team_2) {
+    int loadedPlayers = GetTeamPlayers(team).Length;
+    if (loadedPlayers < playersPerTeam) {
+      return loadedPlayers;
+    }
+  }
+  return playersPerTeam;
 }
 
 static int GetTeamReadyCount(Get5Team team, bool includeCoaches = false) {
@@ -324,7 +335,7 @@ static void MissingPlayerInfoMessageTeam(Get5Team team) {
     return;
   }
 
-  int playersPerTeam = GetPlayersPerTeam(team);
+  int playersPerTeam = GetRequiredPlayersPerTeam(team);
   int minimumPlayersForForceReady = GetTeamMinReady(team);
   int playerCount = GetTeamPlayerCount(team, g_CoachesMustReady);
   int readyCount = GetTeamReadyCount(team, g_CoachesMustReady);
