@@ -50,11 +50,7 @@ static Action HandlePlayerDamage(int victim, int &attacker, int &inflictor, floa
   bool helpful = HelpfulAttack(attacker, victim);
 
   if (helpful) {
-    if (g_DamagePrintExcessCvar.IntValue > 0) {
-      g_DamageDone[attacker][victim] += damageUncapped;
-    } else {
-      g_DamageDone[attacker][victim] += damageAsIntCapped;
-    }
+    g_DamageDone[attacker][victim] += damageAsIntCapped;
     g_DamageDoneHits[attacker][victim]++;
 
     AddToPlayerStat(attacker, STAT_DAMAGE, damageAsIntCapped);

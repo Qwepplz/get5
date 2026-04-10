@@ -59,7 +59,6 @@ ConVar g_RemoteBackupURLHeaderKeyCvar;
 ConVar g_CheckAuthsCvar;
 ConVar g_DateFormatCvar;
 ConVar g_DamagePrintCvar;
-ConVar g_DamagePrintExcessCvar;
 ConVar g_DamagePrintFormatCvar;
 ConVar g_DemoNameFormatCvar;
 ConVar g_DisplayGotvVetoCvar;
@@ -457,7 +456,7 @@ public void OnPluginStart() {
 
   // Damage info
   g_DamagePrintCvar                     = CreateConVar("get5_print_damage", "1", "Whether damage reports are printed to chat on round end.");
-  g_DamagePrintExcessCvar               = CreateConVar("get5_print_damage_excess", "0", "Prints full damage given in the damage report on round end. With this disabled, a player cannot take more than 100 damage.");
+  CreateConVar("get5_print_damage_excess", "0", "Deprecated compatibility cvar. Damage reports are capped to the victim's remaining HP.");
   g_DamagePrintFormatCvar               = CreateConVar("get5_damageprint_format", "- [{KILL_TO}] ({DMG_TO} in {HITS_TO}) to [{KILL_FROM}] ({DMG_FROM} in {HITS_FROM}) from {NAME} ({HEALTH} HP)", "Format of the damage output string. Available tags are in the default, color tags such as {LIGHT_RED} and {GREEN} also work. {KILL_TO} and {KILL_FROM} indicate kills, assists and flash assists as booleans, all of which are mutually exclusive.");
 
   // Date/time formats
@@ -1001,7 +1000,6 @@ static Action Timer_CheckReady(Handle timer) {
     if (CheckReadyWaitingTimes() && IsSpectatorsReady()) {
       LogDebug("Timer_CheckReady: all teams ready to start");
       StartGame(g_MapSides.Get(g_MapNumber) == SideChoice_KnifeRound);
-      StartRecording();
     }
   }
   return Plugin_Continue;
@@ -1783,6 +1781,13 @@ static Action Event_RoundPreStart(Event event, const char[] name, bool dontBroad
   // discarded and this just prevents memory leaks.
   if (g_GameState == Get5State_None) {
     return Plugin_Continue;
+  }
+
+  if (g_GameState == Get5State_Live && GetRoundsPlayed() == 0 && StrEqual(g_DemoFilePath, "")) {
+    // Start demo recording immediately before the first live round. This avoids recording the
+    // going-live warmup countdown while still ensuring that knife-side swaps are already reflected
+    // in team cvars and GOTV team slots.
+    StartRecording();
   }
 
   if (g_PendingSideSwap) {
