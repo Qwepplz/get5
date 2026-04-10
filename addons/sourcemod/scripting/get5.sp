@@ -190,6 +190,9 @@ Get5PauseType g_PauseType = Get5PauseType_None;  // The type of pause last initi
 Handle g_PauseTimer = INVALID_HANDLE;
 int g_LatestPauseDuration = -1;
 bool g_TeamReadyForUnpause[MATCHTEAM_COUNT];
+bool g_ClientReadyForUnpause[MAXPLAYERS + 1];
+Handle g_UnpauseReminderTimer = INVALID_HANDLE;
+int g_LastUnpauseRequesterUserId = 0;
 bool g_TeamGivenStopCommand[MATCHTEAM_COUNT];
 int g_TacticalPauseTimeUsed[MATCHTEAM_COUNT];
 int g_TacticalPausesUsed[MATCHTEAM_COUNT];
@@ -537,7 +540,6 @@ public void OnPluginStart() {
   MapChatCommand(Get5ChatCommand_Pause, "tac");
   MapChatCommand(Get5ChatCommand_Pause, "pause");
   MapChatCommand(Get5ChatCommand_Unpause, "unpause");
-  MapChatCommand(Get5ChatCommand_Coach, "coach");
   MapChatCommand(Get5ChatCommand_Stay, "stay");
   MapChatCommand(Get5ChatCommand_Swap, "switch");
   MapChatCommand(Get5ChatCommand_Swap, "swap");
@@ -561,7 +563,6 @@ public void OnPluginStart() {
   RegAdminCmd("get5_loadteam", Command_LoadTeam, ADMFLAG_CHANGEMAP, "Loads a team data from a file into a team");
   RegAdminCmd("get5_endmatch", Command_EndMatch, ADMFLAG_CHANGEMAP, "Force ends the current match");
   RegAdminCmd("get5_addplayer", Command_AddPlayer, ADMFLAG_CHANGEMAP, "Adds a steamid to a match team");
-  RegAdminCmd("get5_addcoach", Command_AddCoach, ADMFLAG_CHANGEMAP, "Adds a steamid to a match teams coach slot");
   RegAdminCmd("get5_removeplayer", Command_RemovePlayer, ADMFLAG_CHANGEMAP, "Removes a steamid from a match team");
   RegAdminCmd("get5_addkickedplayer", Command_AddKickedPlayer, ADMFLAG_CHANGEMAP,
               "Adds the last kicked steamid to a match team");
@@ -616,7 +617,6 @@ public void OnPluginStart() {
   Stats_PluginStart();
   Stats_InitSeries();
 
-  AddCommandListener(Command_Coach, "coach");
   AddCommandListener(Command_JoinTeam, "jointeam");
   AddCommandListener(Command_JoinGame, "joingame");
   AddCommandListener(Command_PauseOrUnpauseMatch, "mp_pause_match");
@@ -640,6 +640,7 @@ public void OnPluginStart() {
     // Same length.
     g_TeamCoaches[i] = new ArrayList(AUTH_LENGTH);
   }
+  DisableCoachingSupport();
   g_PlayerNames = new StringMap();
   g_FlashbangContainer = new StringMap();
   g_HEGrenadeContainer = new StringMap();
@@ -699,8 +700,6 @@ static Action Timer_InfoMessages(Handle timer) {
   GetChatAliasForCommand(Get5ChatCommand_Ready, readyCommandFormatted, sizeof(readyCommandFormatted), true);
   char unreadyCommandFormatted[64];
   GetChatAliasForCommand(Get5ChatCommand_Unready, unreadyCommandFormatted, sizeof(unreadyCommandFormatted), true);
-  char coachCommandFormatted[64];
-  GetChatAliasForCommand(Get5ChatCommand_Coach, coachCommandFormatted, sizeof(coachCommandFormatted), true);
 
   if (g_GameState == Get5State_PendingRestore) {
     if (!IsTeamsReady() && !IsDoingRestoreOrMapChange()) {
@@ -715,7 +714,6 @@ static Action Timer_InfoMessages(Handle timer) {
       } else {
         // g_MapSides empty if we veto, so make sure to only check this during warmup.
         bool knifeRound = g_GameState == Get5State_Warmup && g_MapSides.Get(g_MapNumber) == SideChoice_KnifeRound;
-        bool coachingEnabled = g_CoachingEnabledCvar.BoolValue && g_CoachesPerTeam > 0;
         LOOP_CLIENTS(i) {
           if (!IsPlayer(i)) {
             continue;
@@ -735,15 +733,6 @@ static Action Timer_InfoMessages(Handle timer) {
                              : (knifeRound ? "ReadyToKnifeInfoMessage" : "ReadyToStartInfoMessage"),
                            readyCommandFormatted);
             }
-          }
-          if (team == Get5Team_Spec) {
-            // Spectators cannot coach.
-            continue;
-          }
-          if (coach) {
-            Get5_Message(i, "%t", "ExitCoachSlotHelp", coachCommandFormatted);
-          } else if (coachingEnabled) {
-            Get5_Message(i, "%t", "EnterCoachSlotHelp", coachCommandFormatted);
           }
         }
       }
@@ -789,6 +778,7 @@ void RememberAndKickClient(int client, const char[] format, const char[] transla
 public void OnClientPutInServer(int client) {
   LogDebug("OnClientPutInServer");
   Stats_HookDamageForClient(client);  // Also needed for bots!
+  g_ClientReadyForUnpause[client] = false;
   if (IsFakeClient(client)) {
     return;
   }
@@ -863,6 +853,7 @@ static Action Event_PlayerConnectFull(Event event, const char[] name, bool dontB
 static Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast) {
   int client = GetClientOfUserId(event.GetInt("userid"));
   g_ClientPendingTeamCheck[client] = false;
+  g_ClientReadyForUnpause[client] = false;
   if (g_GameState == Get5State_None || !IsPlayer(client)) {
     return Plugin_Continue;
   }
@@ -899,6 +890,8 @@ public void OnMapStart() {
       g_TechnicalPausesUsed[team] = 0;
     }
   }
+
+  ResetUnpauseTracking();
 
   // If the map is changed while a map timer is counting down, kill the timer. This could happen if
   // a too long mp_match_restart_delay was set and admins decide to manually intervene.
@@ -981,6 +974,7 @@ static Action Timer_CheckReady(Handle timer) {
 
   // Handle ready checks for pre-veto state
   if (g_GameState == Get5State_PreVeto) {
+    PrintReadyStatusHint();
     if (CheckReadyWaitingTimes()) {
       // We don't wait for spectators when initiating veto
       LogDebug("Timer_CheckReady: starting veto");
@@ -996,6 +990,7 @@ static Action Timer_CheckReady(Handle timer) {
       RestoreGet5Backup(true);
     }
   } else if (g_GameState == Get5State_Warmup) {
+    PrintReadyStatusHint();
     // Wait for both players and spectators before going live
     if (CheckReadyWaitingTimes() && IsSpectatorsReady()) {
       LogDebug("Timer_CheckReady: all teams ready to start");
@@ -1368,6 +1363,10 @@ Action Timer_DisconnectCheck(Handle timer, int disconnectingClient) {
     return Plugin_Handled;
   }
 
+  if (IsPaused()) {
+    HandleUnpauseVotesOnDisconnect();
+  }
+
   if (g_GameState <= Get5State_Warmup || g_GameState > Get5State_Live || IsDoingRestoreOrMapChange()) {
     // If we're in warmup or veto, the "time to ready" logic should be used instead of leave-surrender.
     // Postgame/restore also should not trigger any of this logic.
@@ -1720,10 +1719,11 @@ void ResetMatchConfigVariables(bool backup = false) {
       g_TechnicalPausesUsed[i] = 0;
     }
   }
+  ResetUnpauseTracking();
   g_FavoredTeamPercentage = 0;
   g_FavoredTeamText = "";
   g_PlayersPerTeam = 5;
-  g_CoachesPerTeam = 2;
+  g_CoachesPerTeam = 0;
   g_MinPlayersToReady = 1;
   g_CoachesMustReady = false;
   g_MinSpectatorsToReady = 0;
@@ -1817,6 +1817,7 @@ static Action Event_FreezeEnd(Event event, const char[] name, bool dontBroadcast
   g_LatestPauseDuration = -1;
   g_PauseType = Get5PauseType_None;
   g_PausingTeam = Get5Team_None;
+  ResetUnpauseTracking();
 
   LOOP_TEAMS(t) {
     // Because teams can !stop again during freezetime after loading a backup, we want to make sure no lingering

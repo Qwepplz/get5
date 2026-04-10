@@ -3,6 +3,206 @@ static bool PauseableGameState() {
           g_GameState == Get5State_Live || g_GameState == Get5State_GoingLive);
 }
 
+static bool IsUnpauseVoteParticipant(int client) {
+  return OnActiveTeam(client);
+}
+
+static void StopUnpauseReminderTimer() {
+  if (g_UnpauseReminderTimer != INVALID_HANDLE) {
+    delete g_UnpauseReminderTimer;
+    g_UnpauseReminderTimer = INVALID_HANDLE;
+  }
+}
+
+void ResetUnpauseTracking() {
+  LOOP_CLIENTS(i) {
+    g_ClientReadyForUnpause[i] = false;
+  }
+  LOOP_TEAMS(team) {
+    g_TeamReadyForUnpause[team] = false;
+  }
+  g_LastUnpauseRequesterUserId = 0;
+  StopUnpauseReminderTimer();
+}
+
+static int GetUnpauseParticipantCount(Get5Team team = Get5Team_None) {
+  int count = 0;
+  LOOP_CLIENTS(i) {
+    if (!IsUnpauseVoteParticipant(i)) {
+      continue;
+    }
+    if (team != Get5Team_None && GetClientMatchTeam(i) != team) {
+      continue;
+    }
+    count++;
+  }
+  return count;
+}
+
+static int GetUnpauseVoteCount(Get5Team team = Get5Team_None) {
+  int count = 0;
+  LOOP_CLIENTS(i) {
+    if (!IsUnpauseVoteParticipant(i) || !g_ClientReadyForUnpause[i]) {
+      continue;
+    }
+    if (team != Get5Team_None && GetClientMatchTeam(i) != team) {
+      continue;
+    }
+    count++;
+  }
+  return count;
+}
+
+static void RefreshUnpauseTeamReadyState() {
+  LOOP_TEAMS(team) {
+    if (!IsPlayerTeam(team)) {
+      g_TeamReadyForUnpause[team] = false;
+      continue;
+    }
+
+    int participants = GetUnpauseParticipantCount(team);
+    g_TeamReadyForUnpause[team] = participants == 0 || GetUnpauseVoteCount(team) >= participants;
+  }
+}
+
+static bool HaveAllUnpauseParticipantsVoted() {
+  int totalParticipants = GetUnpauseParticipantCount();
+  return totalParticipants > 0 && GetUnpauseVoteCount() >= totalParticipants;
+}
+
+static int FindCurrentUnpauseRequester() {
+  int requester = GetClientOfUserId(g_LastUnpauseRequesterUserId);
+  if (IsUnpauseVoteParticipant(requester) && g_ClientReadyForUnpause[requester]) {
+    return requester;
+  }
+
+  LOOP_CLIENTS(i) {
+    if (IsUnpauseVoteParticipant(i) && g_ClientReadyForUnpause[i]) {
+      return i;
+    }
+  }
+
+  return 0;
+}
+
+static void BuildUnpauseCommandPair(char[] buffer, int bufferSize) {
+  char bangCommand[64];
+  GetChatAliasForCommand(Get5ChatCommand_Unpause, bangCommand, sizeof(bangCommand), false);
+
+  char dotCommand[64];
+  strcopy(dotCommand, sizeof(dotCommand), bangCommand);
+  if (dotCommand[0] == '!') {
+    dotCommand[0] = '.';
+  } else {
+    FormatEx(dotCommand, sizeof(dotCommand), ".%s", bangCommand);
+  }
+
+  char commandPair[128];
+  FormatEx(commandPair, sizeof(commandPair), "%s/%s", dotCommand, bangCommand);
+  FormatChatCommand(buffer, bufferSize, commandPair);
+}
+
+static void BuildPendingUnpauseNames(char[] buffer, int bufferSize) {
+  buffer[0] = '\0';
+
+  bool first = true;
+  LOOP_CLIENTS(i) {
+    if (!IsUnpauseVoteParticipant(i) || g_ClientReadyForUnpause[i]) {
+      continue;
+    }
+
+    char name[MAX_NAME_LENGTH];
+    GetClientName(i, name, sizeof(name));
+    if (!first) {
+      StrCat(buffer, bufferSize, ", ");
+    }
+    StrCat(buffer, bufferSize, name);
+    first = false;
+  }
+}
+
+static void UpdateClientUnpauseVote(int client, bool voted) {
+  if (!IsUnpauseVoteParticipant(client)) {
+    return;
+  }
+
+  g_ClientReadyForUnpause[client] = voted;
+  if (voted) {
+    g_LastUnpauseRequesterUserId = GetClientUserId(client);
+  }
+
+  RefreshUnpauseTeamReadyState();
+
+  if (GetUnpauseVoteCount() < 1) {
+    g_LastUnpauseRequesterUserId = 0;
+    StopUnpauseReminderTimer();
+  }
+}
+
+static bool NotifyPendingUnpauseVoters() {
+  char pendingNames[512];
+  BuildPendingUnpauseNames(pendingNames, sizeof(pendingNames));
+  if (pendingNames[0] == '\0') {
+    return false;
+  }
+
+  int requester = FindCurrentUnpauseRequester();
+  if (!IsUnpauseVoteParticipant(requester)) {
+    return false;
+  }
+
+  char formattedRequesterName[MAX_NAME_LENGTH];
+  FormatPlayerName(formattedRequesterName, sizeof(formattedRequesterName), requester, GetClientMatchTeam(requester));
+
+  char formattedUnpauseCommands[128];
+  BuildUnpauseCommandPair(formattedUnpauseCommands, sizeof(formattedUnpauseCommands));
+
+  Get5_MessageToAll("%t", "WaitingForUnpauseInfoMessage", formattedRequesterName, pendingNames,
+                    formattedUnpauseCommands);
+  return true;
+}
+
+static bool TryCompleteUnpauseVote(int requester = 0) {
+  RefreshUnpauseTeamReadyState();
+  if (!HaveAllUnpauseParticipantsVoted()) {
+    return false;
+  }
+
+  if (requester == 0) {
+    requester = FindCurrentUnpauseRequester();
+  }
+
+  bool announceRequester = IsUnpauseVoteParticipant(requester);
+  char formattedRequesterName[MAX_NAME_LENGTH];
+  if (announceRequester) {
+    FormatPlayerName(formattedRequesterName, sizeof(formattedRequesterName), requester, GetClientMatchTeam(requester));
+  }
+
+  StopUnpauseReminderTimer();
+  UnpauseGame();
+
+  if (announceRequester) {
+    Get5_MessageToAll("%t", "MatchUnpauseInfoMessage", formattedRequesterName);
+  }
+
+  return true;
+}
+
+void HandleUnpauseVotesOnDisconnect() {
+  if (!IsPaused() || g_PauseType == Get5PauseType_Admin) {
+    StopUnpauseReminderTimer();
+    return;
+  }
+
+  RefreshUnpauseTeamReadyState();
+  if (GetUnpauseVoteCount() < 1) {
+    StopUnpauseReminderTimer();
+    return;
+  }
+
+  TryCompleteUnpauseVote();
+}
+
 void PauseGame(Get5Team team, Get5PauseType type) {
   if (type == Get5PauseType_None) {
     LogError("PauseGame() called with Get5PauseType_None. Please call UnpauseGame() instead.");
@@ -10,8 +210,7 @@ void PauseGame(Get5Team team, Get5PauseType type) {
     return;
   }
 
-  g_TeamReadyForUnpause[Get5Team_1] = false;
-  g_TeamReadyForUnpause[Get5Team_2] = false;
+  ResetUnpauseTracking();
 
   Get5MatchPausedEvent event = new Get5MatchPausedEvent(g_MatchID, g_MapNumber, team, type);
 
@@ -63,6 +262,7 @@ void UnpauseGame() {
   g_PauseType = Get5PauseType_None;
   g_PausingTeam = Get5Team_None;
   g_LatestPauseDuration = -1;
+  ResetUnpauseTracking();
   g_IsChangingPauseState = true;
   ServerCommand("mp_unpause_match");
   CreateTimer(0.1, Timer_ResetPauseRestriction);
@@ -107,8 +307,8 @@ Action Command_TechPause(int client, int args) {
   }
 
   if (g_PauseType != Get5PauseType_None) {
-    g_TeamReadyForUnpause[team] = false;
-    LogDebug("Ignoring technical pause request as game is already paused; setting team to not ready to unpause.");
+    UpdateClientUnpauseVote(client, false);
+    LogDebug("Ignoring technical pause request as game is already paused; clearing unpause vote for client %d.", client);
     return Plugin_Handled;
   }
 
@@ -161,8 +361,8 @@ Action Command_Pause(int client, int args) {
   }
 
   if (g_PauseType != Get5PauseType_None) {
-    g_TeamReadyForUnpause[team] = false;
-    LogDebug("Ignoring tactical pause request as game is already paused; setting team to not ready to unpause.");
+    UpdateClientUnpauseVote(client, false);
+    LogDebug("Ignoring tactical pause request as game is already paused; clearing unpause vote for client %d.", client);
     return Plugin_Handled;
   }
 
@@ -235,7 +435,6 @@ Action Command_Unpause(int client, int args) {
     return Plugin_Handled;
   }
 
-  g_TeamReadyForUnpause[team] = true;
   if (g_PauseType == Get5PauseType_Tech) {
     int maxTechPauseDuration = g_MaxTechPauseDurationCvar.IntValue;
     int maxTechPauses = g_MaxTechPausesCvar.IntValue;
@@ -259,24 +458,31 @@ Action Command_Unpause(int client, int args) {
     return Plugin_Handled;
   }
 
-  char formattedUnpauseCommand[64];
-  GetChatAliasForCommand(Get5ChatCommand_Unpause, formattedUnpauseCommand, sizeof(formattedUnpauseCommand), true);
-  if (g_TeamReadyForUnpause[Get5Team_1] && g_TeamReadyForUnpause[Get5Team_2]) {
-    UnpauseGame();
-    if (IsPlayer(client)) {
-      char formattedClientName[MAX_NAME_LENGTH];
-      FormatPlayerName(formattedClientName, sizeof(formattedClientName), client, team);
-      Get5_MessageToAll("%t", "MatchUnpauseInfoMessage", formattedClientName);
-    }
-  } else if (!g_TeamReadyForUnpause[Get5Team_2]) {
-    Get5_MessageToAll("%t", "WaitingForUnpauseInfoMessage", g_FormattedTeamNames[Get5Team_1],
-                      g_FormattedTeamNames[Get5Team_2], formattedUnpauseCommand);
-  } else if (!g_TeamReadyForUnpause[Get5Team_1]) {
-    Get5_MessageToAll("%t", "WaitingForUnpauseInfoMessage", g_FormattedTeamNames[Get5Team_2],
-                      g_FormattedTeamNames[Get5Team_1], formattedUnpauseCommand);
+  UpdateClientUnpauseVote(client, true);
+  if (!TryCompleteUnpauseVote(client) && NotifyPendingUnpauseVoters() && g_UnpauseReminderTimer == INVALID_HANDLE) {
+    g_UnpauseReminderTimer = CreateTimer(10.0, Timer_UnpauseReminder, _, TIMER_REPEAT);
   }
 
   return Plugin_Handled;
+}
+
+static Action Timer_UnpauseReminder(Handle timer) {
+  if (timer != g_UnpauseReminderTimer) {
+    return Plugin_Stop;
+  }
+
+  if (!IsPaused() || g_PauseType == Get5PauseType_Admin) {
+    g_UnpauseReminderTimer = INVALID_HANDLE;
+    return Plugin_Stop;
+  }
+
+  RefreshUnpauseTeamReadyState();
+  if (GetUnpauseVoteCount() < 1 || HaveAllUnpauseParticipantsVoted() || !NotifyPendingUnpauseVoters()) {
+    g_UnpauseReminderTimer = INVALID_HANDLE;
+    return Plugin_Stop;
+  }
+
+  return Plugin_Continue;
 }
 
 static Action Timer_PauseTimeCheck(Handle timer) {

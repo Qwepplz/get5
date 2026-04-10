@@ -20,6 +20,10 @@
     {
         "chi"            "当您准备好开始比赛时，请输入{1}。"
     }
+    "ReadyStatusHint"
+    {
+        "chi"            "当前已有 {1}/{2} 位所需参与者准备完毕。\n输入 {3} 表示准备，输入 {4} 取消准备。"
+    }
     "YouAreReady"
     {
         "chi"            "您已被标记为准备就绪。"
@@ -291,5 +295,242 @@
     "MapSelectionCountdown"
     {
         "chi"        "地图选择将在{1}秒后开始。"
+    }
+    "YouAreReadyAuto"
+    {
+        "chi"            "注意：由于游戏行为，您已被自动标记为准备就绪。"
+    }
+    "TypeUnreadyIfNotReady"
+    {
+        "#format"        "{1:s}"
+        "chi"            "如果您尚未准备好，请输入{1}。"
+    }
+    "WaitingForGOTVMapSelection"
+    {
+        "chi"            "地图将在 GOTV 播放完地图选择后切换。"
+    }
+    "TeamMustBeReadyOrForfeit"
+    {
+        "#format"        "{1:s},{2:s}"
+        "chi"            "{1}必须在{2}内准备就绪，否则将被判负。"
+    }
+    "TeamsMustBeReadyOrTie"
+    {
+        "#format"        "{1:s}"
+        "chi"            "双方队伍必须在{1}内准备就绪，否则比赛将以平局结束。"
+    }
+    "PausesNotEnabled"
+    {
+        "chi"            "暂停功能未启用。"
+    }
+    "TechPausesNotEnabled"
+    {
+        "chi"            "技术暂停未启用。"
+    }
+    "TechnicalPauseMidSentence"
+    {
+        "chi"            "技术暂停"
+    }
+    "TacticalPauseMidSentence"
+    {
+        "chi"            "战术暂停"
+    }
+    "TimeRemainingBeforeAnyoneCanUnpausePrefix"
+    {
+        "chi"            "任意玩家可解除暂停前的剩余时间"
+    }
+    "PauseTimeRemainingPrefix"
+    {
+        "chi"            "剩余暂停时间"
+    }
+    "AwaitingUnpause"
+    {
+        "chi"            "等待解除暂停"
+    }
+    "PausedByAdministrator"
+    {
+        "chi"            "管理员已暂停比赛。"
+    }
+    "PausedForBackup"
+    {
+        "chi"            "比赛已从备份恢复，双方队伍必须解除暂停后才能继续。"
+    }
+    "UserCannotUnpauseAdmin"
+    {
+        "chi"            "此次暂停由管理员发起，因此也必须由管理员解除。"
+    }
+    "PauseRequestCanceled"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}取消了他们的暂停请求。"
+    }
+    "PausingTeamCannotUnpauseUntilFreezeTime"
+    {
+        "chi"            "在您的暂停正式开始前，不能解除暂停。"
+    }
+    "TechPauseRunoutInfoMessage"
+    {
+        "#format"        "{1:s}"
+        "chi"            "技术暂停的最长时长已到。现在任何人都可以输入{1}解除暂停。"
+    }
+    "TechPauseNoTimeRemaining"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}已没有剩余技术暂停时间，请改用战术暂停。"
+    }
+    "TechPauseNoPausesRemaining"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}已没有剩余技术暂停次数，请改用战术暂停。"
+    }
+    "TechPauseAutomaticallyStarted"
+    {
+        "#format"        "{1:s}"
+        "chi"            "已自动为{1}发起技术暂停。"
+    }
+    "PrereleaseVersionWarning"
+    {
+        "#format"        "{1:s},{2:s}"
+        "chi"            "您当前运行的是仅用于开发和测试的非正式 Get5 版本（{1}）。可通过{2}关闭此提示。"
+    }
+    "NewVersionAvailable"
+    {
+        "#format"        "{1:s}"
+        "chi"            "Get5 有新版本可用，请访问 {1} 更新。"
+    }
+    "ForceReadyDisabled"
+    {
+        "#format"        "{1:s},{2:s}"
+        "chi"            "{1}命令已禁用，但可通过{2}启用。"
+    }
+    "AdminForceEndWithWinnerInfoMessage"
+    {
+        "#format"        "{1:s}"
+        "chi"            "管理员已强制结束比赛，并将{1}设为获胜方。"
+    }
+    "StopCommandNotEnabled"
+    {
+        "chi"            "停止命令未启用。"
+    }
+    "StopCommandOnlyAfterRoundStart"
+    {
+        "chi"            "在回合开始前，不能请求重开当前回合。"
+    }
+    "StopCommandVotingReset"
+    {
+        "#format"        "{1:s}"
+        "chi"            "由于回合已结束，{1}发起的停止比赛请求已被取消。"
+    }
+    "StopCommandRequiresNoDamage"
+    {
+        "chi"            "一旦有玩家对敌方造成伤害，就不能再请求重开当前回合。"
+    }
+    "StopCommandTimeLimitExceeded"
+    {
+        "#format"        "{1:s}"
+        "chi"            "请求重开当前回合必须在回合开始后的{1}内提出。"
+    }
+    "ExitCoachSlotHelp"
+    {
+        "#format"        "{1:s}"
+        "chi"            "输入{1}退出教练位。"
+    }
+    "EnterCoachSlotHelp"
+    {
+        "#format"        "{1:s}"
+        "chi"            "输入{1}成为你队伍的教练。"
+    }
+    "CannotLeaveCoachingTeamIsFull"
+    {
+        "chi"            "由于你的队伍已满员，你不能离开教练位。"
+    }
+    "CoachingNotEnabled"
+    {
+        "#format"        "{1:s}"
+        "chi"            "教练功能未启用。你必须将{1}设为1。"
+    }
+    "PlayerIsCoachingTeam"
+    {
+        "#format"        "{1:s},{2:s}"
+        "chi"            "{1}正在执教{2}。"
+    }
+    "CanOnlyCoachDuringWarmup"
+    {
+        "chi"            "只能在热身阶段切换为教练或退出教练。"
+    }
+    "AllCoachSlotsFilledForTeam"
+    {
+        "#format"        "{1:d}"
+        "chi"            "你队伍的所有教练位（{1}个）当前都已占满。"
+    }
+    "SurrenderCommandNotEnabled"
+    {
+        "chi"            "投降命令未启用。"
+    }
+    "SurrenderMinimumRoundDeficit"
+    {
+        "#format"        "{1:d}"
+        "chi"            "至少落后{1}个回合时，才可以发起投降。"
+    }
+    "SurrenderInitiated"
+    {
+        "#format"        "{1:s},{2:d},{3:d}"
+        "chi"            "{1}发起了投降投票。你的队伍必须在{3}秒内达到{2}票。"
+    }
+    "SurrenderVoteStatus"
+    {
+        "#format"        "{1:d},{2:d}"
+        "chi"            "当前已获得{1}/{2}张所需投降票。"
+    }
+    "SurrenderSuccessful"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}已投降。"
+    }
+    "SurrenderVoteFailed"
+    {
+        "chi"            "你队伍投赞成投降的人数不足。"
+    }
+    "SurrenderOnCooldown"
+    {
+        "#format"        "{1:s}"
+        "chi"            "你必须等待{1}后才能再次发起投降投票。"
+    }
+    "WinByForfeitAvailable"
+    {
+        "#format"        "{1:s},{2:s},{3:s}"
+        "chi"            "{1}已离开服务器。只要{2}阵容完整，现在就可以输入{3}发起判负获胜倒计时。"
+    }
+    "WinByForfeitRequiresFullTeam"
+    {
+        "chi"            "只有在你的队伍满员时，才能请求或取消判负获胜。"
+    }
+    "WinByForfeitAlreadyRequested"
+    {
+        "chi"            "已经有一个判负获胜请求在等待处理中。"
+    }
+    "WinByForfeitCountdownStarted"
+    {
+        "#format"        "{1:s},{2:s},{3:s},{4:s}"
+        "chi"            "若{3}没有玩家在{2}内重新加入比赛，{1}将直接获胜。此请求可通过{4}取消。"
+    }
+    "WinByForfeitCountdownCanceled"
+    {
+        "#format"        "{1:s}"
+        "chi"            "来自{1}的判负获胜请求已被取消。"
+    }
+    "TeamForfeited"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}已弃权本次系列赛。"
+    }
+    "AllPlayersLeftTieCountdown"
+    {
+        "#format"        "{1:s}"
+        "chi"            "双方队伍都已离开服务器。每队至少需要有一名玩家在{1}内重新加入，否则系列赛将以平局结束。"
+    }
+    "TieCountdownCanceled"
+    {
+        "chi"            "由于双方队伍现在都已有玩家，平局倒计时已取消。"
     }
 }

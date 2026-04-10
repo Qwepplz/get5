@@ -801,6 +801,8 @@ static bool LoadMatchFromJson(const JSON_Object json, char[] error) {
     }
   }
 
+  DisableCoachingSupport();
+
   return true;
 }
 
@@ -984,6 +986,8 @@ static bool LoadMatchFromKeyValue(KeyValues kv, char[] error) {
     }
     kv.GoBack();
   }
+
+  DisableCoachingSupport();
 
   return true;
 }
@@ -1361,78 +1365,6 @@ Action Command_AddPlayer(int client, int args) {
 
   } else {
     ReplyToCommand(client, "Usage: get5_addplayer <auth> <team1|team2|spec> [name]");
-  }
-  return Plugin_Handled;
-}
-
-Action Command_AddCoach(int client, int args) {
-  if (g_GameState == Get5State_None) {
-    ReplyToCommand(client, "No match configuration was loaded.");
-    return Plugin_Handled;
-  } else if (!g_CoachingEnabledCvar.BoolValue) {
-    ReplyToCommand(client, "Coaching is not enabled.");
-    return Plugin_Handled;
-  } else if (g_InScrimMode) {
-    ReplyToCommand(client, "Coaches cannot be added in scrim mode. Use the !coach command in chat.");
-    return Plugin_Handled;
-  } else if (g_DoingBackupRestoreNow || g_GameState == Get5State_PendingRestore) {
-    ReplyToCommand(client, "Cannot add coaches while waiting for round backup.");
-    return Plugin_Handled;
-  } else if (g_PendingSideSwap || InHalftimePhase()) {
-    ReplyToCommand(client, "Cannot add coaches during halftime. Please wait until the next round starts.");
-    return Plugin_Handled;
-  }
-
-  char auth[AUTH_LENGTH];
-  char teamString[32];
-  char name[MAX_NAME_LENGTH];
-  if (args >= 2 && GetCmdArg(1, auth, sizeof(auth)) && GetCmdArg(2, teamString, sizeof(teamString))) {
-    if (args >= 3) {
-      GetCmdArg(3, name, sizeof(name));
-    }
-
-    Get5Team team = Get5Team_None;
-    if (StrEqual(teamString, "team1")) {
-      team = Get5Team_1;
-    } else if (StrEqual(teamString, "team2")) {
-      team = Get5Team_2;
-    } else {
-      ReplyToCommand(client, "Unknown team: must be one of team1 or team2");
-      return Plugin_Handled;
-    }
-
-    if (CountCoachesOnTeam(team) == g_CoachesPerTeam) {
-      ReplyToCommand(client, "Coach Spots are full for %s.", teamString);
-      return Plugin_Handled;
-    }
-
-    if (AddCoachToTeam(auth, team, name)) {
-      // If the player is already on the team as a regular player, remove them when adding to
-      // coaches.
-      int index = GetTeamPlayers(team).FindString(auth);
-      if (index >= 0) {
-        GetTeamPlayers(team).Erase(index);
-      }
-
-      ReplyToCommand(client, "Successfully added player %s as coach for %s.", auth, teamString);
-
-      // If the user is already on the server as a player, move them to coaching immediately.
-      int addedClient = AuthToClient(auth);
-      if (addedClient > 0 && IsClientConnected(addedClient)) {
-        Get5Side side = view_as<Get5Side>(Get5TeamToCSTeam(team));
-        if (side != Get5Side_None) {
-          LogDebug("Player %s was present on the server when added as coach; moving them to coach for %d.", auth, team);
-          SetClientCoaching(addedClient, side);
-        }
-      }
-    } else {
-      ReplyToCommand(
-        client,
-        "Failed to add player %s as coach for %s. They may already be coaching or you provided an invalid Steam ID.",
-        auth, teamString);
-    }
-  } else {
-    ReplyToCommand(client, "Usage: get5_addcoach <auth> <team1|team2> [name]");
   }
   return Plugin_Handled;
 }

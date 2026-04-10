@@ -118,6 +118,21 @@ static bool IsClientCoachForTeam(int client, Get5Team team) {
   return GetAuth(client, clientAuth64, AUTH_LENGTH) && IsAuthOnTeamCoach(clientAuth64, team);
 }
 
+void DisableCoachingSupport() {
+  g_CoachesPerTeam = 0;
+  g_CoachesMustReady = false;
+
+  LOOP_TEAMS(team) {
+    if (team != Get5Team_Spec) {
+      GetTeamCoaches(team).Clear();
+    }
+  }
+
+  if (g_CoachingEnabledCvar != null && g_CoachingEnabledCvar.BoolValue) {
+    g_CoachingEnabledCvar.SetInt(0);
+  }
+}
+
 void SetClientCoaching(int client, Get5Side side, bool broadcast = true) {
   if (GetClientCoachingSide(client) == side) {
     return;
@@ -139,6 +154,14 @@ void SetClientCoaching(int client, Get5Side side, bool broadcast = true) {
 }
 
 void CoachingChangedHook(ConVar convar, const char[] oldValue, const char[] newValue) {
+  if (convar.BoolValue) {
+    LogDebug("Coaching is disabled in this deployment; forcing sv_coaching_enabled back to 0.");
+    convar.SetInt(0);
+    return;
+  }
+
+  DisableCoachingSupport();
+
   if (g_GameState == Get5State_None || !g_CheckAuthsCvar.BoolValue) {
     return;
   }
@@ -159,73 +182,9 @@ Action Command_SmCoach(int client, int args) {
     return Plugin_Handled;
   }
 
-  if (!g_CheckAuthsCvar.BoolValue) {
-    Get5Side side = view_as<Get5Side>(GetClientTeam(client));
-    if (side == Get5Side_CT) {
-      FakeClientCommand(client, "coach ct");
-    } else if (side == Get5Side_T) {
-      FakeClientCommand(client, "coach t");
-    }
-    return Plugin_Handled;
-  }
-
-  if (!g_CoachingEnabledCvar.BoolValue) {
-    char formattedCoachingCvar[64];
-    FormatCvarName(formattedCoachingCvar, sizeof(formattedCoachingCvar), "sv_coaching_enabled");
-    Get5_Message(client, "%t", "CoachingNotEnabled", formattedCoachingCvar);
-    return Plugin_Handled;
-  }
-
-  Get5Team matchTeam = GetClientMatchTeam(client);
-
-  if (matchTeam == Get5Team_None || matchTeam == Get5Team_Spec) {
-    return Plugin_Handled;
-  }
-
-  if (g_GameState > Get5State_Warmup) {
-    Get5_Message(client, "%t", "CanOnlyCoachDuringWarmup");
-    return Plugin_Handled;
-  }
-
-  // These counts are excluding the client, so >=.
-  bool coachSlotsFull = CountCoachesOnTeam(matchTeam, client) >= g_CoachesPerTeam;
-  bool playerSlotsFull = CountPlayersOnTeam(matchTeam, client) >= g_PlayersPerTeam;
-
-  // If we're in scrim mode, we don't update the coaches auth array ever.
-  if (g_InScrimMode) {
-    if (IsClientCoaching(client)) {
-      if (playerSlotsFull) {
-        Get5_Message(client, "%t", "CannotLeaveCoachingTeamIsFull");
-        return Plugin_Handled;
-      }
-      // Fall-through to CheckClientTeam(i) below, which moves the player back on the team because
-      // they are not defined as a coach in auth.
-    } else {
-      if (coachSlotsFull) {
-        Get5_Message(client, "%t", "AllCoachSlotsFilledForTeam", g_CoachesPerTeam);
-        return Plugin_Handled;
-      }
-      // We use SetClientCoaching instead of fall-though because of missing auth.
-      SetClientCoaching(client, view_as<Get5Side>(Get5TeamToCSTeam(matchTeam)));
-      return Plugin_Handled;
-    }
-  } else {
-    if (IsClientCoachForTeam(client, matchTeam)) {
-      if (playerSlotsFull) {
-        Get5_Message(client, "%t", "CannotLeaveCoachingTeamIsFull");
-        return Plugin_Handled;
-      }
-      MoveCoachToPlayerInConfig(client, matchTeam);
-    } else {
-      if (coachSlotsFull) {
-        Get5_Message(client, "%t", "AllCoachSlotsFilledForTeam", g_CoachesPerTeam);
-        return Plugin_Handled;
-      }
-      MovePlayerToCoachInConfig(client, matchTeam);
-    }
-  }
-  // Move the player. This would potentially kick them if we did not perform above checks.
-  CheckClientTeam(client);
+  char formattedCoachingCvar[64];
+  FormatCvarName(formattedCoachingCvar, sizeof(formattedCoachingCvar), "sv_coaching_enabled");
+  Get5_Message(client, "%t", "CoachingNotEnabled", formattedCoachingCvar);
   return Plugin_Handled;
 }
 
@@ -241,29 +200,6 @@ static void MovePlayerToCoachInConfig(const int client, const Get5Team team) {
       GetTeamPlayers(team).Erase(index);
     }
   }
-}
-
-static void MoveCoachToPlayerInConfig(const int client, const Get5Team team) {
-  char auth[AUTH_LENGTH];
-  GetAuth(client, auth, sizeof(auth));
-  AddPlayerToTeam(auth, team, "");
-  // This differs from MovePlayerToCoachInConfig because being in coach array + player array will
-  // make coaching take precedence, so if you're being added from coach to player, and you're
-  // already defined as a player, the above function will return false, so we always remove from the
-  // coach array when moving from coach to player.
-  int index = GetTeamCoaches(team).FindString(auth);
-  if (index >= 0) {
-    LogDebug("Removing client %d from coach team auth array for team %d", client, team);
-    GetTeamCoaches(team).Erase(index);
-  }
-}
-
-Action Command_Coach(int client, const char[] command, int argc) {
-  if (g_GameState == Get5State_None || !g_CheckAuthsCvar.BoolValue) {
-    return Plugin_Continue;
-  }
-  ReplyToCommand(client, "Please use .coach in chat or sm_coach instead of the built-in console coach command.");
-  return Plugin_Stop;
 }
 
 Get5Team GetClientMatchTeam(int client) {

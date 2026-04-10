@@ -66,8 +66,8 @@ bool IsTeamReady(Get5Team team) {
 
   int minPlayers = GetRequiredPlayersPerTeam(team);
   int minReady = GetTeamMinReady(team);
-  int playerCount = GetTeamPlayerCount(team, g_CoachesMustReady);
-  int readyCount = GetTeamReadyCount(team, g_CoachesMustReady);
+  int playerCount = GetReadySystemPlayerCount(team, g_CoachesMustReady);
+  int readyCount = GetReadySystemReadyCount(team, g_CoachesMustReady);
 
   if (g_GameState == Get5State_PreVeto && playerCount == 0 && minPlayers > 0) {
     // A team that is still expected to field real players cannot ready for veto while empty.
@@ -139,6 +139,81 @@ static int GetPlayersPerTeam(Get5Team team) {
     return g_MinSpectatorsToReady;
   } else {
     return 0;
+  }
+}
+
+static bool IsReadySystemBot(int client, Get5Team team) {
+  return IsValidClient(client) && !IsClientSourceTV(client) && !IsClientReplay(client) && IsFakeClient(client) &&
+         CSTeamToGet5Team(GetClientTeam(client)) == team && team != Get5Team_Spec;
+}
+
+static int GetReadySystemPlayerCount(Get5Team team, bool includeCoaches = false) {
+  int playerCount = GetTeamPlayerCount(team, includeCoaches);
+  LOOP_CLIENTS(i) {
+    if (IsReadySystemBot(i, team)) {
+      playerCount++;
+    }
+  }
+  return playerCount;
+}
+
+static int GetReadySystemReadyCount(Get5Team team, bool includeCoaches = false) {
+  int readyCount = GetTeamReadyCount(team, includeCoaches);
+  LOOP_CLIENTS(i) {
+    if (IsReadySystemBot(i, team)) {
+      readyCount++;
+    }
+  }
+  return readyCount;
+}
+
+static int GetTeamReadyTargetCount(Get5Team team) {
+  int targetCount = GetRequiredPlayersPerTeam(team);
+  int playerCount = GetReadySystemPlayerCount(team, g_CoachesMustReady);
+  return playerCount > targetCount ? playerCount : targetCount;
+}
+
+static int GetEffectiveTeamReadyCount(Get5Team team) {
+  if (IsTeamForcedReady(team)) {
+    return GetTeamReadyTargetCount(team);
+  }
+  return GetReadySystemReadyCount(team, g_CoachesMustReady);
+}
+
+void PrintReadyStatusHint() {
+  if ((g_GameState != Get5State_PreVeto && g_GameState != Get5State_Warmup) || IsDoingRestoreOrMapChange()) {
+    return;
+  }
+
+  bool waitingForSpectators = g_GameState == Get5State_Warmup && IsTeamsReady() && !IsSpectatorsReady();
+
+  int totalReady = GetEffectiveTeamReadyCount(Get5Team_1) + GetEffectiveTeamReadyCount(Get5Team_2);
+  int totalTarget = GetTeamReadyTargetCount(Get5Team_1) + GetTeamReadyTargetCount(Get5Team_2);
+  if (g_MinSpectatorsToReady > 0) {
+    totalReady += GetEffectiveTeamReadyCount(Get5Team_Spec);
+    totalTarget += GetTeamReadyTargetCount(Get5Team_Spec);
+  }
+
+  if (totalTarget < 1) {
+    return;
+  }
+
+  char readyCommand[64];
+  GetChatAliasForCommand(Get5ChatCommand_Ready, readyCommand, sizeof(readyCommand), false);
+
+  char unreadyCommand[64];
+  GetChatAliasForCommand(Get5ChatCommand_Unready, unreadyCommand, sizeof(unreadyCommand), false);
+
+  LOOP_CLIENTS(i) {
+    if (!IsPlayer(i) || GetClientMatchTeam(i) == Get5Team_None) {
+      continue;
+    }
+
+    if (waitingForSpectators) {
+      PrintHintText(i, "%t", "WaitingForCastersReadyInfoMessage", g_TeamNames[Get5Team_Spec], readyCommand);
+    } else {
+      PrintHintText(i, "%t", "ReadyStatusHint", totalReady, totalTarget, readyCommand, unreadyCommand);
+    }
   }
 }
 
@@ -337,8 +412,8 @@ static void MissingPlayerInfoMessageTeam(Get5Team team) {
 
   int playersPerTeam = GetRequiredPlayersPerTeam(team);
   int minimumPlayersForForceReady = GetTeamMinReady(team);
-  int playerCount = GetTeamPlayerCount(team, g_CoachesMustReady);
-  int readyCount = GetTeamReadyCount(team, g_CoachesMustReady);
+  int playerCount = GetReadySystemPlayerCount(team, g_CoachesMustReady);
+  int readyCount = GetReadySystemReadyCount(team, g_CoachesMustReady);
 
   if (playerCount == readyCount && playerCount < playersPerTeam && readyCount >= minimumPlayersForForceReady) {
     char forceReadyFormatted[64];
