@@ -1,0 +1,1 @@
+适用于CSGOBetterBOt的Pug插件
