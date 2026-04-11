@@ -533,4 +533,9 @@
     {
         "chi"            "由于双方队伍现在都已有玩家，平局倒计时已取消。"
     }
+    "PostMatchShutdownCountdown"
+    {
+        "#format"        "{1:d}"
+        "chi"            "比赛已结束，服务器将在 {1} 秒后关闭。"
+    }
 }

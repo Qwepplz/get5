@@ -583,4 +583,9 @@
     {
         "en"        "The countdown to a tie was canceled as both teams now have players."
     }
+    "PostMatchShutdownCountdown"
+    {
+        "#format"   "{1:d}"
+        "en"        "Match finished. Server will shut down in {1} seconds."
+    }
 }

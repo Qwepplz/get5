@@ -1710,7 +1710,7 @@ void StartPostMatchShutdownCountdown() {
 }
 
 static void AnnouncePostMatchShutdown(int secondsRemaining) {
-  Get5_MessageToAll("比赛已结束，服务器将在 {GREEN}%d {NORMAL} 秒后关闭。", secondsRemaining);
+  Get5_MessageToAll("%t", "PostMatchShutdownCountdown", secondsRemaining);
 }
 
 static Action Timer_PostMatchShutdownCountdown(Handle timer) {
@@ -1733,12 +1733,6 @@ static Action Timer_PostMatchShutdownCountdown(Handle timer) {
 static void FinishPostMatchShutdown() {
   if (g_ResetCvarsTimer != INVALID_HANDLE) {
     TriggerTimer(g_ResetCvarsTimer);
-  }
-
-  LOOP_CLIENTS(i) {
-    if (IsClientInGame(i) && !IsFakeClient(i)) {
-      KickClient(i, "比赛已结束，服务器正在关闭。");
-    }
   }
 
   LogMessage("Shutting down server after post-match countdown.");
