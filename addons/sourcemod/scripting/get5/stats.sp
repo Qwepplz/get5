@@ -1265,7 +1265,7 @@ void PrintDamageInfo(int client) {
       }
 
       char formattedName[MAX_CVAR_LENGTH];
-      FormatPlayerName(formattedName, sizeof(formattedName), i, GetClientMatchTeam(i));
+      FormatEx(formattedName, sizeof(formattedName), "%N", i);
       ReplaceStringEx(message, msgSize, "{NAME}", formattedName);
 
       ReplaceStringWithInt(message, msgSize, "{HEALTH}", health);
