@@ -22,6 +22,10 @@
   ],
   "favored_percentage_team1": 75,
   "favored_percentage_text": "team percentage text",
+  "cvars": {
+    "mp_match_can_clinch": "0",
+    "mp_overtime_enable": "1"
+  },
   "team1": {
     "id": "TeamAID",
     "name": "Team A Default",

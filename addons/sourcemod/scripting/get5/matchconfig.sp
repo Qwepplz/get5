@@ -20,7 +20,8 @@
 
 bool LoadMatchConfig(const char[] config, char[] error, bool restoreBackup = false) {
   if (g_GameState != Get5State_None && !restoreBackup) {
-    Format(error, PLATFORM_MAX_PATH, "Cannot load a match configuration when a match is already loaded.");
+    Format(error, PLATFORM_MAX_PATH,
+           "已有比赛加载时不能再加载新的比赛配置。(Cannot load a match configuration when a match is already loaded.)");
     return false;
   }
 
@@ -60,8 +61,9 @@ bool LoadMatchConfig(const char[] config, char[] error, bool restoreBackup = fal
   }
 
   if (g_NumberOfMapsInSeries > g_MapPoolList.Length) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Cannot play a series of %d maps with a maplist of only %d maps.",
-             g_NumberOfMapsInSeries, g_MapPoolList.Length);
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "地图列表只有 %d 张地图，无法进行 %d 图系列赛。(Cannot play a series of %d maps with a maplist of only %d maps.)",
+             g_MapPoolList.Length, g_NumberOfMapsInSeries, g_NumberOfMapsInSeries, g_MapPoolList.Length);
     return false;
   }
 
@@ -77,7 +79,8 @@ bool LoadMatchConfig(const char[] config, char[] error, bool restoreBackup = fal
       usesWorkShopMap = true;
     }
     if (!workshop && !IsMapValid(mapName)) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Maplist contains invalid map '%s'.", mapName);
+      FormatEx(error, PLATFORM_MAX_PATH, "地图列表包含无效地图 '%s'。(Maplist contains invalid map '%s'.)",
+               mapName, mapName);
       return false;
     }
     g_MapsLeftInVetoPool.PushString(mapName);
@@ -88,7 +91,7 @@ bool LoadMatchConfig(const char[] config, char[] error, bool restoreBackup = fal
 
   if (usesWorkShopMap && !FindCommandLineParam("-authkey")) {
     FormatEx(error, PLATFORM_MAX_PATH,
-             "Maplist contains a Workshop map, but no Steam Web API Key was provided to the server.");
+             "地图列表包含创意工坊地图，但服务器未提供 Steam Web API Key。(Maplist contains a Workshop map, but no Steam Web API Key was provided to the server.)");
     return false;
   }
 
@@ -230,7 +233,8 @@ static bool LoadMatchFile(const char[] config, char[] error, bool backup) {
   }
 
   if (!FileExists(config)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Match config file '%s' does not exist or cannot be read.", config);
+    FormatEx(error, PLATFORM_MAX_PATH, "比赛配置文件 '%s' 不存在或无法读取。(Match config file '%s' does not exist or cannot be read.)",
+             config, config);
     return false;
   }
 
@@ -245,11 +249,14 @@ static bool LoadMatchFile(const char[] config, char[] error, bool backup) {
     // Assume its a key-values file.
     char parseError[PLATFORM_MAX_PATH];
     if (!CheckKeyValuesFile(config, parseError, sizeof(parseError))) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Failed to read match config from file '%s' as KV: %s", config, parseError);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "将比赛配置文件 '%s' 作为 KV 读取失败：%s (Failed to read match config from file '%s' as KV: %s)",
+               config, parseError, config, parseError);
     } else {
       KeyValues kv = new KeyValues("Match");
       if (!kv.ImportFromFile(config)) {
-        FormatEx(error, PLATFORM_MAX_PATH, "Failed to import match config from file '%s'.", config);
+        FormatEx(error, PLATFORM_MAX_PATH, "导入比赛配置文件 '%s' 失败。(Failed to import match config from file '%s'.)",
+                 config, config);
       } else {
         success = LoadMatchFromKeyValue(kv, error);
       }
@@ -286,14 +293,15 @@ static bool LoadMapListFromFile(const char[] fromFile, char[] error) {
     char parseError[PLATFORM_MAX_PATH];
     if (!CheckKeyValuesFile(fromFile, parseError, sizeof(parseError))) {
       FormatEx(error, PLATFORM_MAX_PATH,
-               "'maplist' -> 'fromfile' points to an invalid or unreadable KV file: '%s'. Error: %s", fromFile,
-               parseError);
+               "'maplist' -> 'fromfile' 指向无效或不可读的 KV 文件：'%s'。错误：%s ('maplist' -> 'fromfile' points to an invalid or unreadable KV file: '%s'. Error: %s)",
+               fromFile, parseError, fromFile, parseError);
     } else {
       KeyValues kvFromFile = new KeyValues("maplist");
       if (kvFromFile.ImportFromFile(fromFile)) {
         success = LoadMapListKeyValue(kvFromFile, error, false);
       } else {
-        FormatEx(error, PLATFORM_MAX_PATH, "Failed to read maplist from KV file: '%s'.", fromFile);
+        FormatEx(error, PLATFORM_MAX_PATH, "从 KV 文件读取地图列表失败：'%s'。(Failed to read maplist from KV file: '%s'.)",
+                 fromFile, fromFile);
       }
       delete kvFromFile;
     }
@@ -315,13 +323,15 @@ bool LoadTeamDataFromFile(const char[] fromFile, const Get5Team team, char[] err
   } else {
     char parseError[PLATFORM_MAX_PATH];
     if (!CheckKeyValuesFile(fromFile, parseError, sizeof(parseError))) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Cannot read team from KV file '%s': %s", fromFile, parseError);
+      FormatEx(error, PLATFORM_MAX_PATH, "无法从 KV 文件 '%s' 读取队伍：%s (Cannot read team from KV file '%s': %s)",
+               fromFile, parseError, fromFile, parseError);
     } else {
       KeyValues kvFromFile = new KeyValues("Team");
       if (kvFromFile.ImportFromFile(fromFile)) {
         success = LoadTeamDataKeyValue(kvFromFile, team, error, false);
       } else {
-        FormatEx(error, PLATFORM_MAX_PATH, "Cannot read team from KV file '%s'.", fromFile);
+        FormatEx(error, PLATFORM_MAX_PATH, "无法从 KV 文件 '%s' 读取队伍。(Cannot read team from KV file '%s'.)",
+                 fromFile, fromFile);
       }
       delete kvFromFile;
     }
@@ -349,7 +359,7 @@ bool LoadMatchFromUrl(const char[] url, const ArrayList paramNames = null, const
                       const ArrayList headerNames = null, const ArrayList headerValues = null, char[] error) {
   if (!LibraryExists("SteamWorks")) {
     FormatEx(error, PLATFORM_MAX_PATH,
-             "The SteamWorks extension is required in order to load match configurations over HTTP.");
+             "通过 HTTP 加载比赛配置需要 SteamWorks 扩展。(The SteamWorks extension is required in order to load match configurations over HTTP.)");
     return false;
   }
 
@@ -379,10 +389,11 @@ static void LoadMatchFromUrl_Callback(Handle request, bool failure, bool request
 
   if (failure || !requestSuccessful) {
     MatchConfigFail(
-      "HTTP request for '%s' failed due to a network or configuration error. Make sure you have enclosed your URL in quotes.",
-      loadedUrl);
+      "对 '%s' 的 HTTP 请求因网络或配置错误而失败，请确认 URL 已用引号包裹。(HTTP request for '%s' failed due to a network or configuration error. Make sure you have enclosed your URL in quotes.)",
+      loadedUrl, loadedUrl);
   } else if (!CheckForSuccessfulResponse(request, statusCode)) {
-    MatchConfigFail("HTTP request for '%s' failed with HTTP status code: %d.", loadedUrl, statusCode);
+    MatchConfigFail("对 '%s' 的 HTTP 请求失败，HTTP 状态码：%d。(HTTP request for '%s' failed with HTTP status code: %d.)",
+                    loadedUrl, statusCode, loadedUrl, statusCode);
   } else {
     char remoteConfig[PLATFORM_MAX_PATH];
     char error[PLATFORM_MAX_PATH];
@@ -399,7 +410,8 @@ static void LoadMatchFromUrl_Callback(Handle request, bool failure, bool request
         MatchConfigFail(error);
       }
     } else {
-      MatchConfigFail("Failed to write match configuration to file '%s'.", remoteConfig);
+      MatchConfigFail("将比赛配置写入文件 '%s' 失败。(Failed to write match configuration to file '%s'.)",
+                      remoteConfig, remoteConfig);
     }
   }
   delete request;
@@ -483,19 +495,19 @@ static void WritePlayerDataToKV(const char[] key, const ArrayList players, const
 // JSON load validators
 bool ValidateJSONMatchConfig(const JSON_Object json, char[] error) {
   if (json.IsArray) {
-    FormatEx(error, PLATFORM_MAX_PATH, "JSON match config is a JSON array. Must be object.");
+    FormatEx(error, PLATFORM_MAX_PATH, "JSON 比赛配置不能是数组，必须是对象。(JSON match config is a JSON array. Must be object.)");
     return false;
   }
 
   if (!json.HasKey("maplist") || json.GetType("maplist") != JSON_Type_Object) {
     FormatEx(error, PLATFORM_MAX_PATH,
-             "JSON match config 'maplist' property is required and must be an array or object.");
+             "JSON 比赛配置中的 'maplist' 为必填项，且必须为数组或对象。(JSON match config 'maplist' property is required and must be an array or object.)");
     return false;
   }
 
   JSON_Object mapListObject = json.GetObject("maplist");
   if (mapListObject == null) {
-    FormatEx(error, PLATFORM_MAX_PATH, "JSON match config is missing required property 'maplist'.");
+    FormatEx(error, PLATFORM_MAX_PATH, "JSON 比赛配置缺少必需的 'maplist' 属性。(JSON match config is missing required property 'maplist'.)");
     return false;
   }
 
@@ -506,7 +518,9 @@ bool ValidateJSONMatchConfig(const JSON_Object json, char[] error) {
   char stringKeys[][] = {"matchid", "match_title", "veto_first", "side_type", "favored_percentage_text"};
   for (int i = 0; i < 5; i++) {
     if (json.HasKey(stringKeys[i]) && json.GetType(stringKeys[i]) != JSON_Type_String) {
-      FormatEx(error, PLATFORM_MAX_PATH, "JSON match config has invalid '%s' property. Must be string.", stringKeys[i]);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "JSON 比赛配置中的 '%s' 属性无效，必须为字符串。(JSON match config has invalid '%s' property. Must be string.)",
+               stringKeys[i], stringKeys[i]);
       return false;
     }
   }
@@ -515,8 +529,9 @@ bool ValidateJSONMatchConfig(const JSON_Object json, char[] error) {
   for (int i = 0; i < 5; i++) {
     if (json.HasKey(integerKeys[i]) &&
         (json.GetType(integerKeys[i]) != JSON_Type_Int || json.GetInt(integerKeys[i]) < 0)) {
-      FormatEx(error, PLATFORM_MAX_PATH, "JSON match config has invalid '%s' property. Must be non-negative integer.",
-               integerKeys[i]);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "JSON 比赛配置中的 '%s' 属性无效，必须为非负整数。(JSON match config has invalid '%s' property. Must be non-negative integer.)",
+               integerKeys[i], integerKeys[i]);
       return false;
     }
   }
@@ -525,21 +540,24 @@ bool ValidateJSONMatchConfig(const JSON_Object json, char[] error) {
     if (json.HasKey(boolKeys[i]) && (json.GetType(boolKeys[i]) != JSON_Type_Bool &&
                                      (json.GetType(boolKeys[i]) != JSON_Type_Int ||
                                       (json.GetInt(boolKeys[i]) != 0 && json.GetInt(boolKeys[i]) != 1)))) {
-      FormatEx(error, PLATFORM_MAX_PATH, "JSON match config has invalid '%s' property. Must be boolean or 0/1.",
-               boolKeys[i]);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "JSON 比赛配置中的 '%s' 属性无效，必须为布尔值或 0/1。(JSON match config has invalid '%s' property. Must be boolean or 0/1.)",
+               boolKeys[i], boolKeys[i]);
       return false;
     }
   }
   char percentageTeam1Key[] = "favored_percentage_team1";
   if (json.HasKey(percentageTeam1Key) && json.GetType(percentageTeam1Key) != JSON_Type_Int &&
       json.GetType(percentageTeam1Key) != JSON_Type_Float) {
-    FormatEx(error, PLATFORM_MAX_PATH, "JSON match config has invalid '%s' property. Must be number.",
-             percentageTeam1Key);
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "JSON 比赛配置中的 '%s' 属性无效，必须为数字。(JSON match config has invalid '%s' property. Must be number.)",
+             percentageTeam1Key, percentageTeam1Key);
     return false;
   }
 
   if (!json.HasKey("team1") || json.GetType("team1") != JSON_Type_Object) {
-    FormatEx(error, PLATFORM_MAX_PATH, "JSON match config is missing or has invalid 'team1' property. Must be object.");
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "JSON 比赛配置缺少 'team1' 属性或其格式无效，必须为对象。(JSON match config is missing or has invalid 'team1' property. Must be object.)");
     return false;
   }
   if (!ValidateJSONTeam(json.GetObject("team1"), error, false, true)) {
@@ -549,7 +567,7 @@ bool ValidateJSONMatchConfig(const JSON_Object json, char[] error) {
   if (!json.GetBool("scrim")) {
     if (!json.HasKey("team2") || json.GetType("team2") != JSON_Type_Object) {
       FormatEx(error, PLATFORM_MAX_PATH,
-               "JSON match config is missing or has invalid 'team2' property. Must be object.");
+               "JSON 比赛配置缺少 'team2' 属性或其格式无效，必须为对象。(JSON match config is missing or has invalid 'team2' property. Must be object.)");
       return false;
     }
     if (!ValidateJSONTeam(json.GetObject("team2"), error, false, true)) {
@@ -559,7 +577,8 @@ bool ValidateJSONMatchConfig(const JSON_Object json, char[] error) {
 
   if (json.HasKey("spectators")) {
     if (json.GetType("spectators") != JSON_Type_Object) {
-      FormatEx(error, PLATFORM_MAX_PATH, "JSON match config has invalid 'spectators' property. Must be object.");
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "JSON 比赛配置中的 'spectators' 属性无效，必须为对象。(JSON match config has invalid 'spectators' property. Must be object.)");
       return false;
     }
     if (!ValidateJSONTeam(json.GetObject("spectators"), error, true, true)) {
@@ -569,7 +588,8 @@ bool ValidateJSONMatchConfig(const JSON_Object json, char[] error) {
 
   if (json.HasKey("cvars")) {
     if (json.GetType("cvars") != JSON_Type_Object) {
-      FormatEx(error, PLATFORM_MAX_PATH, "JSON match config has invalid 'cvars' property. Must be object.");
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "JSON 比赛配置中的 'cvars' 属性无效，必须为对象。(JSON match config has invalid 'cvars' property. Must be object.)");
       return false;
     }
     if (!ValidateJSONCvars(json.GetObject("cvars"), error)) {
@@ -584,22 +604,23 @@ bool ValidateJSONMapList(const JSON_Object json, char[] error, bool allowFromFil
   if (json.IsArray) {
     JSON_Array maplist = view_as<JSON_Array>(json);
     if (maplist.Length < 1) {
-      FormatEx(error, PLATFORM_MAX_PATH, "'maplist' property must not be empty array.");
+      FormatEx(error, PLATFORM_MAX_PATH, "'maplist' 属性不能为空数组。('maplist' property must not be empty array.)");
       return false;
     }
   } else {
     if (!allowFromFile) {
-      FormatEx(error, PLATFORM_MAX_PATH, "'maplist' property must be array.");
+      FormatEx(error, PLATFORM_MAX_PATH, "'maplist' 属性必须为数组。('maplist' property must be array.)");
       return false;
     }
     if (!json.HasKey("fromfile") || json.GetType("fromfile") != JSON_Type_String) {
-      FormatEx(error, PLATFORM_MAX_PATH, "'maplist' property must contain 'fromfile' as string if object.");
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "'maplist' 属性若为对象，必须包含字符串类型的 'fromfile'。('maplist' property must contain 'fromfile' as string if object.)");
       return false;
     }
     char fromFile[PLATFORM_MAX_PATH];
     json.GetString("fromfile", fromFile, sizeof(fromFile));
     if (strlen(fromFile) == 0) {
-      FormatEx(error, PLATFORM_MAX_PATH, "'maplist' -> 'fromfile' cannot be empty string.");
+      FormatEx(error, PLATFORM_MAX_PATH, "'maplist' -> 'fromfile' 不能为空字符串。('maplist' -> 'fromfile' cannot be empty string.)");
       return false;
     }
   }
@@ -608,14 +629,16 @@ bool ValidateJSONMapList(const JSON_Object json, char[] error, bool allowFromFil
 
 bool ValidateJSONTeam(const JSON_Object team, char[] error, bool spectators, bool allowFromFile) {
   if (team.IsArray) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Team cannot be an array. Must be object.");
+    FormatEx(error, PLATFORM_MAX_PATH, "队伍不能是数组，必须是对象。(Team cannot be an array. Must be object.)");
     return false;
   }
 
   char keys[][] = {"name", "tag", "flag", "logo", "matchtext", "fromfile", "id"};
   for (int i = 0; i < 7; i++) {
     if (team.HasKey(keys[i]) && team.GetType(keys[i]) != JSON_Type_String) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Team has invalid '%s' property. Must be string.", keys[i]);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "队伍配置中的 '%s' 属性无效，必须为字符串。(Team has invalid '%s' property. Must be string.)",
+               keys[i], keys[i]);
       return false;
     }
   }
@@ -623,13 +646,13 @@ bool ValidateJSONTeam(const JSON_Object team, char[] error, bool spectators, boo
   bool hasFromFile = team.HasKey("fromfile");
   if (hasFromFile) {
     if (!allowFromFile) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Team has recursive 'fromfile'.");
+      FormatEx(error, PLATFORM_MAX_PATH, "队伍配置中的 'fromfile' 出现递归引用。(Team has recursive 'fromfile'.)");
       return false;
     }
     char fromFile[PLATFORM_MAX_PATH];
     team.GetString("fromfile", fromFile, sizeof(fromFile));
     if (strlen(fromFile) == 0) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Team 'fromfile' must not be empty string.");
+      FormatEx(error, PLATFORM_MAX_PATH, "队伍配置中的 'fromfile' 不能为空字符串。(Team 'fromfile' must not be empty string.)");
       return false;
     }
     return true;
@@ -640,11 +663,11 @@ bool ValidateJSONTeam(const JSON_Object team, char[] error, bool spectators, boo
 
   // Player team cannot be empty, coaches optional. Spectator can be totally empty and still be valid.
   if ((!spectators && !playersValid) || (spectators && hasPlayers && !playersValid)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Team does not have a valid 'players' object/array.");
+    FormatEx(error, PLATFORM_MAX_PATH, "队伍配置缺少有效的 'players' 对象/数组。(Team does not have a valid 'players' object/array.)");
     return false;
   }
   if (team.HasKey("coaches") && team.GetType("coaches") != JSON_Type_Object) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Team does not have a valid 'coaches' object/array.");
+    FormatEx(error, PLATFORM_MAX_PATH, "队伍配置缺少有效的 'coaches' 对象/数组。(Team does not have a valid 'coaches' object/array.)");
     return false;
   }
   return true;
@@ -652,7 +675,7 @@ bool ValidateJSONTeam(const JSON_Object team, char[] error, bool spectators, boo
 
 bool ValidateJSONCvars(const JSON_Object cvars, char[] error) {
   if (cvars.IsArray) {
-    FormatEx(error, PLATFORM_MAX_PATH, "JSON 'cvars' must not be an array.");
+    FormatEx(error, PLATFORM_MAX_PATH, "JSON 'cvars' 不能是数组。(JSON 'cvars' must not be an array.)");
     return false;
   }
   int length = cvars.Length;
@@ -663,7 +686,9 @@ bool ValidateJSONCvars(const JSON_Object cvars, char[] error) {
     cvars.GetKey(i, cVarKey, keyLength);
     JSONCellType type = cvars.GetType(cVarKey);
     if (type == JSON_Type_Object || type == JSON_Type_Invalid) {
-      FormatEx(error, PLATFORM_MAX_PATH, "JSON 'cvars' key '%s' contains invalid value.", cVarKey);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "JSON 'cvars' 中的键 '%s' 包含无效值。(JSON 'cvars' key '%s' contains invalid value.)",
+               cVarKey, cVarKey);
       return false;
     }
   }
@@ -737,15 +762,17 @@ static bool LoadMatchFromJson(const JSON_Object json, char[] error) {
     // If the number of maps is equal to the pool size, veto is impossible, so we force disable it.
     g_SkipVeto = true;
   } else if (g_MapPoolList.Length < g_NumberOfMapsInSeries) {
-    FormatEx(error, PLATFORM_MAX_PATH, "The map pool (%d) is not large enough to play a series of %d maps.",
-             g_MapPoolList.Length, g_NumberOfMapsInSeries);
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "地图池仅有 %d 张地图，不足以进行 %d 图系列赛。(The map pool (%d) is not large enough to play a series of %d maps.)",
+             g_MapPoolList.Length, g_NumberOfMapsInSeries, g_MapPoolList.Length, g_NumberOfMapsInSeries);
     return false;
   }
 
   JSON_Array array = view_as<JSON_Array>(json.GetObject("map_sides"));
   if (array != null) {
     if (!array.IsArray) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Expected \"map_sides\" section to be an array, found object.");
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "期望 \"map_sides\" 段为数组，但实际为对象。(Expected \"map_sides\" section to be an array, found object.)");
       return false;
     }
     for (int i = 0; i < array.Length; i++) {
@@ -800,6 +827,8 @@ static bool LoadMatchFromJson(const JSON_Object json, char[] error) {
     }
   }
 
+  NormalizeMatchConfigRoundOptions();
+
   DisableCoachingSupport();
 
   return true;
@@ -823,7 +852,7 @@ static bool LoadMapListJson(const JSON_Object json, char[] error) {
 
 static bool LoadVetoDataJSON(const JSON_Object json, char[] error) {
   if (!json.IsArray) {
-    FormatEx(error, PLATFORM_MAX_PATH, "'veto_order' must be array.");
+    FormatEx(error, PLATFORM_MAX_PATH, "'veto_order' 必须为数组。('veto_order' must be array.)");
     return false;
   }
 
@@ -927,7 +956,7 @@ static bool LoadMatchFromKeyValue(KeyValues kv, char[] error) {
   }
 
   if (!kv.JumpToKey("maplist")) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Missing 'maplist' section in match config KeyValues.");
+    FormatEx(error, PLATFORM_MAX_PATH, "比赛配置 KeyValues 缺少 'maplist' 段。(Missing 'maplist' section in match config KeyValues.)");
     return false;
   }
   if (!LoadMapListKeyValue(kv, error, true)) {
@@ -939,8 +968,9 @@ static bool LoadMatchFromKeyValue(KeyValues kv, char[] error) {
     // If the number of maps is equal to the pool size, veto is impossible, so we force disable it.
     g_SkipVeto = true;
   } else if (g_MapPoolList.Length < g_NumberOfMapsInSeries) {
-    FormatEx(error, PLATFORM_MAX_PATH, "The map pool (%d) is not large enough to play a series of %d maps.",
-             g_MapPoolList.Length, g_NumberOfMapsInSeries);
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "地图池仅有 %d 张地图，不足以进行 %d 图系列赛。(The map pool (%d) is not large enough to play a series of %d maps.)",
+             g_MapPoolList.Length, g_NumberOfMapsInSeries, g_MapPoolList.Length, g_NumberOfMapsInSeries);
     return false;
   }
 
@@ -986,6 +1016,8 @@ static bool LoadMatchFromKeyValue(KeyValues kv, char[] error) {
     kv.GoBack();
   }
 
+  NormalizeMatchConfigRoundOptions();
+
   DisableCoachingSupport();
 
   return true;
@@ -996,7 +1028,9 @@ static bool LoadTeamsInKeyValueConfig(const KeyValues kv, const Get5Team team, c
   char key[32];
   FormatEx(key, sizeof(key), team == Get5Team_1 ? "team1" : "team2");
   if (!kv.JumpToKey(key) && !(scrim && team == Get5Team_2)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Missing '%s' section in match config KeyValues.", key);
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "比赛配置 KeyValues 缺少 '%s' 段。(Missing '%s' section in match config KeyValues.)",
+             key, key);
     return false;
   }
   if (!LoadTeamDataKeyValue(kv, team, error, true)) {
@@ -1008,7 +1042,8 @@ static bool LoadTeamsInKeyValueConfig(const KeyValues kv, const Get5Team team, c
 
 static bool LoadMapListKeyValue(const KeyValues kv, char[] error, const bool allowFromFile) {
   if (!kv.GotoFirstSubKey(false)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "\"maplist\" has no valid subkeys in match config KV file.");
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "比赛配置 KV 文件中的 \"maplist\" 没有有效子键。(\"maplist\" has no valid subkeys in match config KV file.)");
     return false;
   }
   bool success = false;
@@ -1035,7 +1070,7 @@ static bool LoadMapListKeyValue(const KeyValues kv, char[] error, const bool all
 
 static bool LoadVetoDataKeyValues(const KeyValues kv, char[] error) {
   if (!kv.GotoFirstSubKey(false)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "'veto_order' contains no subkeys.");
+    FormatEx(error, PLATFORM_MAX_PATH, "'veto_order' 不包含任何子键。('veto_order' contains no subkeys.)");
     return false;
   }
   char buffer[32];
@@ -1054,7 +1089,8 @@ static bool LoadVetoDataKeyValues(const KeyValues kv, char[] error) {
 
 static bool ReadKeyValueMaplistSection(const KeyValues kv, char[] buffer, char[] error) {
   if (!kv.GetSectionName(buffer, PLATFORM_MAX_PATH)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "'maplist' property contains invalid map name in match config KeyValues.");
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "比赛配置 KeyValues 中的 'maplist' 包含无效地图名。('maplist' property contains invalid map name in match config KeyValues.)");
     return false;
   }
   EscapeKeyValueKeyRead(buffer, PLATFORM_MAX_PATH);
@@ -1185,7 +1221,8 @@ bool ValidateMapBanLogic(const ArrayList mapPool, const ArrayList mapBanPickOrde
   // Example: In a Bo3, at least 2 of the options must be picks to avoid randomly selecting map order of remaining maps.
   if (numberOfMapsInSeries > 1 && numberOfPicks < numberOfMapsInSeries - 1) {
     FormatEx(error, PLATFORM_MAX_PATH,
-             "In a series of %d maps, at least %d veto options must be picks. Found %d pick(s).", numberOfMapsInSeries,
+             "%d 图系列赛中，至少需要 %d 个 veto 选项为 pick，当前仅找到 %d 个。(In a series of %d maps, at least %d veto options must be picks. Found %d pick(s).)",
+             numberOfMapsInSeries, numberOfMapsInSeries - 1, numberOfPicks, numberOfMapsInSeries,
              numberOfMapsInSeries - 1, numberOfPicks);
     return false;
   }
@@ -1253,6 +1290,41 @@ static void SetTeamSpecificCvars(const Get5Team team) {
   SetTeamInfo(side, g_TeamNames[team], teamText, teamScore);
 }
 
+static void SetOrAddMatchConfigCvar(const char[] cvarName, const char[] cvarValue) {
+  int index = g_CvarNames.FindString(cvarName);
+  if (index == -1) {
+    g_CvarNames.PushString(cvarName);
+    g_CvarValues.PushString(cvarValue);
+  } else {
+    g_CvarValues.SetString(index, cvarValue);
+  }
+}
+
+static void NormalizeMatchConfigRoundOptions() {
+  int clinchIndex = g_CvarNames.FindString("mp_match_can_clinch");
+  if (clinchIndex == -1) {
+    return;
+  }
+
+  char clinchValue[MAX_CVAR_LENGTH];
+  g_CvarValues.GetString(clinchIndex, clinchValue, sizeof(clinchValue));
+  if (StringToInt(clinchValue) != 0) {
+    return;
+  }
+
+  int overtimeIndex = g_CvarNames.FindString("mp_overtime_enable");
+  if (overtimeIndex != -1) {
+    char overtimeValue[MAX_CVAR_LENGTH];
+    g_CvarValues.GetString(overtimeIndex, overtimeValue, sizeof(overtimeValue));
+    if (StringToInt(overtimeValue) == 0) {
+      return;
+    }
+  }
+
+  LogDebug("Forcing mp_overtime_enable to 0 because mp_match_can_clinch is 0.");
+  SetOrAddMatchConfigCvar("mp_overtime_enable", "0");
+}
+
 static void ExecuteMatchConfigCvars() {
   // Save the original match cvar values if we haven't already.
   if (g_MatchConfigChangedCvars == INVALID_HANDLE && g_ResetCvarsOnEndCvar.BoolValue) {
@@ -1271,18 +1343,33 @@ static void ExecuteMatchConfigCvars() {
       cvar.SetString(value);
     }
   }
+
+  char demoNameFormat[MAX_CVAR_LENGTH];
+  g_DemoNameFormatCvar.GetString(demoNameFormat, sizeof(demoNameFormat));
+  if (StrEqual(demoNameFormat, "{TIME}_{MATCHID}_map{MAPNUMBER}_{MAPNAME}") ||
+      StrEqual(demoNameFormat, "scrim_{TIME}_{MAPNAME}")) {
+    g_DemoNameFormatCvar.SetString("pug_{TIME}_{MAPNAME}", false, false);
+    LogMessage("Updated legacy get5_demo_name_format to \"pug_{TIME}_{MAPNAME}\" after match cvars were applied.");
+  }
+
+  char timeFormat[64];
+  g_TimeFormatCvar.GetString(timeFormat, sizeof(timeFormat));
+  if (StrEqual(timeFormat, "%Y-%m-%d_%H-%M-%S")) {
+    g_TimeFormatCvar.SetString("%Y-%m-%d_%H%M", false, false);
+    LogMessage("%s", "Updated legacy get5_time_format to \"%Y-%m-%d_%H%M\" after match cvars were applied.");
+  }
 }
 
 Action Command_LoadTeam(int client, int args) {
   char arg1[PLATFORM_MAX_PATH];
   char arg2[PLATFORM_MAX_PATH];
   if (args < 2 || !GetCmdArg(1, arg1, sizeof(arg1)) || !GetCmdArg(2, arg2, sizeof(arg2))) {
-    ReplyToCommand(client, "Usage: get_loadteam <team1|team2|spec> <filename>");
+    ReplyToCommand(client, "%t", "LoadTeamUsage");
     return Plugin_Handled;
   }
 
   if (g_GameState == Get5State_None) {
-    ReplyToCommand(client, "A match configuration must be loaded before you can load a team file.");
+    ReplyToCommand(client, "%t", "MatchConfigMustBeLoadedBeforeLoadTeam");
     return Plugin_Handled;
   }
 
@@ -1292,19 +1379,19 @@ Action Command_LoadTeam(int client, int args) {
   } else if (StrEqual(arg1, "team2")) {
     team = Get5Team_2;
     if (g_InScrimMode) {
-      ReplyToCommand(client, "In scrim mode only team1 or spec can be loaded.");
+      ReplyToCommand(client, "%t", "LoadTeamScrimOnlyTeam1OrSpec");
       return Plugin_Handled;
     }
   } else if (StrEqual(arg1, "spec")) {
     team = Get5Team_Spec;
   } else {
-    ReplyToCommand(client, "Unknown team argument. Must be one of: team1, team2, spec.");
+    ReplyToCommand(client, "%t", "LoadTeamUnknownTeamArgument");
     return Plugin_Handled;
   }
 
   char error[PLATFORM_MAX_PATH];
   if (LoadTeamDataFromFile(arg2, team, error)) {
-    ReplyToCommand(client, "Loaded team data for %s.", arg1);
+    ReplyToCommand(client, "%t", "LoadedTeamDataFor", arg1);
     SetMatchTeamCvars();
     if (g_CheckAuthsCvar.BoolValue) {
       LOOP_CLIENTS(i) {
@@ -1321,16 +1408,16 @@ Action Command_LoadTeam(int client, int args) {
 
 Action Command_AddPlayer(int client, int args) {
   if (g_GameState == Get5State_None) {
-    ReplyToCommand(client, "No match configuration was loaded.");
+    ReplyToCommand(client, "%t", "NoMatchConfigurationLoaded");
     return Plugin_Handled;
   } else if (g_InScrimMode) {
-    ReplyToCommand(client, "Cannot use get5_addplayer in scrim mode. Use get5_ringer to swap a player's team.");
+    ReplyToCommand(client, "%t", "AddPlayerScrimUseRinger");
     return Plugin_Handled;
   } else if (g_DoingBackupRestoreNow || g_GameState == Get5State_PendingRestore) {
-    ReplyToCommand(client, "Cannot add players while waiting for round backup.");
+    ReplyToCommand(client, "%t", "CannotAddPlayersWaitingBackup");
     return Plugin_Handled;
   } else if (g_PendingSideSwap || InHalftimePhase()) {
-    ReplyToCommand(client, "Cannot add players during halftime. Please wait until the next round starts.");
+    ReplyToCommand(client, "%t", "CannotAddPlayersDuringHalftime");
     return Plugin_Handled;
   }
 
@@ -1350,41 +1437,39 @@ Action Command_AddPlayer(int client, int args) {
     } else if (StrEqual(teamString, "spec")) {
       team = Get5Team_Spec;
     } else {
-      ReplyToCommand(client, "Unknown team: must be one of team1, team2, spec");
+      ReplyToCommand(client, "%t", "UnknownTeamSpecifier");
       return Plugin_Handled;
     }
 
     if (AddPlayerToTeam(auth, team, name)) {
-      ReplyToCommand(client, "Successfully added player %s to %s.", auth, teamString);
+      ReplyToCommand(client, "%t", "AddedPlayerToTeam", auth, teamString);
     } else {
-      ReplyToCommand(
-        client, "Failed to add player %s to team %. They may already be on a team or you provided an invalid Steam ID.",
-        auth, teamString);
+      ReplyToCommand(client, "%t", "FailedToAddPlayerToTeam", auth, teamString);
     }
 
   } else {
-    ReplyToCommand(client, "Usage: get5_addplayer <auth> <team1|team2|spec> [name]");
+    ReplyToCommand(client, "%t", "AddPlayerUsage");
   }
   return Plugin_Handled;
 }
 
 Action Command_AddKickedPlayer(int client, int args) {
   if (g_GameState == Get5State_None) {
-    ReplyToCommand(client, "No match configuration was loaded.");
+    ReplyToCommand(client, "%t", "NoMatchConfigurationLoaded");
     return Plugin_Handled;
   } else if (g_InScrimMode) {
-    ReplyToCommand(client, "Cannot use get5_addkickedplayer in scrim mode. Use get5_ringer to swap a player's team.");
+    ReplyToCommand(client, "%t", "AddKickedPlayerScrimUseRinger");
     return Plugin_Handled;
   } else if (g_DoingBackupRestoreNow || g_GameState == Get5State_PendingRestore) {
-    ReplyToCommand(client, "Cannot add players while waiting for round backup.");
+    ReplyToCommand(client, "%t", "CannotAddPlayersWaitingBackup");
     return Plugin_Handled;
   } else if (g_PendingSideSwap || InHalftimePhase()) {
-    ReplyToCommand(client, "Cannot add players during halftime. Please wait until the next round starts.");
+    ReplyToCommand(client, "%t", "CannotAddPlayersDuringHalftime");
     return Plugin_Handled;
   }
 
   if (StrEqual(g_LastKickedPlayerAuth, "")) {
-    ReplyToCommand(client, "No player has been kicked yet.");
+    ReplyToCommand(client, "%t", "NoPlayerKickedYet");
     return Plugin_Handled;
   }
 
@@ -1403,75 +1488,73 @@ Action Command_AddKickedPlayer(int client, int args) {
     } else if (StrEqual(teamString, "spec")) {
       team = Get5Team_Spec;
     } else {
-      ReplyToCommand(client, "Unknown team: must be one of team1, team2, spec");
+      ReplyToCommand(client, "%t", "UnknownTeamSpecifier");
       return Plugin_Handled;
     }
 
     if (AddPlayerToTeam(g_LastKickedPlayerAuth, team, name)) {
-      ReplyToCommand(client, "Successfully added kicked player %s to %s.", g_LastKickedPlayerAuth, teamString);
+      ReplyToCommand(client, "%t", "AddedKickedPlayerToTeam", g_LastKickedPlayerAuth, teamString);
     } else {
-      ReplyToCommand(
-        client, "Failed to add player %s to %s. They may already be on a team or you provided an invalid Steam ID.",
-        g_LastKickedPlayerAuth, teamString);
+      ReplyToCommand(client, "%t", "FailedToAddPlayerToTeam", g_LastKickedPlayerAuth, teamString);
     }
 
   } else {
-    ReplyToCommand(client, "Usage: get5_addkickedplayer <team1|team2|spec> [name]");
+    ReplyToCommand(client, "%t", "AddKickedPlayerUsage");
   }
   return Plugin_Handled;
 }
 
 Action Command_RemovePlayer(int client, int args) {
   if (g_GameState == Get5State_None) {
-    ReplyToCommand(client, "No match configuration was loaded.");
+    ReplyToCommand(client, "%t", "NoMatchConfigurationLoaded");
     return Plugin_Handled;
   }
 
   if (g_InScrimMode) {
-    ReplyToCommand(client, "Cannot use get5_removeplayer in scrim mode. Use get5_ringer to swap a player's team.");
+    ReplyToCommand(client, "%t", "RemovePlayerScrimUseRinger");
     return Plugin_Handled;
   }
 
   char auth[AUTH_LENGTH];
   if (args >= 1 && GetCmdArg(1, auth, sizeof(auth))) {
     if (RemovePlayerFromTeams(auth)) {
-      ReplyToCommand(client, "Successfully removed player %s.", auth);
+      ReplyToCommand(client, "%t", "RemovedPlayer", auth);
     } else {
-      ReplyToCommand(client, "Player %s not found in auth lists or the Steam ID was invalid.", auth);
+      ReplyToCommand(client, "%t", "PlayerAuthNotFoundOrInvalid", auth);
     }
   } else {
-    ReplyToCommand(client, "Usage: get5_removeplayer <auth>");
+    ReplyToCommand(client, "%t", "RemovePlayerUsage");
   }
   return Plugin_Handled;
 }
 
 Action Command_RemoveKickedPlayer(int client, int args) {
   if (g_GameState == Get5State_None) {
-    ReplyToCommand(client, "No match configuration was loaded.");
+    ReplyToCommand(client, "%t", "NoMatchConfigurationLoaded");
     return Plugin_Handled;
   }
 
   if (g_InScrimMode) {
-    ReplyToCommand(client, "Cannot use get5_removekickedplayer in scrim mode. Use get5_ringer to swap a players team.");
+    ReplyToCommand(client, "%t", "RemoveKickedPlayerScrimUseRinger");
     return Plugin_Handled;
   }
 
   if (StrEqual(g_LastKickedPlayerAuth, "")) {
-    ReplyToCommand(client, "No player has been kicked yet.");
+    ReplyToCommand(client, "%t", "NoPlayerKickedYet");
     return Plugin_Handled;
   }
 
   if (RemovePlayerFromTeams(g_LastKickedPlayerAuth)) {
-    ReplyToCommand(client, "Successfully removed kicked player %s.", g_LastKickedPlayerAuth);
+    ReplyToCommand(client, "%t", "RemovedKickedPlayer", g_LastKickedPlayerAuth);
   } else {
-    ReplyToCommand(client, "Player %s not found in auth lists or the Steam ID was invalid.", g_LastKickedPlayerAuth);
+    ReplyToCommand(client, "%t", "PlayerAuthNotFoundOrInvalid", g_LastKickedPlayerAuth);
   }
   return Plugin_Handled;
 }
 
 Action Command_CreateMatch(int client, int args) {
   if (g_GameState != Get5State_None) {
-    ReplyToCommand(client, "Cannot create a match when a match is already loaded.");
+    ReplyToCommand(client, "%t", "CannotCreateMatchAlreadyLoaded");
     return Plugin_Handled;
   }
 
@@ -1511,7 +1594,7 @@ Action Command_CreateMatch(int client, int args) {
         }
         numMaps = StringToInt(value);
         if (numMaps < 1) {
-          ReplyToCommand(client, "'%s' must be integer larger than 0.", parameter);
+          ReplyToCommand(client, "%t", "ParameterMustBeGreaterThanZeroInt", parameter);
           return Plugin_Handled;
         }
       } else if (strcmp(parameter, "--min_spectators_to_ready", false) == 0 || strcmp(parameter, "-mstr", false) == 0) {
@@ -1521,7 +1604,7 @@ Action Command_CreateMatch(int client, int args) {
         }
         minSpectatorsToReady = StringToInt(value);
         if (minSpectatorsToReady < 0) {
-          ReplyToCommand(client, "'%s' must be non-zero integer.", parameter);
+          ReplyToCommand(client, "%t", "ParameterMustBeNonNegativeInt", parameter);
           return Plugin_Handled;
         }
       } else if (strcmp(parameter, "--min_players_to_ready", false) == 0 || strcmp(parameter, "-mptr", false) == 0) {
@@ -1531,7 +1614,7 @@ Action Command_CreateMatch(int client, int args) {
         }
         minPlayersToReady = StringToInt(value);
         if (minPlayersToReady < 0) {
-          ReplyToCommand(client, "'%s' must be non-zero integer.", parameter);
+          ReplyToCommand(client, "%t", "ParameterMustBeNonNegativeInt", parameter);
           return Plugin_Handled;
         }
       } else if (strcmp(parameter, "--players_per_team", false) == 0 || strcmp(parameter, "-ppt", false) == 0) {
@@ -1541,7 +1624,7 @@ Action Command_CreateMatch(int client, int args) {
         }
         playersPerTeam = StringToInt(value);
         if (playersPerTeam < 1) {
-          ReplyToCommand(client, "'%s' must be integer larger than 0.", parameter);
+          ReplyToCommand(client, "%t", "ParameterMustBeGreaterThanZeroInt", parameter);
           return Plugin_Handled;
         }
       } else if (strcmp(parameter, "--coaches_per_team", false) == 0 || strcmp(parameter, "-cpt", false) == 0) {
@@ -1551,7 +1634,7 @@ Action Command_CreateMatch(int client, int args) {
         }
         coachesPerTeam = StringToInt(value);
         if (coachesPerTeam < 0) {
-          ReplyToCommand(client, "'%s' must be non-negative integer.", parameter);
+          ReplyToCommand(client, "%t", "ParameterMustBeNonNegativeInt", parameter);
           return Plugin_Handled;
         }
       } else if (strcmp(parameter, "--wingman", false) == 0 || strcmp(parameter, "-w", false) == 0) {
@@ -1600,7 +1683,7 @@ Action Command_CreateMatch(int client, int args) {
         }
         Get5VetoFirst v = VetoFirstFromString(value, error);
         if (v == Get5VetoFirst_Invalid) {
-          ReplyToCommand(client, "'%s' error: %s", parameter, error);
+          ReplyToCommand(client, "%t", "CommandParameterError", parameter, error);
           return Plugin_Handled;
         }
         strcopy(vetoFirst, sizeof(vetoFirst), value);
@@ -1611,7 +1694,7 @@ Action Command_CreateMatch(int client, int args) {
         }
         MatchSideType t = MatchSideTypeFromString(value, error);
         if (t == MatchSideType_Invalid) {
-          ReplyToCommand(client, "'%s' error: %s", parameter, error);
+          ReplyToCommand(client, "%t", "CommandParameterError", parameter, error);
           return Plugin_Handled;
         }
         strcopy(sideType, sizeof(sideType), value);
@@ -1635,7 +1718,7 @@ Action Command_CreateMatch(int client, int args) {
         mapCount = ExplodeString(value, ",", maps, 16, PLATFORM_MAX_PATH, true);
         for (int mi = 0; mi < mapCount; mi++) {
           if (!IsMapValid(maps[mi]) && !IsMapWorkshop(maps[mi])) {
-            ReplyToCommand(client, "Map '%s' is not valid.", maps[mi]);
+            ReplyToCommand(client, "%t", "MapIsNotValid", maps[mi]);
             return Plugin_Handled;
           }
         }
@@ -1647,18 +1730,18 @@ Action Command_CreateMatch(int client, int args) {
         sidesCount = ExplodeString(value, ",", mapSides, 16, PLATFORM_MAX_PATH, true);
         for (int mi = 0; mi < sidesCount; mi++) {
           if (SideChoiceFromString(mapSides[mi], error) == SideChoice_Invalid) {
-            ReplyToCommand(client, "'%s' error: %s", parameter, error);
+            ReplyToCommand(client, "%t", "CommandParameterError", parameter, error);
             return Plugin_Handled;
           }
         }
       } else {
-        ReplyToCommand(client, "Unknown parameter: %s", parameter);
+        ReplyToCommand(client, "%t", "UnknownParameter", parameter);
         return Plugin_Handled;
       }
     }
   }
   if (mapCount > 0 && mapCount < numMaps) {
-    ReplyToCommand(client, "--num_maps cannot be larger than the size of --maplist.");
+    ReplyToCommand(client, "%t", "NumMapsCannotExceedMaplist");
     return Plugin_Handled;
   }
 
@@ -1671,28 +1754,28 @@ Action Command_CreateMatch(int client, int args) {
   bool hasTeam2 = strlen(team2Id) > 0;
 
   if (hasTeam1 && !scrim && !hasTeam2) {
-    ReplyToCommand(client, "--team2 or --scrim is required when --team1 is provided.");
+    ReplyToCommand(client, "%t", "Team2OrScrimRequiredWhenTeam1Provided");
     return Plugin_Handled;
   } else if (!hasTeam1 && (hasTeam2 || scrim)) {
-    ReplyToCommand(client, "--team1 is required when --team2 or --scrim is provided.");
+    ReplyToCommand(client, "%t", "Team1RequiredWhenTeam2OrScrimProvided");
     return Plugin_Handled;
   } else if (hasTeam1 && hasTeam2 && scrim) {
-    ReplyToCommand(client, "--scrim cannot be combined with both --team1 and --team2.");
+    ReplyToCommand(client, "%t", "ScrimCannotCombineBothTeams");
     return Plugin_Handled;
   }
 
   if (hasTeam1 && hasTeam2 && strcmp(team1Id, team2Id) == 0) {
-    ReplyToCommand(client, "--team1 and --team2 cannot be identical.");
+    ReplyToCommand(client, "%t", "TeamsCannotBeIdentical");
     return Plugin_Handled;
   }
 
   if (useCurrentMap) {
     if (mapCount > 0) {
-      ReplyToCommand(client, "--current_map cannot be combined with --maplist.");
+      ReplyToCommand(client, "%t", "CurrentMapCannotCombineMaplist");
       return Plugin_Handled;
     }
     if (numMaps > 1) {
-      ReplyToCommand(client, "--current_map cannot be combined with --num_maps larger than 1.");
+      ReplyToCommand(client, "%t", "CurrentMapCannotCombineNumMaps");
       return Plugin_Handled;
     }
   }
@@ -1716,7 +1799,7 @@ Action Command_CreateMatch(int client, int args) {
   } else {
     JSON_Object mapsObject = LoadMapsFile(error);
     if (mapsObject == null) {
-      ReplyToCommand(client, "Failed to load maps file: %s", error);
+      ReplyToCommand(client, "%t", "FailedLoadMapsFile", error);
       return Plugin_Handled;
     }
     // Copy the array under the provided key, then delete the source object.
@@ -1724,8 +1807,7 @@ Action Command_CreateMatch(int client, int args) {
     json_cleanup_and_delete(mapsObject);
     mapCount = mapsFromKey.Length;
     if (numMaps > mapCount) {
-      ReplyToCommand(client, "You cannot play a series of %d map(s) when your selected map pool contains %d map(s).",
-                     numMaps, mapCount);
+      ReplyToCommand(client, "%t", "SeriesMapsExceedPool", numMaps, mapCount);
       json_cleanup_and_delete(mapsFromKey);
       return Plugin_Handled;
     }
@@ -1735,7 +1817,7 @@ Action Command_CreateMatch(int client, int args) {
   JSON_Object cvars = LoadCvarsFile(error, cVarsKey);
   if (cvars == null) {
     json_cleanup_and_delete(mapsArray);
-    ReplyToCommand(client, "--cvars error: %s", error);
+    ReplyToCommand(client, "%t", "CvarsArgumentError", error);
     return Plugin_Handled;
   }
 
@@ -1768,7 +1850,7 @@ Action Command_CreateMatch(int client, int args) {
   } else {
     JSON_Object teams = LoadTeamsFile(error);
     if (teams == null) {
-      ReplyToCommand(client, "Failed to load teams. Error: %s", error);
+      ReplyToCommand(client, "%t", "FailedLoadTeamsError", error);
       json_cleanup_and_delete(matchConfig);
       return Plugin_Handled;
     }
@@ -1792,7 +1874,7 @@ Action Command_CreateMatch(int client, int args) {
     json_cleanup_and_delete(teams);
     if (!foundTeam1 || (!scrim && !foundTeam2)) {
       json_cleanup_and_delete(matchConfig);
-      ReplyToCommand(client, "Team '%s' not found in teams file.", !foundTeam1 ? team1Id : team2Id);
+      ReplyToCommand(client, "%t", "TeamNotFoundInTeamsFile", !foundTeam1 ? team1Id : team2Id);
       return Plugin_Handled;
     }
     if (scrim && strlen(scrimAwayTeamName)) {
@@ -1840,7 +1922,7 @@ static CheckIfStringIsParameter(const char[] string) {
 static bool CheckParameterValue(const int index, const char[] parameter, char[] buffer, const int bufferSize,
                                 char[] error) {
   if (!GetCmdArg(index + 1, buffer, bufferSize) || CheckIfStringIsParameter(buffer)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "'%s' expects value.", parameter);
+    FormatEx(error, PLATFORM_MAX_PATH, "参数“%s”需要提供值。(Parameter '%s' expects a value.)", parameter, parameter);
     return false;
   }
   return true;
@@ -1848,7 +1930,7 @@ static bool CheckParameterValue(const int index, const char[] parameter, char[] 
 
 Action Command_CreateScrim(int client, int args) {
   if (g_GameState != Get5State_None) {
-    ReplyToCommand(client, "Cannot create a scrim when a match is already loaded.");
+    ReplyToCommand(client, "%t", "CannotCreateScrimAlreadyLoaded");
     return Plugin_Handled;
   }
 
@@ -1863,7 +1945,7 @@ Action Command_CreateScrim(int client, int args) {
   if (args >= 2) {
     GetCmdArg(2, matchMap, sizeof(matchMap));
     if (!IsMapValid(matchMap)) {
-      ReplyToCommand(client, "Invalid map: %s", matchMap);
+      ReplyToCommand(client, "%t", "InvalidMap", matchMap);
       return Plugin_Handled;
     }
   }
@@ -1887,7 +1969,7 @@ Action Command_CreateScrim(int client, int args) {
   BuildPath(Path_SM, templateFile, sizeof(templateFile), "configs/get5/scrim_template.cfg");
   if (!kv.ImportFromFile(templateFile)) {
     delete kv;
-    ReplyToCommand(client, "Failed to read scrim template from file: \"%s\"", templateFile);
+    ReplyToCommand(client, "%t", "FailedReadScrimTemplate", templateFile);
     return Plugin_Handled;
   }
   // Because we read the field and write it again, then load it as a match config, we have to make
@@ -1900,7 +1982,7 @@ Action Command_CreateScrim(int client, int args) {
     kv.Rewind();
   } else {
     delete kv;
-    ReplyToCommand(client, "You must add players to team1 in your scrim template!");
+    ReplyToCommand(client, "%t", "ScrimTemplateMissingTeam1Players");
     return Plugin_Handled;
   }
 
@@ -1929,7 +2011,7 @@ Action Command_CreateScrim(int client, int args) {
   kv.GoBack();
 
   if (!kv.ExportToFile(path)) {
-    ReplyToCommand(client, "Failed to write scrim config file to: \"%s\".", path);
+    ReplyToCommand(client, "%t", "FailedWriteScrimConfig", path);
   } else {
     char error[PLATFORM_MAX_PATH];
     if (!LoadMatchConfig(path, error)) {
@@ -1942,7 +2024,7 @@ Action Command_CreateScrim(int client, int args) {
 
 Action Command_Ringer(int client, int args) {
   if (g_GameState == Get5State_None || !g_InScrimMode) {
-    ReplyToCommand(client, "This command can only be used in scrim mode.");
+    ReplyToCommand(client, "%t", "CommandOnlyInScrimMode");
     return Plugin_Handled;
   }
 
@@ -1952,10 +2034,10 @@ Action Command_Ringer(int client, int args) {
     if (IsAuthedPlayer(target)) {
       SwapScrimTeamStatus(target);
     } else {
-      ReplyToCommand(client, "Player not found");
+      ReplyToCommand(client, "%t", "PlayerNotFound");
     }
   } else {
-    ReplyToCommand(client, "Usage: sm_ringer <player>");
+    ReplyToCommand(client, "%t", "SmRingerUsage");
   }
 
   return Plugin_Handled;
@@ -2202,7 +2284,8 @@ JSON_Object LoadTeamsFile(char[] error) {
   }
 
   if (json.IsArray) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Teams file '%s' is an array. Must be object.", teamsFile);
+    FormatEx(error, PLATFORM_MAX_PATH, "队伍文件 '%s' 不能是数组，必须为对象。(Teams file '%s' is an array. Must be object.)",
+             teamsFile, teamsFile);
     json_cleanup_and_delete(json);
     return null;
   }
@@ -2214,7 +2297,9 @@ JSON_Object LoadTeamsFile(char[] error) {
     char[] key = new char[keyLength];
     json.GetKey(i, key, keyLength);
     if (json.GetType(key) != JSON_Type_Object) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Teams file key '%s' does not contain an object.", key);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "队伍文件中的键 '%s' 不包含对象。(Teams file key '%s' does not contain an object.)",
+               key, key);
       json_cleanup_and_delete(json);
       return null;
     }
@@ -2242,19 +2327,23 @@ JSON_Object LoadCvarsFile(char[] error, const char[] key) {
   }
 
   if (cvars.IsArray) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Cvars file '%s' must not be an array.", cvarsFile);
+    FormatEx(error, PLATFORM_MAX_PATH, "Cvars 文件 '%s' 不能是数组。(Cvars file '%s' must not be an array.)",
+             cvarsFile, cvarsFile);
     json_cleanup_and_delete(cvars);
     return null;
   }
 
   if (!cvars.HasKey(key)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Cvars file '%s' does not contain key '%s'.", cvarsFile, key);
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "Cvars 文件 '%s' 不包含键 '%s'。(Cvars file '%s' does not contain key '%s'.)",
+             cvarsFile, key, cvarsFile, key);
     json_cleanup_and_delete(cvars);
     return null;
   }
 
   if (cvars.GetType(key) != JSON_Type_Object || cvars.GetObject(key).IsArray) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Cvars file key '%s' must contain object.", key);
+    FormatEx(error, PLATFORM_MAX_PATH, "Cvars 文件中的键 '%s' 必须包含对象。(Cvars file key '%s' must contain object.)",
+             key, key);
     json_cleanup_and_delete(cvars);
     return null;
   }
@@ -2284,7 +2373,8 @@ JSON_Object LoadMapsFile(char[] error) {
   }
 
   if (maps.IsArray) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Maps file '%s' must not be an array.", mapFile);
+    FormatEx(error, PLATFORM_MAX_PATH, "地图文件 '%s' 不能是数组。(Maps file '%s' must not be an array.)",
+             mapFile, mapFile);
     json_cleanup_and_delete(maps);
     return null;
   }
@@ -2292,7 +2382,7 @@ JSON_Object LoadMapsFile(char[] error) {
   char mapName[PLATFORM_MAX_PATH];
   int length = maps.Length;
   if (length == 0) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Maps file '%s' is empty.", mapFile);
+    FormatEx(error, PLATFORM_MAX_PATH, "地图文件 '%s' 为空。(Maps file '%s' is empty.)", mapFile, mapFile);
     json_cleanup_and_delete(maps);
     return null;
   }
@@ -2303,13 +2393,17 @@ JSON_Object LoadMapsFile(char[] error) {
     char[] key = new char[keyLength];
     maps.GetKey(i, key, keyLength);
     if (maps.GetType(key) != JSON_Type_Object) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Maps file key '%s' must contain non-empty array.", key);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "地图文件中的键 '%s' 必须包含非空数组。(Maps file key '%s' must contain non-empty array.)",
+               key, key);
       json_cleanup_and_delete(maps);
       return null;
     }
     JSON_Array mapArray = view_as<JSON_Array>(maps.GetObject(key));
     if (!mapArray.IsArray || mapArray.Length == 0) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Maps file key '%s' must contain non-empty array.", key);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "地图文件中的键 '%s' 必须包含非空数组。(Maps file key '%s' must contain non-empty array.)",
+               key, key);
       json_cleanup_and_delete(maps);
       return null;
     }
@@ -2317,13 +2411,17 @@ JSON_Object LoadMapsFile(char[] error) {
     mapArrayLength = mapArray.Length;
     for (int j = 0; j < mapArrayLength; j++) {
       if (mapArray.GetType(j) != JSON_Type_String) {
-        FormatEx(error, PLATFORM_MAX_PATH, "Maps file key '%s' must contain only strings.", key);
+        FormatEx(error, PLATFORM_MAX_PATH,
+                 "地图文件中的键 '%s' 只能包含字符串。(Maps file key '%s' must contain only strings.)",
+                 key, key);
         json_cleanup_and_delete(maps);
         return null;
       }
       mapArray.GetString(j, mapName, sizeof(mapName));
       if (!IsMapValid(mapName) && !IsMapWorkshop(mapName)) {
-        FormatEx(error, PLATFORM_MAX_PATH, "Maps file key '%s' contains invalid map '%'.", key, mapName);
+        FormatEx(error, PLATFORM_MAX_PATH,
+                 "地图文件中的键 '%s' 包含无效地图 '%s'。(Maps file key '%s' contains invalid map '%s'.)",
+                 key, mapName, key, mapName);
         json_cleanup_and_delete(maps);
         return null;
       }

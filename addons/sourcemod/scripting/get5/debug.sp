@@ -28,7 +28,7 @@ Action Command_DebugInfo(int client, int args) {
 
   delete f;
 
-  ReplyToCommand(client, "Wrote debug data to %s", path);
+  ReplyToCommand(client, "%t", "WroteDebugDataTo", path);
   return Plugin_Handled;
 }
 

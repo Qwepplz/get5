@@ -111,8 +111,8 @@ static void BuildPendingUnpauseNames(char[] buffer, int bufferSize) {
       continue;
     }
 
-    char name[MAX_NAME_LENGTH];
-    GetClientName(i, name, sizeof(name));
+    char name[MAX_CVAR_LENGTH];
+    FormatPlayerName(name, sizeof(name), i, CSTeamToGet5Team(GetClientTeam(i)));
     if (!first) {
       StrCat(buffer, bufferSize, ", ");
     }
@@ -152,7 +152,8 @@ static bool NotifyPendingUnpauseVoters() {
   }
 
   char formattedRequesterName[MAX_NAME_LENGTH];
-  FormatPlayerName(formattedRequesterName, sizeof(formattedRequesterName), requester, GetClientMatchTeam(requester));
+  FormatPlayerName(formattedRequesterName, sizeof(formattedRequesterName), requester,
+                   CSTeamToGet5Team(GetClientTeam(requester)));
 
   char formattedUnpauseCommands[128];
   BuildUnpauseCommandPair(formattedUnpauseCommands, sizeof(formattedUnpauseCommands));
@@ -175,7 +176,8 @@ static bool TryCompleteUnpauseVote(int requester = 0) {
   bool announceRequester = IsUnpauseVoteParticipant(requester);
   char formattedRequesterName[MAX_NAME_LENGTH];
   if (announceRequester) {
-    FormatPlayerName(formattedRequesterName, sizeof(formattedRequesterName), requester, GetClientMatchTeam(requester));
+    FormatPlayerName(formattedRequesterName, sizeof(formattedRequesterName), requester,
+                     CSTeamToGet5Team(GetClientTeam(requester)));
   }
 
   StopUnpauseReminderTimer();
@@ -282,7 +284,7 @@ Action Command_PauseOrUnpauseMatch(int client, const char[] command, int argc) {
   if (g_GameState == Get5State_None || (g_IsChangingPauseState && client == 0)) {
     return Plugin_Continue;
   }
-  ReplyToCommand(client, "Get5 prevents calls to %s. Administrators should use sm_pause/sm_unpause.", command);
+  ReplyToCommand(client, "%t", "PauseCommandPrevented", command);
   return Plugin_Stop;
 }
 

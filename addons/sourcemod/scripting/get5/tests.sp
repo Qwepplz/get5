@@ -259,7 +259,8 @@ static void MapVetoLogicTest() {
   delete mapPool;
   AssertFalse("Test invalid map ban config; bo3 7 maps, 5 bans 1 pick; not enough picks", success);
   AssertStrEq("Test not enough picks error",
-              "In a series of 3 maps, at least 2 veto options must be picks. Found 1 pick(s).", error);
+              "3 图系列赛中，至少需要 2 个 veto 选项为 pick，当前仅找到 1 个。(In a series of 3 maps, at least 2 veto options must be picks. Found 1 pick(s).)",
+              error);
 
   mapPool = GetMapPool(7);
   pickOrder.Clear();
@@ -426,27 +427,30 @@ static void MissingPropertiesTest() {
   AssertFalse("Load missing team1 JSON",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/missing_team1.json", error));
   AssertStrEq("Load missing team1 JSON error", error,
-              "JSON match config is missing or has invalid 'team1' property. Must be object.");
+              "JSON 比赛配置缺少 'team1' 属性或其格式无效，必须为对象。(JSON match config is missing or has invalid 'team1' property. Must be object.)");
 
   AssertFalse("Load missing team2 JSON",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/missing_team2.json", error));
   AssertStrEq("Load missing team2 JSON error", error,
-              "JSON match config is missing or has invalid 'team2' property. Must be object.");
+              "JSON 比赛配置缺少 'team2' 属性或其格式无效，必须为对象。(JSON match config is missing or has invalid 'team2' property. Must be object.)");
 
   AssertFalse("Load missing maplist JSON",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/missing_maplist.json", error));
   AssertStrEq("Load missing maplist JSON error", error,
-              "JSON match config 'maplist' property is required and must be an array or object.");
+              "JSON 比赛配置中的 'maplist' 为必填项，且必须为数组或对象。(JSON match config 'maplist' property is required and must be an array or object.)");
 
   AssertFalse("Load missing team1 KV", LoadMatchConfig("addons/sourcemod/configs/get5/tests/missing_team1.cfg", error));
-  AssertStrEq("Load missing team1 KV error", error, "Missing 'team1' section in match config KeyValues.");
+  AssertStrEq("Load missing team1 KV error", error,
+              "比赛配置 KeyValues 缺少 'team1' 段。(Missing 'team1' section in match config KeyValues.)");
 
   AssertFalse("Load missing team2 KV", LoadMatchConfig("addons/sourcemod/configs/get5/tests/missing_team2.cfg", error));
-  AssertStrEq("Load missing team2 KV error", error, "Missing 'team2' section in match config KeyValues.");
+  AssertStrEq("Load missing team2 KV error", error,
+              "比赛配置 KeyValues 缺少 'team2' 段。(Missing 'team2' section in match config KeyValues.)");
 
   AssertFalse("Load missing maplist KV",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/missing_maplist.cfg", error));
-  AssertStrEq("Load missing maplist KV error", error, "Missing 'maplist' section in match config KeyValues.");
+  AssertStrEq("Load missing maplist KV error", error,
+              "比赛配置 KeyValues 缺少 'maplist' 段。(Missing 'maplist' section in match config KeyValues.)");
 }
 
 static void MatchConfigNotFoundTest() {
@@ -456,7 +460,7 @@ static void MatchConfigNotFoundTest() {
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/file_not_found.cfg", error));
   AssertStrEq(
     "Match config does not exist error", error,
-    "Match config file 'addons/sourcemod/configs/get5/tests/file_not_found.cfg' does not exist or cannot be read.");
+    "比赛配置文件 'addons/sourcemod/configs/get5/tests/file_not_found.cfg' 不存在或无法读取。(Match config file 'addons/sourcemod/configs/get5/tests/file_not_found.cfg' does not exist or cannot be read.)");
 }
 
 static void MapListFromFileTest() {
@@ -468,21 +472,23 @@ static void MapListFromFileTest() {
 
   AssertFalse("Load empty maplist config JSON",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/fromfile_maplist_empty.json", error));
-  AssertStrEq("Load empty maplist config JSON", error, "'maplist' property must not be empty array.");
+  AssertStrEq("Load empty maplist config JSON", error,
+              "'maplist' 属性不能为空数组。('maplist' property must not be empty array.)");
 
   AssertFalse("Load maplist fromfile file not found config",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/fromfile_maplist_not_found.json", error));
   AssertStrEq("Load maplist fromfile file not found config", error,
-              "File 'addons/sourcemod/configs/get5/tests/maplist_not_found.json' does not exist or cannot be read.");
+              "文件 'addons/sourcemod/configs/get5/tests/maplist_not_found.json' 不存在或无法读取。(File 'addons/sourcemod/configs/get5/tests/maplist_not_found.json' does not exist or cannot be read.)");
 
   AssertFalse("Load maplist fromfile config not array JSON",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/fromfile_maplist_not_array.json", error));
-  AssertStrEq("Load maplist fromfile config not array JSON", error, "'maplist' property must be array.");
+  AssertStrEq("Load maplist fromfile config not array JSON", error,
+              "'maplist' 属性必须为数组。('maplist' property must be array.)");
 
   AssertFalse("Load maplist fromfile config empty string JSON",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/fromfile_maplist_empty_string.json", error));
   AssertStrEq("Load maplist fromfile config empty string JSON", error,
-              "'maplist' -> 'fromfile' cannot be empty string.");
+              "'maplist' -> 'fromfile' 不能为空字符串。('maplist' -> 'fromfile' cannot be empty string.)");
 
   // KeyValues
   MapListValid("addons/sourcemod/configs/get5/tests/fromfile_maplist_valid.cfg");
@@ -490,7 +496,7 @@ static void MapListFromFileTest() {
   AssertFalse("Load maplist fromfile config invalid KV",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/fromfile_maplist_invalid.cfg", error));
   AssertStrEq("Load maplist fromfile config invalid KV", error,
-              "\"maplist\" has no valid subkeys in match config KV file.");
+              "比赛配置 KV 文件中的 \"maplist\" 没有有效子键。(\"maplist\" has no valid subkeys in match config KV file.)");
 }
 
 static void InvalidMatchConfigFile(const char[] matchConfig, bool json) {
@@ -500,8 +506,8 @@ static void InvalidMatchConfigFile(const char[] matchConfig, bool json) {
   AssertStrEq(
     "Invalid config file error", error,
     json
-      ? "Failed to decode JSON from file 'addons/sourcemod/configs/get5/tests/invalid_config.json'. Error: no object or array found at position 0"
-      : "Failed to read match config from file 'addons/sourcemod/configs/get5/tests/invalid_config.cfg' as KV: A property was declared outside of a section");
+      ? "解析文件 'addons/sourcemod/configs/get5/tests/invalid_config.json' 的 JSON 失败。错误：no object or array found at position 0 (Failed to decode JSON from file 'addons/sourcemod/configs/get5/tests/invalid_config.json'. Error: no object or array found at position 0)"
+      : "将比赛配置文件 'addons/sourcemod/configs/get5/tests/invalid_config.cfg' 作为 KV 读取失败：A property was declared outside of a section (Failed to read match config from file 'addons/sourcemod/configs/get5/tests/invalid_config.cfg' as KV: A property was declared outside of a section)");
 }
 
 static void MapListValid(const char[] file) {
@@ -570,19 +576,19 @@ static void LoadTeamFromFileTest() {
   AssertFalse("load team file not found",
               LoadTeamDataFromFile("addons/sourcemod/configs/get5/tests/file_not_found.json", Get5Team_2, err));
   AssertStrEq("load team file not found error", err,
-              "File 'addons/sourcemod/configs/get5/tests/file_not_found.json' does not exist or cannot be read.");
+              "文件 'addons/sourcemod/configs/get5/tests/file_not_found.json' 不存在或无法读取。(File 'addons/sourcemod/configs/get5/tests/file_not_found.json' does not exist or cannot be read.)");
 
   AssertFalse("JSON load team file invalid",
               LoadTeamDataFromFile("addons/sourcemod/configs/get5/tests/invalid_config.json", Get5Team_2, err));
   AssertStrEq(
     "JSON load team file invalid error", err,
-    "Failed to decode JSON from file 'addons/sourcemod/configs/get5/tests/invalid_config.json'. Error: no object or array found at position 0");
+    "解析文件 'addons/sourcemod/configs/get5/tests/invalid_config.json' 的 JSON 失败。错误：no object or array found at position 0 (Failed to decode JSON from file 'addons/sourcemod/configs/get5/tests/invalid_config.json'. Error: no object or array found at position 0)");
 
   AssertFalse("KV load team file invalid",
               LoadTeamDataFromFile("addons/sourcemod/configs/get5/tests/invalid_config.cfg", Get5Team_2, err));
   AssertStrEq(
     "KV load team file invalid", err,
-    "Cannot read team from KV file 'addons/sourcemod/configs/get5/tests/invalid_config.cfg': A property was declared outside of a section");
+    "无法从 KV 文件 'addons/sourcemod/configs/get5/tests/invalid_config.cfg' 读取队伍：A property was declared outside of a section (Cannot read team from KV file 'addons/sourcemod/configs/get5/tests/invalid_config.cfg': A property was declared outside of a section)");
 
   EndSeries(Get5Team_None, false, 0.0);
 }
@@ -599,7 +605,8 @@ static void CustomVetoConfigTest() {
   AssertFalse("Load match config invalid custom veto",
               LoadMatchConfig("addons/sourcemod/configs/get5/tests/custom_veto_invalid.json", error));
   AssertStrEq("Load match config invalid custom veto error",
-              "In a series of 3 maps, at least 2 veto options must be picks. Found 0 pick(s).", error);
+              "3 图系列赛中，至少需要 2 个 veto 选项为 pick，当前仅找到 0 个。(In a series of 3 maps, at least 2 veto options must be picks. Found 0 pick(s).)",
+              error);
 }
 
 static void ValidMatchConfigTest(const char[] matchConfig) {
@@ -736,6 +743,8 @@ static void ValidMatchConfigTest(const char[] matchConfig) {
   AssertConVarEquals("mp_teamprediction_txt", "team percentage text");
   AssertConVarEquals("mp_teamprediction_pct", "75");
   AssertConVarEquals("mp_teammatchstat_txt", "Test 1 of 3");
+  AssertConVarEquals("mp_match_can_clinch", "0");
+  AssertConVarEquals("mp_overtime_enable", "0");
 
   g_RoundBackupPathCvar.SetString("addons/sourcemod/configs/get5/tests/backups/{MATCHID}/");
   g_BackupSystemEnabledCvar.BoolValue = true;

@@ -322,11 +322,11 @@ Action Command_AddReadyTime(int client, int args) {
       if (g_ReadyTimeWaitingUsed < 0) {
         g_ReadyTimeWaitingUsed = 0;
       }
-      ReplyToCommand(client, "Deducted %d second(s) from used ready time. Now: %d.", seconds, g_ReadyTimeWaitingUsed);
+      ReplyToCommand(client, "%t", "DeductedReadyTime", seconds, g_ReadyTimeWaitingUsed);
       return Plugin_Handled;
     }
   }
-  ReplyToCommand(client, "Usage: get5_add_ready_time <seconds>");
+  ReplyToCommand(client, "%t", "Get5AddReadyTimeUsage");
   return Plugin_Handled;
 }
 

@@ -11,7 +11,8 @@ Handle CreateGet5HTTPRequest(const EHTTPMethod method, const char[] url, char[] 
   PrependProtocolToURLIfRequired(formattedUrl, sizeof(formattedUrl));
   Handle request = SteamWorks_CreateHTTPRequest(method, formattedUrl);
   if (request == INVALID_HANDLE) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Failed to create HTTP request for URL: %s", formattedUrl);
+    FormatEx(error, PLATFORM_MAX_PATH, "创建 URL 的 HTTP 请求失败：%s (Failed to create HTTP request for URL: %s)",
+             formattedUrl, formattedUrl);
     return INVALID_HANDLE;
   }
   if (!SetGet5ServerIdHeader(request, error)) {
@@ -50,7 +51,9 @@ static bool SetGet5UserAgent(const Handle request) {
 
 bool SetHeaderKeyValuePair(const Handle request, const char[] header, const char[] value, char[] error) {
   if (!SteamWorks_SetHTTPRequestHeaderValue(request, header, value)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Failed to add header '%s' with value '%s' to HTTP request.", header, value);
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "向 HTTP 请求添加请求头 '%s'='%s' 失败。(Failed to add header '%s' with value '%s' to HTTP request.)",
+             header, value, header, value);
     return false;
   }
   return true;
@@ -73,7 +76,9 @@ static bool SetGet5ServerIdHeader(const Handle request, char[] error) {
 
 bool AddFileAsHttpBody(const Handle request, const char[] file, char[] error) {
   if (!FileExists(file) || !SteamWorks_SetHTTPRequestRawPostBodyFromFile(request, "application/octet-stream", file)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Failed to add file '%s' as POST body for HTTP request.", file);
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "将文件 '%s' 作为 HTTP POST 请求体添加失败。(Failed to add file '%s' as POST body for HTTP request.)",
+             file, file);
     return false;
   }
   return true;
@@ -105,7 +110,7 @@ bool SetMultipleHeaders(const Handle request, const ArrayList headerNames, const
     return true;
   }
   if (headerNames.Length != headerValues.Length) {
-    FormatEx(error, PLATFORM_MAX_PATH, "The number of header keys and values must be identical.");
+    FormatEx(error, PLATFORM_MAX_PATH, "请求头键和值的数量必须一致。(The number of header keys and values must be identical.)");
     return false;
   }
   for (int i = 0; i < headerNames.Length; i++) {
@@ -126,14 +131,16 @@ bool SetMultipleQueryParameters(const Handle request, const ArrayList paramNames
     return true;
   }
   if (paramNames.Length != paramValues.Length) {
-    FormatEx(error, PLATFORM_MAX_PATH, "The number of query parameter keys and values must be identical.");
+    FormatEx(error, PLATFORM_MAX_PATH, "查询参数键和值的数量必须一致。(The number of query parameter keys and values must be identical.)");
     return false;
   }
   for (int i = 0; i < paramNames.Length; i++) {
     paramNames.GetString(i, key, sizeof(key));
     paramValues.GetString(i, value, sizeof(value));
     if (!SteamWorks_SetHTTPRequestGetOrPostParameter(request, key, value)) {
-      FormatEx(error, PLATFORM_MAX_PATH, "Failed to set HTTP query parameter '%s' with value '%s'.", key, value);
+      FormatEx(error, PLATFORM_MAX_PATH,
+               "设置 HTTP 查询参数 '%s'='%s' 失败。(Failed to set HTTP query parameter '%s' with value '%s'.)",
+               key, value, key, value);
       return false;
     }
   }

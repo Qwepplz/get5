@@ -6,23 +6,23 @@
 
 Action Command_LoadBackupUrl(int client, int args) {
   if (!g_BackupSystemEnabledCvar.BoolValue) {
-    ReplyToCommand(client, "The backup system is disabled.");
+    ReplyToCommand(client, "%t", "BackupSystemDisabled");
     return Plugin_Handled;
   }
 
   if (g_PendingSideSwap || InHalftimePhase()) {
-    ReplyToCommand(client, "You cannot load a backup during halftime.");
+    ReplyToCommand(client, "%t", "CannotLoadBackupDuringHalftime");
     return Plugin_Handled;
   }
 
   if (IsDoingRestoreOrMapChange()) {
-    ReplyToCommand(client, "A map change or backup restore is in progress. You cannot load a backup right now.");
+    ReplyToCommand(client, "%t", "CannotLoadBackupDuringRestore");
     return Plugin_Handled;
   }
 
   char url[PLATFORM_MAX_PATH];
   if ((args != 1 && args != 3) || !GetCmdArg(1, url, sizeof(url))) {
-    ReplyToCommand(client, "Usage: get5_loadbackup_url <url> [header name] [header value]");
+    ReplyToCommand(client, "%t", "Get5LoadBackupUrlUsage");
     return Plugin_Handled;
   }
 
@@ -39,9 +39,9 @@ Action Command_LoadBackupUrl(int client, int args) {
   }
   char error[PLATFORM_MAX_PATH];
   if (!LoadBackupFromUrl(url, _, _, headerNames, headerValues, error)) {
-    ReplyToCommand(client, "Failed to initiate request for remote backup load: %s", error);
+    ReplyToCommand(client, "%t", "FailedInitiateRemoteBackupLoad", error);
   } else {
-    ReplyToCommand(client, "Loading backup from remote...");
+    ReplyToCommand(client, "%t", "LoadingBackupFromRemote");
   }
   delete headerNames;
   delete headerValues;
@@ -50,7 +50,7 @@ Action Command_LoadBackupUrl(int client, int args) {
 
 Action Command_LoadBackup(int client, int args) {
   if (!g_BackupSystemEnabledCvar.BoolValue) {
-    ReplyToCommand(client, "The backup system is disabled.");
+    ReplyToCommand(client, "%t", "BackupSystemDisabled");
     return Plugin_Handled;
   }
 
@@ -61,14 +61,14 @@ Action Command_LoadBackup(int client, int args) {
       ReplyToCommand(client, error);
     }
   } else {
-    ReplyToCommand(client, "Usage: get5_loadbackup <file>");
+    ReplyToCommand(client, "%t", "Get5LoadBackupUsage");
   }
   return Plugin_Handled;
 }
 
 Action Command_ListBackups(int client, int args) {
   if (!g_BackupSystemEnabledCvar.BoolValue) {
-    ReplyToCommand(client, "The backup system is disabled.");
+    ReplyToCommand(client, "%t", "BackupSystemDisabled");
     return Plugin_Handled;
   }
 
@@ -82,7 +82,7 @@ Action Command_ListBackups(int client, int args) {
   ArrayList backups = GetBackups(matchID);
 
   if (backups == null || backups.Length == 0) {
-    ReplyToCommand(client, "Found no backup files matching the provided parameters.");
+    ReplyToCommand(client, "%t", "NoMatchingBackupsFound");
   } else {
     char backupInfo[256];
     char filename[PLATFORM_MAX_PATH];
@@ -138,15 +138,16 @@ bool GetRoundInfoFromBackupFile(const char[] path, char[] buffer, const int maxL
   if (includeMatchId) {
     kv.GetString("matchid", matchId, sizeof(matchId));
     if (strlen(matchId) == 0) {
-      matchId = "No ID";
+      matchId = "无 ID / No ID";
     }
     Format(matchId, sizeof(matchId), "%s: ", matchId);
   }
   int mapNumber = kv.GetNum("mapnumber") + 1;
   if (kv.JumpToKey("valve_backup")) {
-    FormatEx(buffer, maxLength, "%sMap %d, Round %d", matchId, mapNumber, kv.GetNum("round") + 1);
+    FormatEx(buffer, maxLength, "%s地图 %d，第 %d 回合 / Map %d, Round %d", matchId, mapNumber, kv.GetNum("round") + 1,
+             mapNumber, kv.GetNum("round") + 1);
   } else {
-    FormatEx(buffer, maxLength, "%sMap %d, Pre-live", matchId, mapNumber);
+    FormatEx(buffer, maxLength, "%s地图 %d，赛前 / Map %d, Pre-live", matchId, mapNumber, mapNumber);
   }
   delete kv;
   return true;
@@ -436,36 +437,43 @@ static void BackupUpload_Callback(Handle request, bool failure, bool requestSucc
 
 bool RestoreFromBackup(const char[] path, char[] error) {
   if (g_PendingSideSwap || InHalftimePhase()) {
-    FormatEx(error, PLATFORM_MAX_PATH, "You cannot load a backup during halftime.");
+    FormatEx(error, PLATFORM_MAX_PATH, "中场阶段不能加载备份。(You cannot load a backup during halftime.)");
     return false;
   }
 
   if (IsDoingRestoreOrMapChange()) {
     FormatEx(error, PLATFORM_MAX_PATH,
-             "A map change or backup restore is in progress. You cannot load a backup right now.");
+             "当前正在换图或恢复备份，暂时不能加载备份。(A map change or backup restore is in progress. You cannot load a backup right now.)");
     return false;
   }
 
   if (!FileExists(path)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Backup file \"%s\" does not exists or cannot be read.", path);
+    FormatEx(error, PLATFORM_MAX_PATH, "备份文件 \"%s\" 不存在或无法读取。(Backup file \"%s\" does not exist or cannot be read.)",
+             path, path);
     return false;
   }
 
   if (!CheckKeyValuesFile(path, error, PLATFORM_MAX_PATH)) {
-    Format(error, PLATFORM_MAX_PATH, "Failed to read backup file \"%s\" as valid KeyValues. Error: %s", path, error);
+    char parseError[PLATFORM_MAX_PATH];
+    strcopy(parseError, sizeof(parseError), error);
+    Format(error, PLATFORM_MAX_PATH,
+           "无法将备份文件 \"%s\" 作为有效 KeyValues 读取。错误：%s (Failed to read backup file \"%s\" as valid KeyValues. Error: %s)",
+           path, parseError, path, parseError);
     return false;
   }
 
   KeyValues kv = new KeyValues("Backup");
   if (!kv.ImportFromFile(path)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "Failed to read backup from file: \"%s\".", path);
+    FormatEx(error, PLATFORM_MAX_PATH, "从文件读取备份失败：\"%s\"。(Failed to read backup from file: \"%s\".)",
+             path, path);
     delete kv;
     return false;
   }
 
   int loadedMapNumber = kv.GetNum("mapnumber", -1);
   if (loadedMapNumber == -1) {
-    FormatEx(error, PLATFORM_MAX_PATH, "The backup was created with an earlier version of Get5 and is not compatible.");
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "该备份由更早版本的 Get5 创建，当前不兼容。(The backup was created with an earlier version of Get5 and is not compatible.)");
     delete kv;
     return false;
   }
@@ -779,7 +787,8 @@ void DeleteOldBackups() {
 bool LoadBackupFromUrl(const char[] url, const ArrayList paramNames = null, const ArrayList paramValues = null,
                        const ArrayList headerNames = null, const ArrayList headerValues = null, char[] error) {
   if (!LibraryExists("SteamWorks")) {
-    FormatEx(error, PLATFORM_MAX_PATH, "The SteamWorks extension is required in order to load backups over HTTP.");
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "通过 HTTP 加载备份需要 SteamWorks 扩展。(The SteamWorks extension is required in order to load backups over HTTP.)");
     return false;
   }
 

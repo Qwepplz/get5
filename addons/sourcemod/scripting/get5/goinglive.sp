@@ -70,7 +70,7 @@ Action Timer_MatchLive(Handle timer) {
   char tag[64];
   g_MessagePrefixCvar.GetString(tag, sizeof(tag));
   if (!StrEqual(tag, DEFAULT_TAG)) {
-    Get5_MessageToAll("Powered by {YELLOW}Get5");
+    Get5_MessageToAll("%t", "PoweredByGet5");
   }
 
   return Plugin_Handled;

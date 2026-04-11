@@ -17,8 +17,10 @@ Get5MapSelectionOption MapSelectionStringToMapSelection(const char[] option, cha
   } else if (strcmp(option, TEAM2_BAN) == 0) {
     return Get5MapSelectionOption_Team2Ban;
   }
-  FormatEx(error, PLATFORM_MAX_PATH, "Map selection option '%s' is invalid. Must be one of: '%s', '%s', '%s', '%s'.",
-           option, TEAM1_PICK, TEAM2_PICK, TEAM1_BAN, TEAM2_BAN);
+  FormatEx(error, PLATFORM_MAX_PATH,
+           "选图选项 '%s' 无效。必须是 '%s'、'%s'、'%s'、'%s' 之一。(Map selection option '%s' is invalid. Must be one of: '%s', '%s', '%s', '%s'.)",
+           option, TEAM1_PICK, TEAM2_PICK, TEAM1_BAN, TEAM2_BAN, option, TEAM1_PICK, TEAM2_PICK, TEAM1_BAN,
+           TEAM2_BAN);
   return Get5MapSelectionOption_Invalid;
 }
 

@@ -586,6 +586,628 @@
     "PostMatchShutdownCountdown"
     {
         "#format"   "{1:d}"
-        "en"        "Match finished. Server will shut down in {1} seconds."
+        "en"        "Server will shut down in {1} seconds."
+    }
+    "CommonOn"
+    {
+        "en"        "On"
+    }
+    "CommonOff"
+    {
+        "en"        "Off"
+    }
+    "CommonYes"
+    {
+        "en"        "Yes"
+    }
+    "CommonNo"
+    {
+        "en"        "No"
+    }
+    "CommonCurrent"
+    {
+        "en"        "Current"
+    }
+    "CommonManual"
+    {
+        "en"        "Manual"
+    }
+    "CommonAuto"
+    {
+        "en"        "Auto"
+    }
+    "CommonDraw"
+    {
+        "en"        "Draw"
+    }
+    "CommonLatest"
+    {
+        "en"        "Latest"
+    }
+    "SetupMenuTitle"
+    {
+        "en"        "Match Options"
+    }
+    "SetupMenuValueWingman"
+    {
+        "en"        "Wingman"
+    }
+    "SetupMenuValueCompetitive"
+    {
+        "en"        "Competitive"
+    }
+    "SetupMenuGameModeItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Game Mode: {1}"
+    }
+    "SetupMenuSeriesLengthItem"
+    {
+        "#format"   "{1:d}"
+        "en"        "Series Length: {1} map(s)"
+    }
+    "SetupMenuValuePickBan"
+    {
+        "en"        "Pick/Ban"
+    }
+    "SetupMenuMapSelectionItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Map Selection: {1}"
+    }
+    "SetupMenuMapPoolItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Map Pool: {1}"
+    }
+    "SetupMenuMapsItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Maps: {1}"
+    }
+    "SetupMenuSelectMaps"
+    {
+        "en"        "Select Maps"
+    }
+    "SetupMenuTeamSizeItem"
+    {
+        "#format"   "{1:d}"
+        "en"        "Team Size: {1}"
+    }
+    "SetupMenuValueFixed"
+    {
+        "en"        "Fixed"
+    }
+    "SetupMenuValueScrim"
+    {
+        "en"        "Scrim"
+    }
+    "SetupMenuTeamSelectionItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Team Selection: {1}"
+    }
+    "SetupMenuSelectTeams"
+    {
+        "en"        "Select Teams"
+    }
+    "SetupMenuTeamsVersusItem"
+    {
+        "#format"   "{1:s},{2:s}"
+        "en"        "Teams: {1} vs. {2}"
+    }
+    "SetupMenuHomeTeamItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Home Team: {1}"
+    }
+    "SetupMenuValueStandard"
+    {
+        "en"        "Standard"
+    }
+    "SetupMenuValueAlwaysKnife"
+    {
+        "en"        "Always Knife"
+    }
+    "SetupMenuValueTeam1CT"
+    {
+        "en"        "Team 1 CT"
+    }
+    "SetupMenuValueRandom"
+    {
+        "en"        "Random"
+    }
+    "SetupMenuSideTypeItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Side Type: {1}"
+    }
+    "SetupMenuSwapSides"
+    {
+        "en"        "Swap Sides"
+    }
+    "SetupMenuFriendlyFireItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Friendly Fire: {1}"
+    }
+    "SetupMenuOvertimeItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Overtime: {1}"
+    }
+    "SetupMenuPlayAllRoundsItem"
+    {
+        "#format"   "{1:s}"
+        "en"        "Play All Rounds: {1}"
+    }
+    "SetupMenuStartMatch"
+    {
+        "en"        "Start Match"
+    }
+    "SetupMenuNeedBothTeams"
+    {
+        "en"        "You must select both teams when using fixed teams."
+    }
+    "SetupMenuNeedHomeTeam"
+    {
+        "en"        "You must select a home team in scrim mode."
+    }
+    "SetupMenuNeedAllMaps"
+    {
+        "#format"   "{1:d},{2:d}"
+        "en"        "You must select all maps in manual map selection mode. You selected {1} out of {2}."
+    }
+    "CaptainsMenuTitle"
+    {
+        "en"        "Team Captains"
+    }
+    "CaptainsMenuTeamItem"
+    {
+        "#format"   "{1:d},{2:s}"
+        "en"        "Team {1}: {2}"
+    }
+    "CaptainsMenuTeamAuto"
+    {
+        "#format"   "{1:d}"
+        "en"        "Team {1}: Auto"
+    }
+    "CaptainSelectionMenuTitle"
+    {
+        "#format"   "{1:d}"
+        "en"        "Team {1} Captain"
+    }
+    "MenuFailedLoadMapsGeneratingDefault"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to load maps file. Generating default map pool. Error: {1}"
+    }
+    "MenuReloadedMapsFoundPools"
+    {
+        "#format"   "{1:d}"
+        "en"        "Reloaded maps file. Found {1} map pool(s)."
+    }
+    "MenuMatchAlreadyLoaded"
+    {
+        "en"        "A match is already loaded."
+    }
+    "MenuErrorLoadingCvars"
+    {
+        "#format"   "{1:s}"
+        "en"        "Error loading cvars: {1}"
+    }
+    "MenuFailedWriteMatchConfigFile"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to write match config file to: \"{1}\"."
+    }
+    "MenuFailedStartMatch"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to start match. Error: {1}"
+    }
+    "MenuCommandInGameOnly"
+    {
+        "en"        "This command can only be used in-game."
+    }
+    "AdminMenuTitle"
+    {
+        "en"        "Get5 Menu"
+    }
+    "AdminMenuCreateMatch"
+    {
+        "en"        "Create Match"
+    }
+    "AdminMenuForceReadyAll"
+    {
+        "en"        "Force-ready all players"
+    }
+    "AdminMenuEndMatch"
+    {
+        "en"        "End Match"
+    }
+    "AdminMenuAddScrimRinger"
+    {
+        "en"        "Add scrim ringer"
+    }
+    "AdminMenuLoadBackup"
+    {
+        "en"        "Load Backup"
+    }
+    "MenuAnotherPlayerSettingUpMatch"
+    {
+        "en"        "Another player is currently setting up a match."
+    }
+    "MenuCannotUseSetupWhileMatchLoaded"
+    {
+        "en"        "The match setup menu cannot be used while a match is loaded."
+    }
+    "AdminMenuSelectOutcome"
+    {
+        "en"        "Select Outcome"
+    }
+    "AdminMenuOutcomeTeamWinsNamed"
+    {
+        "#format"   "{1:d},{2:s}"
+        "en"        "Team {1} ({2}) wins"
+    }
+    "AdminMenuOutcomeTeamWins"
+    {
+        "#format"   "{1:d}"
+        "en"        "Team {1} wins"
+    }
+    "AdminMenuSelectBackup"
+    {
+        "en"        "Select Backup"
+    }
+    "AdminMenuNoBackupsFound"
+    {
+        "en"        "No backups found."
+    }
+    "MenuFailedLoadBackup"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to load backup: {1}"
+    }
+    "AdminMenuSelectPlayer"
+    {
+        "en"        "Select Player"
+    }
+    "MenuSwappedPlayer"
+    {
+        "#format"   "{1:s}"
+        "en"        "Swapped {1}."
+    }
+    "MenuFailedSwapPlayer"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to swap {1}."
+    }
+    "MenuInvalidSelection"
+    {
+        "en"        "Invalid selection. Please try again."
+    }
+    "NoMatchConfiguredNothingToEnd"
+    {
+        "en"        "No match is configured; nothing to end."
+    }
+    "Get5EndMatchUsage"
+    {
+        "en"        "Usage: get5_endmatch <team1|team2> (omit team for tie)"
+    }
+    "CannotLoadMatchAlreadyLoaded"
+    {
+        "en"        "Cannot load a match config when another is already loaded."
+    }
+    "Get5LoadMatchUsage"
+    {
+        "en"        "Usage: get5_loadmatch <filename>"
+    }
+    "Get5LoadMatchUrlUsage"
+    {
+        "en"        "Usage: get5_loadmatch_url <url> [header name] [header value]"
+    }
+    "FailedInitiateRemoteMatchConfig"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to initiate request for remote match config: {1}"
+    }
+    "LoadingMatchConfiguration"
+    {
+        "en"        "Loading match configuration..."
+    }
+    "CannotDumpStatsNoMatchLoaded"
+    {
+        "en"        "Cannot dump match stats when no match is loaded."
+    }
+    "SavedMatchStatsTo"
+    {
+        "#format"   "{1:s}"
+        "en"        "Saved match stats to {1}"
+    }
+    "FailedSaveMatchStatsTo"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to save match stats to {1}"
+    }
+    "CannotKillSelfWhileGet5Running"
+    {
+        "en"        "You cannot kill yourself while Get5 is running."
+    }
+    "NoBackupFileFromCurrentRound"
+    {
+        "en"        "Failed to load backup because no backup file from this round exists."
+    }
+    "BackupSystemDisabled"
+    {
+        "en"        "The backup system is disabled."
+    }
+    "CannotLoadBackupDuringHalftime"
+    {
+        "en"        "You cannot load a backup during halftime."
+    }
+    "CannotLoadBackupDuringRestore"
+    {
+        "en"        "A map change or backup restore is in progress. You cannot load a backup right now."
+    }
+    "Get5LoadBackupUrlUsage"
+    {
+        "en"        "Usage: get5_loadbackup_url <url> [header name] [header value]"
+    }
+    "FailedInitiateRemoteBackupLoad"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to initiate request for remote backup load: {1}"
+    }
+    "LoadingBackupFromRemote"
+    {
+        "en"        "Loading backup from remote..."
+    }
+    "Get5LoadBackupUsage"
+    {
+        "en"        "Usage: get5_loadbackup <file>"
+    }
+    "NoMatchingBackupsFound"
+    {
+        "en"        "Found no backup files matching the provided parameters."
+    }
+    "WroteDebugDataTo"
+    {
+        "#format"   "{1:s}"
+        "en"        "Wrote debug data to {1}"
+    }
+    "DeductedReadyTime"
+    {
+        "#format"   "{1:d},{2:d}"
+        "en"        "Deducted {1} second(s) from used ready time. Now: {2}."
+    }
+    "Get5AddReadyTimeUsage"
+    {
+        "en"        "Usage: get5_add_ready_time <seconds>"
+    }
+    "PauseCommandPrevented"
+    {
+        "#format"   "{1:s}"
+        "en"        "Get5 prevents calls to {1}. Administrators should use sm_pause/sm_unpause."
+    }
+    "PoweredByGet5"
+    {
+        "en"        "Powered by {YELLOW}Get5"
+    }
+    "LoadTeamUsage"
+    {
+        "en"        "Usage: get_loadteam <team1|team2|spec> <filename>"
+    }
+    "MatchConfigMustBeLoadedBeforeLoadTeam"
+    {
+        "en"        "A match configuration must be loaded before you can load a team file."
+    }
+    "LoadTeamScrimOnlyTeam1OrSpec"
+    {
+        "en"        "In scrim mode only team1 or spec can be loaded."
+    }
+    "LoadTeamUnknownTeamArgument"
+    {
+        "en"        "Unknown team argument. Must be one of: team1, team2, spec."
+    }
+    "LoadedTeamDataFor"
+    {
+        "#format"   "{1:s}"
+        "en"        "Loaded team data for {1}."
+    }
+    "NoMatchConfigurationLoaded"
+    {
+        "en"        "No match configuration was loaded."
+    }
+    "AddPlayerScrimUseRinger"
+    {
+        "en"        "Cannot use get5_addplayer in scrim mode. Use get5_ringer to swap a player's team."
+    }
+    "CannotAddPlayersWaitingBackup"
+    {
+        "en"        "Cannot add players while waiting for round backup."
+    }
+    "CannotAddPlayersDuringHalftime"
+    {
+        "en"        "Cannot add players during halftime. Please wait until the next round starts."
+    }
+    "UnknownTeamSpecifier"
+    {
+        "en"        "Unknown team: must be one of team1, team2, spec"
+    }
+    "AddedPlayerToTeam"
+    {
+        "#format"   "{1:s},{2:s}"
+        "en"        "Successfully added player {1} to {2}."
+    }
+    "FailedToAddPlayerToTeam"
+    {
+        "#format"   "{1:s},{2:s}"
+        "en"        "Failed to add player {1} to {2}. They may already be on a team or you provided an invalid Steam ID."
+    }
+    "AddPlayerUsage"
+    {
+        "en"        "Usage: get5_addplayer <auth> <team1|team2|spec> [name]"
+    }
+    "AddKickedPlayerScrimUseRinger"
+    {
+        "en"        "Cannot use get5_addkickedplayer in scrim mode. Use get5_ringer to swap a player's team."
+    }
+    "NoPlayerKickedYet"
+    {
+        "en"        "No player has been kicked yet."
+    }
+    "AddedKickedPlayerToTeam"
+    {
+        "#format"   "{1:s},{2:s}"
+        "en"        "Successfully added kicked player {1} to {2}."
+    }
+    "AddKickedPlayerUsage"
+    {
+        "en"        "Usage: get5_addkickedplayer <team1|team2|spec> [name]"
+    }
+    "RemovePlayerScrimUseRinger"
+    {
+        "en"        "Cannot use get5_removeplayer in scrim mode. Use get5_ringer to swap a player's team."
+    }
+    "RemovedPlayer"
+    {
+        "#format"   "{1:s}"
+        "en"        "Successfully removed player {1}."
+    }
+    "PlayerAuthNotFoundOrInvalid"
+    {
+        "#format"   "{1:s}"
+        "en"        "Player {1} not found in auth lists or the Steam ID was invalid."
+    }
+    "RemovePlayerUsage"
+    {
+        "en"        "Usage: get5_removeplayer <auth>"
+    }
+    "RemoveKickedPlayerScrimUseRinger"
+    {
+        "en"        "Cannot use get5_removekickedplayer in scrim mode. Use get5_ringer to swap a player's team."
+    }
+    "RemovedKickedPlayer"
+    {
+        "#format"   "{1:s}"
+        "en"        "Successfully removed kicked player {1}."
+    }
+    "CannotCreateMatchAlreadyLoaded"
+    {
+        "en"        "Cannot create a match when a match is already loaded."
+    }
+    "ParameterMustBeGreaterThanZeroInt"
+    {
+        "#format"   "{1:s}"
+        "en"        "'{1}' must be an integer larger than 0."
+    }
+    "ParameterMustBeNonNegativeInt"
+    {
+        "#format"   "{1:s}"
+        "en"        "'{1}' must be a non-negative integer."
+    }
+    "CommandParameterError"
+    {
+        "#format"   "{1:s},{2:s}"
+        "en"        "'{1}' error: {2}"
+    }
+    "MapIsNotValid"
+    {
+        "#format"   "{1:s}"
+        "en"        "Map '{1}' is not valid."
+    }
+    "UnknownParameter"
+    {
+        "#format"   "{1:s}"
+        "en"        "Unknown parameter: {1}"
+    }
+    "NumMapsCannotExceedMaplist"
+    {
+        "en"        "--num_maps cannot be larger than the size of --maplist."
+    }
+    "Team2OrScrimRequiredWhenTeam1Provided"
+    {
+        "en"        "--team2 or --scrim is required when --team1 is provided."
+    }
+    "Team1RequiredWhenTeam2OrScrimProvided"
+    {
+        "en"        "--team1 is required when --team2 or --scrim is provided."
+    }
+    "ScrimCannotCombineBothTeams"
+    {
+        "en"        "--scrim cannot be combined with both --team1 and --team2."
+    }
+    "TeamsCannotBeIdentical"
+    {
+        "en"        "--team1 and --team2 cannot be identical."
+    }
+    "CurrentMapCannotCombineMaplist"
+    {
+        "en"        "--current_map cannot be combined with --maplist."
+    }
+    "CurrentMapCannotCombineNumMaps"
+    {
+        "en"        "--current_map cannot be combined with --num_maps larger than 1."
+    }
+    "FailedLoadMapsFile"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to load maps file: {1}"
+    }
+    "SeriesMapsExceedPool"
+    {
+        "#format"   "{1:d},{2:d}"
+        "en"        "You cannot play a series of {1} map(s) when your selected map pool contains {2} map(s)."
+    }
+    "CvarsArgumentError"
+    {
+        "#format"   "{1:s}"
+        "en"        "--cvars error: {1}"
+    }
+    "FailedLoadTeamsError"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to load teams. Error: {1}"
+    }
+    "TeamNotFoundInTeamsFile"
+    {
+        "#format"   "{1:s}"
+        "en"        "Team '{1}' not found in teams file."
+    }
+    "CannotCreateScrimAlreadyLoaded"
+    {
+        "en"        "Cannot create a scrim when a match is already loaded."
+    }
+    "InvalidMap"
+    {
+        "#format"   "{1:s}"
+        "en"        "Invalid map: {1}"
+    }
+    "FailedReadScrimTemplate"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to read scrim template from file: \"{1}\""
+    }
+    "ScrimTemplateMissingTeam1Players"
+    {
+        "en"        "You must add players to team1 in your scrim template!"
+    }
+    "FailedWriteScrimConfig"
+    {
+        "#format"   "{1:s}"
+        "en"        "Failed to write scrim config file to: \"{1}\"."
+    }
+    "CommandOnlyInScrimMode"
+    {
+        "en"        "This command can only be used in scrim mode."
+    }
+    "PlayerNotFound"
+    {
+        "en"        "Player not found"
+    }
+    "SmRingerUsage"
+    {
+        "en"        "Usage: sm_ringer <player>"
     }
 }

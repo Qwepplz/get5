@@ -173,8 +173,13 @@ stock void FormatCvarName(char[] buffer, const int bufferLength, const char[] cV
 }
 
 stock void FormatPlayerName(char[] buffer, const int bufferLength, const int client, const Get5Team team) {
+  Get5Team resolvedTeam = team;
+  if (!IsPlayerTeam(resolvedTeam)) {
+    resolvedTeam = CSTeamToGet5Team(GetClientTeam(client));
+  }
+
   // Used when injecting the team for coaching players, who are always on team spectator.
-  Get5Side side = view_as<Get5Side>(Get5_Get5TeamToCSTeam(team));
+  Get5Side side = view_as<Get5Side>(Get5_Get5TeamToCSTeam(resolvedTeam));
   if (side == Get5Side_CT) {
     FormatEx(buffer, bufferLength, "{LIGHT_BLUE}%N{NORMAL}", client);
   } else if (side == Get5Side_T) {
@@ -480,7 +485,9 @@ stock Get5VetoFirst VetoFirstFromString(const char[] str, char[] error) {
   } else if (StrEqual(str, "team1", false)) {
     return Get5VetoFirst_Team1;
   } else {
-    FormatEx(error, PLATFORM_MAX_PATH, "Invalid veto_first '%s'. Must be one of 'team1', 'team2', 'random'.", str);
+    FormatEx(error, PLATFORM_MAX_PATH,
+             "无效的 veto_first 值 '%s'。必须为 'team1'、'team2'、'random' 之一。(Invalid veto_first '%s'. Must be one of 'team1', 'team2', 'random'.)",
+             str, str);
     return Get5VetoFirst_Invalid;
   }
 }
@@ -548,7 +555,8 @@ stock MatchSideType MatchSideTypeFromString(const char[] str, char[] error) {
     return MatchSideType_Random;
   } else {
     FormatEx(error, PLATFORM_MAX_PATH,
-             "Invalid side_type '%s'. Must be one of 'standard', 'never_knife', 'always_knife', 'random'.", str);
+             "无效的 side_type 值 '%s'。必须为 'standard'、'never_knife'、'always_knife'、'random' 之一。(Invalid side_type '%s'. Must be one of 'standard', 'never_knife', 'always_knife', 'random'.)",
+             str, str);
     return MatchSideType_Invalid;
   }
 }
@@ -656,7 +664,8 @@ stock SideChoice SideChoiceFromString(const char[] input, char[] error) {
     return SideChoice_KnifeRound;
   } else {
     FormatEx(error, PLATFORM_MAX_PATH,
-             "Invalid side choice '%s'. Must be one of 'team1_ct', 'team1_t', 'team2_ct', 'team2_t', 'knife'.", input);
+             "无效的阵营选择 '%s'。必须为 'team1_ct'、'team1_t'、'team2_ct'、'team2_t'、'knife' 之一。(Invalid side choice '%s'. Must be one of 'team1_ct', 'team1_t', 'team2_ct', 'team2_t', 'knife'.)",
+             input, input);
     return SideChoice_Invalid;
   }
 }
@@ -862,14 +871,16 @@ stock bool IsMapWorkshop(const char[] mapName) {
 
 stock JSON_Object LoadJSONIfFileExists(const char[] filepath, char[] error, int options = 0) {
   if (!FileExists(filepath)) {
-    FormatEx(error, PLATFORM_MAX_PATH, "File '%s' does not exist or cannot be read.", filepath);
+    FormatEx(error, PLATFORM_MAX_PATH, "文件 '%s' 不存在或无法读取。(File '%s' does not exist or cannot be read.)",
+             filepath, filepath);
     return null;
   }
   JSON_Object json = json_read_from_file(filepath, options);
   if (json == null) {
     char jsonError[128];
     json_get_last_error(jsonError, sizeof(jsonError));
-    FormatEx(error, PLATFORM_MAX_PATH, "Failed to decode JSON from file '%s'. Error: %s", filepath, jsonError);
+    FormatEx(error, PLATFORM_MAX_PATH, "解析文件 '%s' 的 JSON 失败。错误：%s (Failed to decode JSON from file '%s'. Error: %s)",
+             filepath, jsonError, filepath, jsonError);
   }
   return json;
 }

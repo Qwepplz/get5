@@ -69,6 +69,63 @@ static void NormalizeLockedSetupMenuValues() {
   }
 }
 
+static void NormalizeSetupMenuRoundOptions() {
+  if (!g_SetupMenuClinch) {
+    g_SetupMenuOvertime = false;
+  }
+}
+
+static void GetLocalizedText(const char[] phrase, int client, char[] buffer, int len) {
+  FormatEx(buffer, len, "%T", phrase, client);
+}
+
+static void GetSetupMenuGameModeText(int client, char[] buffer, int len) {
+  GetLocalizedText(g_SetupMenuWingman ? "SetupMenuValueWingman" : "SetupMenuValueCompetitive", client, buffer, len);
+}
+
+static void GetSetupMenuMapSelectionText(int client, char[] buffer, int len) {
+  switch (g_SetupMenuMapSelection) {
+    case Get5SetupMenu_MapSelectionMode_PickBan:
+      GetLocalizedText("SetupMenuValuePickBan", client, buffer, len);
+    case Get5SetupMenu_MapSelectionMode_Current:
+      GetLocalizedText("CommonCurrent", client, buffer, len);
+    case Get5SetupMenu_MapSelectionMode_Manual:
+      GetLocalizedText("CommonManual", client, buffer, len);
+  }
+}
+
+static void GetSetupMenuTeamSelectionText(int client, char[] buffer, int len) {
+  switch (g_SetupMenuTeamSelection) {
+    case Get5SetupMenu_TeamSelectionMode_Current:
+      GetLocalizedText("CommonCurrent", client, buffer, len);
+    case Get5SetupMenu_TeamSelectionMode_Fixed:
+      GetLocalizedText("SetupMenuValueFixed", client, buffer, len);
+    case Get5SetupMenu_TeamSelectionMode_Scrim:
+      GetLocalizedText("SetupMenuValueScrim", client, buffer, len);
+  }
+}
+
+static void GetSetupMenuSideTypeText(int client, char[] buffer, int len) {
+  switch (g_SetupMenuSideType) {
+    case MatchSideType_Standard:
+      GetLocalizedText("SetupMenuValueStandard", client, buffer, len);
+    case MatchSideType_AlwaysKnife:
+      GetLocalizedText("SetupMenuValueAlwaysKnife", client, buffer, len);
+    case MatchSideType_NeverKnife:
+      GetLocalizedText("SetupMenuValueTeam1CT", client, buffer, len);
+    case MatchSideType_Random:
+      GetLocalizedText("SetupMenuValueRandom", client, buffer, len);
+  }
+}
+
+static void GetLocalizedOnOffText(bool value, int client, char[] buffer, int len) {
+  GetLocalizedText(value ? "CommonOn" : "CommonOff", client, buffer, len);
+}
+
+static void GetLocalizedYesNoText(bool value, int client, char[] buffer, int len) {
+  GetLocalizedText(value ? "CommonYes" : "CommonNo", client, buffer, len);
+}
+
 static void ShowSetupMenu(int client, int displayAt = 0) {
   if (g_SetupMenuSelectedMaps == INVALID_HANDLE) {
     g_SetupMenuSelectedMaps = new ArrayList(PLATFORM_MAX_PATH);
@@ -78,32 +135,28 @@ static void ShowSetupMenu(int client, int displayAt = 0) {
     HandleMapPoolAndSeriesLength();
   }
   NormalizeLockedSetupMenuValues();
+  NormalizeSetupMenuRoundOptions();
   bool isAdmin = IsGet5MenuAdmin(client);
 
   Menu menu = new Menu(SetupMenuHandler);
-  menu.SetTitle("Match Options");
+  menu.SetTitle("%T", "SetupMenuTitle", client);
   menu.ExitButton = false;
   menu.ExitBackButton = true;
 
   char buffer[64];
-  FormatEx(buffer, sizeof(buffer), "Game Mode: %s", g_SetupMenuWingman ? "Wingman" : "Competitive");
+  char gameModeText[32];
+  GetSetupMenuGameModeText(client, gameModeText, sizeof(gameModeText));
+  FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuGameModeItem", client, gameModeText);
   menu.AddItem(SETUP_MENU_SELECTION_MATCH_TYPE, buffer, EnabledIf(false));
-  FormatEx(buffer, sizeof(buffer), "Series Length: %d map(s)", g_SetupMenuSeriesLength);
+  FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuSeriesLengthItem", client, g_SetupMenuSeriesLength);
   menu.AddItem(SETUP_MENU_SERIES_LENGTH, buffer, EnabledIf(false));
   char mapSelectionMode[32];
-  switch (g_SetupMenuMapSelection) {
-    case Get5SetupMenu_MapSelectionMode_PickBan:
-      FormatEx(mapSelectionMode, sizeof(mapSelectionMode), "Pick/Ban");
-    case Get5SetupMenu_MapSelectionMode_Current:
-      FormatEx(mapSelectionMode, sizeof(mapSelectionMode), "Current");
-    case Get5SetupMenu_MapSelectionMode_Manual:
-      FormatEx(mapSelectionMode, sizeof(mapSelectionMode), "Manual");
-  }
-  FormatEx(buffer, sizeof(buffer), "Map Selection: %s", mapSelectionMode);
+  GetSetupMenuMapSelectionText(client, mapSelectionMode, sizeof(mapSelectionMode));
+  FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuMapSelectionItem", client, mapSelectionMode);
   menu.AddItem(SETUP_MENU_MAP_SELECTION, buffer, EnabledIf(false));
 
   if (g_SetupMenuMapSelection != Get5SetupMenu_MapSelectionMode_Current) {
-    FormatEx(buffer, sizeof(buffer), "Map Pool: %s", g_SetupMenuSelectedMapPool);
+    FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuMapPoolItem", client, g_SetupMenuSelectedMapPool);
     menu.AddItem(SETUP_MENU_MAP_POOL_SELECTION, buffer);
   }
 
@@ -111,35 +164,28 @@ static void ShowSetupMenu(int client, int displayAt = 0) {
     char mapsString[PLATFORM_MAX_PATH];
     if (g_SetupMenuSelectedMaps.Length > 0) {
       ImplodeMapArrayToString(g_SetupMenuSelectedMaps, mapsString, sizeof(mapsString), false);
-      Format(mapsString, sizeof(mapsString), "Maps: %s", mapsString);
+      Format(mapsString, sizeof(mapsString), "%T", "SetupMenuMapsItem", client, mapsString);
     } else {
-      mapsString = "Select Maps";
+      FormatEx(mapsString, sizeof(mapsString), "%T", "SetupMenuSelectMaps", client);
     }
     menu.AddItem(SETUP_MENU_SELECTED_MAPS, mapsString);
   }
 
   FillMenuPageWithBlanks(menu);
 
-  FormatEx(buffer, sizeof(buffer), "Team Size: %d", g_SetupMenuPlayersPerTeam);
+  FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuTeamSizeItem", client, g_SetupMenuPlayersPerTeam);
   menu.AddItem(SETUP_MENU_SELECTION_PLAYERS_PER_TEAM, buffer, EnabledIf(false));
 
   char teamSelectionMode[32];
-  switch (g_SetupMenuTeamSelection) {
-    case Get5SetupMenu_TeamSelectionMode_Current:
-      FormatEx(teamSelectionMode, sizeof(teamSelectionMode), "Current");
-    case Get5SetupMenu_TeamSelectionMode_Fixed:
-      FormatEx(teamSelectionMode, sizeof(teamSelectionMode), "Fixed");
-    case Get5SetupMenu_TeamSelectionMode_Scrim:
-      FormatEx(teamSelectionMode, sizeof(teamSelectionMode), "Scrim");
-  }
-  FormatEx(buffer, sizeof(buffer), "Team Selection: %s", teamSelectionMode);
+  GetSetupMenuTeamSelectionText(client, teamSelectionMode, sizeof(teamSelectionMode));
+  FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuTeamSelectionItem", client, teamSelectionMode);
   menu.AddItem(SETUP_MENU_TEAM_SELECTION, buffer, EnabledIf(false));
 
   switch (g_SetupMenuTeamSelection) {
     case Get5SetupMenu_TeamSelectionMode_Fixed: {
       char title[64];
       if (strlen(g_SetupMenuTeamForTeam1) == 0 && strlen(g_SetupMenuTeamForTeam2) == 0) {
-        title = "Select Teams";
+        FormatEx(title, sizeof(title), "%T", "SetupMenuSelectTeams", client);
       } else {
         char teamName1[64] = "??";
         char teamName2[64] = "??";
@@ -149,7 +195,7 @@ static void ShowSetupMenu(int client, int displayAt = 0) {
         if (strlen(g_SetupMenuTeamForTeam2) > 0) {
           GetTeamNameFromJson(g_SetupMenuTeamForTeam2, teamName2, sizeof(teamName2), true);
         }
-        FormatEx(title, sizeof(title), "Teams: %s vs. %s", teamName1, teamName2);
+        FormatEx(title, sizeof(title), "%T", "SetupMenuTeamsVersusItem", client, teamName1, teamName2);
       }
       menu.AddItem(SETUP_MENU_SELECT_TEAMS, title);
     }
@@ -159,46 +205,48 @@ static void ShowSetupMenu(int client, int displayAt = 0) {
       if (strlen(g_SetupMenuTeamForTeam1) > 0) {
         GetTeamNameFromJson(g_SetupMenuTeamForTeam1, teamName, sizeof(teamName), true);
       }
-      FormatEx(title, sizeof(title), "Home Team: %s", teamName);
+      FormatEx(title, sizeof(title), "%T", "SetupMenuHomeTeamItem", client, teamName);
       menu.AddItem(SETUP_MENU_SELECT_TEAMS, title);
     }
   }
 
   char sideTypeBuffer[32];
-  switch (g_SetupMenuSideType) {
-    case MatchSideType_Standard:
-      FormatEx(sideTypeBuffer, sizeof(sideTypeBuffer), "Standard");
-    case MatchSideType_AlwaysKnife:
-      FormatEx(sideTypeBuffer, sizeof(sideTypeBuffer), "Always Knife");
-    case MatchSideType_NeverKnife:
-      FormatEx(sideTypeBuffer, sizeof(sideTypeBuffer), "Team 1 CT");
-    case MatchSideType_Random:
-      FormatEx(sideTypeBuffer, sizeof(sideTypeBuffer), "Random");
-  }
-  FormatEx(buffer, sizeof(buffer), "Side Type: %s", sideTypeBuffer);
+  GetSetupMenuSideTypeText(client, sideTypeBuffer, sizeof(sideTypeBuffer));
+  FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuSideTypeItem", client, sideTypeBuffer);
   menu.AddItem(SETUP_MENU_SIDE_TYPE, buffer, EnabledIf(false));
 
   if (g_SetupMenuTeamSelection == Get5SetupMenu_TeamSelectionMode_Current &&
       g_SetupMenuSideType == MatchSideType_NeverKnife) {
-    menu.AddItem(SETUP_MENU_SWAP_TEAMS, "Swap Sides");
+    FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuSwapSides", client);
+    menu.AddItem(SETUP_MENU_SWAP_TEAMS, buffer);
   }
 
   FillMenuPageWithBlanks(menu);
 
-  FormatEx(buffer, sizeof(buffer), "Friendly Fire: %s", g_SetupMenuFriendlyFire ? "On" : "Off");
+  char toggleText[16];
+  GetLocalizedOnOffText(g_SetupMenuFriendlyFire, client, toggleText, sizeof(toggleText));
+  FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuFriendlyFireItem", client, toggleText);
   menu.AddItem(SETUP_MENU_FRIENDLY_FIRE, buffer);
 
-  FormatEx(buffer, sizeof(buffer), "Overtime: %s", g_SetupMenuOvertime ? "On" : "Off");
-  menu.AddItem(SETUP_MENU_OVERTIME, buffer);
+  if (g_SetupMenuClinch) {
+    GetLocalizedOnOffText(g_SetupMenuOvertime, client, toggleText, sizeof(toggleText));
+    FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuOvertimeItem", client, toggleText);
+  } else {
+    GetLocalizedText("CommonOff", client, toggleText, sizeof(toggleText));
+    FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuOvertimeItem", client, toggleText);
+  }
+  menu.AddItem(SETUP_MENU_OVERTIME, buffer, EnabledIf(g_SetupMenuClinch));
 
-  FormatEx(buffer, sizeof(buffer), "Play All Rounds: %s", g_SetupMenuClinch ? "No" : "Yes");
+  GetLocalizedYesNoText(!g_SetupMenuClinch, client, toggleText, sizeof(toggleText));
+  FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuPlayAllRoundsItem", client, toggleText);
   menu.AddItem(SETUP_MENU_CLINCH, buffer, EnabledIf(isAdmin));
 
   if (menu.ItemCount % 6 != 0) {
     menu.AddItem("", "", ITEMDRAW_SPACER);
   }
 
-  menu.AddItem(SETUP_MENU_START_MATCH, "Start Match");
+  FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuStartMatch", client);
+  menu.AddItem(SETUP_MENU_START_MATCH, buffer);
 
   menu.DisplayAt(client, displayAt, MENU_TIME_FOREVER);
   g_ActiveSetupMenu = menu;
@@ -225,9 +273,12 @@ static int SetupMenuHandler(Menu menu, MenuAction action, int client, int param2
     } else if (StrEqual(infoString, SETUP_MENU_CLINCH, true)) {
       if (isAdmin) {
         g_SetupMenuClinch = !g_SetupMenuClinch;
+        NormalizeSetupMenuRoundOptions();
       }
     } else if (StrEqual(infoString, SETUP_MENU_OVERTIME, true)) {
-      g_SetupMenuOvertime = !g_SetupMenuOvertime;
+      if (g_SetupMenuClinch) {
+        g_SetupMenuOvertime = !g_SetupMenuOvertime;
+      }
     } else if (StrEqual(infoString, SETUP_MENU_CAPTAINS, true)) {
       if (isAdmin) {
         ShowCaptainsMenu(client);
@@ -236,15 +287,13 @@ static int SetupMenuHandler(Menu menu, MenuAction action, int client, int param2
     } else if (StrEqual(infoString, SETUP_MENU_START_MATCH, true)) {
       if (g_SetupMenuTeamSelection == Get5SetupMenu_TeamSelectionMode_Fixed &&
                  (strlen(g_SetupMenuTeamForTeam1) == 0 || strlen(g_SetupMenuTeamForTeam2) == 0)) {
-        Get5_Message(client, "You must select both teams when using fixed teams.");
+        Get5_Message(client, "%t", "SetupMenuNeedBothTeams");
       } else if (g_SetupMenuTeamSelection == Get5SetupMenu_TeamSelectionMode_Scrim &&
                  strlen(g_SetupMenuTeamForTeam1) == 0) {
-        Get5_Message(client, "You must select a home team in scrim mode.");
+        Get5_Message(client, "%t", "SetupMenuNeedHomeTeam");
       } else if (g_SetupMenuMapSelection == Get5SetupMenu_MapSelectionMode_Manual &&
                  g_SetupMenuSelectedMaps.Length < g_SetupMenuSeriesLength) {
-        Get5_Message(client,
-                     "You must select all maps to play in manual map selection mode. You selected %d map(s) out of %d.",
-                     g_SetupMenuSelectedMaps.Length, g_SetupMenuSeriesLength);
+        Get5_Message(client, "%t", "SetupMenuNeedAllMaps", g_SetupMenuSelectedMaps.Length, g_SetupMenuSeriesLength);
       } else {
         CreateMatch(client);
         return 0;
@@ -279,7 +328,7 @@ static void GetTeamNameFromJson(const char[] teamKey, char[] name, const int nam
 
 static void ShowCaptainsMenu(int client) {
   Menu menu = new Menu(CaptainsMenuHandler);
-  menu.SetTitle("Team Captains");
+  menu.SetTitle("%T", "CaptainsMenuTitle", client);
 
   // Check that captains are still valid:
   if (g_SetupMenuTeam1Captain > 0) {
@@ -296,16 +345,22 @@ static void ShowCaptainsMenu(int client) {
 
   char playerName[64];
   if (g_SetupMenuTeam1Captain > 0) {
-    FormatEx(playerName, sizeof(playerName), "Team 1: %N", g_SetupMenuTeam1Captain);
+    char captainName[64];
+    FormatEx(captainName, sizeof(captainName), "%N", g_SetupMenuTeam1Captain);
+    FormatEx(playerName, sizeof(playerName), "%T", "CaptainsMenuTeamItem", client, 1, captainName);
     menu.AddItem(SETUP_MENU_CAPTAINS_TEAM1, playerName);
   } else {
-    menu.AddItem(SETUP_MENU_CAPTAINS_TEAM1, "Team 1: Auto");
+    FormatEx(playerName, sizeof(playerName), "%T", "CaptainsMenuTeamAuto", client, 1);
+    menu.AddItem(SETUP_MENU_CAPTAINS_TEAM1, playerName);
   }
   if (g_SetupMenuTeam2Captain > 0) {
-    FormatEx(playerName, sizeof(playerName), "Team 2: %N", g_SetupMenuTeam2Captain);
+    char captainName[64];
+    FormatEx(captainName, sizeof(captainName), "%N", g_SetupMenuTeam2Captain);
+    FormatEx(playerName, sizeof(playerName), "%T", "CaptainsMenuTeamItem", client, 2, captainName);
     menu.AddItem(SETUP_MENU_CAPTAINS_TEAM2, playerName);
   } else {
-    menu.AddItem(SETUP_MENU_CAPTAINS_TEAM2, "Team 2: Auto");
+    FormatEx(playerName, sizeof(playerName), "%T", "CaptainsMenuTeamAuto", client, 2);
+    menu.AddItem(SETUP_MENU_CAPTAINS_TEAM2, playerName);
   }
 
   menu.ExitButton = false;
@@ -339,7 +394,7 @@ static int CaptainsMenuHandler(Menu menu, MenuAction action, int client, int par
 
 static void ShowCaptainSelectionForTeamMenu(int client, Get5Team team) {
   Menu menu = new Menu(team == Get5Team_1 ? CaptainSelectionForTeam1MenuHandler : CaptainSelectionForTeam2MenuHandler);
-  menu.SetTitle("Team %d Captain", view_as<int>(team) + 1);
+  menu.SetTitle("%T", "CaptainSelectionMenuTitle", client, view_as<int>(team) + 1);
 
   char clientIndex[16];
   char playerName[64];
@@ -358,7 +413,9 @@ static void ShowCaptainSelectionForTeamMenu(int client, Get5Team team) {
   if (menu.ItemCount % 6 != 0) {
     menu.AddItem("", "", ITEMDRAW_SPACER);
   }
-  menu.AddItem(SETUP_MENU_CAPTAINS_AUTO, "Auto");
+  char autoText[32];
+  FormatEx(autoText, sizeof(autoText), "%T", "CommonAuto", client);
+  menu.AddItem(SETUP_MENU_CAPTAINS_AUTO, autoText);
 
   menu.ExitButton = false;
   menu.ExitBackButton = true;
@@ -449,7 +506,7 @@ static void ResetMapPool(int client, bool showReloadMessage = false) {
     g_SetupMenuSelectedMapPool = DEFAULT_CONFIG_KEY;
     g_SetupMenuMapPool.SetObject(g_SetupMenuSelectedMapPool, CreateDefaultMapPool());
     if (IsValidClient(client)) {
-      Get5_Message(client, "Failed to load maps file. Generating default map pool. Error: %s", error);
+      Get5_Message(client, "%t", "MenuFailedLoadMapsGeneratingDefault", error);
     }
   } else {
     // File will not load if empty, so it's safe to do this.
@@ -457,7 +514,7 @@ static void ResetMapPool(int client, bool showReloadMessage = false) {
       g_SetupMenuMapPool.GetKey(0, g_SetupMenuSelectedMapPool, sizeof(g_SetupMenuSelectedMapPool));
     }
     if (showReloadMessage && IsValidClient(client)) {
-      Get5_Message(client, "Reloaded maps file. Found %d map pools(s).", g_SetupMenuMapPool.Length);
+      Get5_Message(client, "%t", "MenuReloadedMapsFoundPools", g_SetupMenuMapPool.Length);
     }
   }
 }
@@ -472,10 +529,11 @@ static int EnabledIf(bool cond) {
 
 static void CreateMatch(int client) {
   if (g_GameState != Get5State_None) {
-    Get5_Message(client, "A match is already loaded.");
+    Get5_Message(client, "%t", "MenuMatchAlreadyLoaded");
     return;
   }
   NormalizeLockedSetupMenuValues();
+  NormalizeSetupMenuRoundOptions();
 
   char serverId[SERVER_ID_LENGTH];
   g_ServerIdCvar.GetString(serverId, sizeof(serverId));
@@ -543,7 +601,7 @@ static void CreateMatch(int client) {
   char error[PLATFORM_MAX_PATH];
   JSON_Object cvars = LoadCvarsFile(error, DEFAULT_CONFIG_KEY);
   if (cvars == null) {
-    Get5_Message(client, "Error loading cvars: %s", error);
+    Get5_Message(client, "%t", "MenuErrorLoadingCvars", error);
     json_cleanup_and_delete(match);
     return;
   }
@@ -554,10 +612,10 @@ static void CreateMatch(int client) {
   match.SetObject("cvars", cvars);
 
   if (!match.WriteToFile(path)) {
-    Get5_Message(client, "Failed to write match config file to: \"%s\".", path);
+    Get5_Message(client, "%t", "MenuFailedWriteMatchConfigFile", path);
   } else {
     if (!LoadMatchConfig(path, error)) {
-      Get5_Message(client, "Failed to start match. Error: %s", error);
+      Get5_Message(client, "%t", "MenuFailedStartMatch", error);
     } else {
       DeleteFileIfExists(path);
     }
@@ -567,7 +625,7 @@ static void CreateMatch(int client) {
 
 Action Command_Get5AdminMenu(int client, int args) {
   if (!IsPlayer(client)) {
-    ReplyToCommand(client, "This command can only be used in-game.");
+    ReplyToCommand(client, "%t", "MenuCommandInGameOnly");
     return Plugin_Handled;
   }
   GiveAdminMenu(client);
@@ -577,15 +635,21 @@ Action Command_Get5AdminMenu(int client, int args) {
 static void GiveAdminMenu(int client) {
   bool isAdmin = IsGet5MenuAdmin(client);
   Menu menu = new Menu(AdminMenuHandler);
-  menu.SetTitle("Get5 Menu");
+  menu.SetTitle("%T", "AdminMenuTitle", client);
 
-  menu.AddItem(SETUP_MENU_CREATE_MATCH, "Create Match", EnabledIf(g_GameState == Get5State_None));
-  menu.AddItem(SETUP_MENU_FORCE_READY, "Force-ready all players",
+  char buffer[64];
+  FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuCreateMatch", client);
+  menu.AddItem(SETUP_MENU_CREATE_MATCH, buffer, EnabledIf(g_GameState == Get5State_None));
+  FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuForceReadyAll", client);
+  menu.AddItem(SETUP_MENU_FORCE_READY, buffer,
                EnabledIf(isAdmin && (g_GameState == Get5State_Warmup || g_GameState == Get5State_PreVeto ||
                                      g_GameState == Get5State_PendingRestore)));
-  menu.AddItem(SETUP_MENU_END_MATCH, "End Match", EnabledIf(isAdmin && g_GameState != Get5State_None));
-  menu.AddItem(SETUP_MENU_RINGER, "Add scrim ringer", EnabledIf(isAdmin && g_InScrimMode && g_GameState != Get5State_None));
-  menu.AddItem(SETUP_MENU_LIST_BACKUPS, "Load Backup", EnabledIf(isAdmin && g_BackupSystemEnabledCvar.BoolValue));
+  FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuEndMatch", client);
+  menu.AddItem(SETUP_MENU_END_MATCH, buffer, EnabledIf(isAdmin && g_GameState != Get5State_None));
+  FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuAddScrimRinger", client);
+  menu.AddItem(SETUP_MENU_RINGER, buffer, EnabledIf(isAdmin && g_InScrimMode && g_GameState != Get5State_None));
+  FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuLoadBackup", client);
+  menu.AddItem(SETUP_MENU_LIST_BACKUPS, buffer, EnabledIf(isAdmin && g_BackupSystemEnabledCvar.BoolValue));
 
   menu.Pagination = MENU_NO_PAGINATION;
   menu.ExitButton = true;
@@ -600,9 +664,9 @@ static int AdminMenuHandler(Menu menu, MenuAction action, int client, int param2
     menu.GetItem(param2, infoString, sizeof(infoString));
     if (StrEqual(infoString, SETUP_MENU_CREATE_MATCH)) {
       if (g_ActiveSetupMenu != null) {
-        Get5_Message(client, "Another player is currently setting up a match.");
+        Get5_Message(client, "%t", "MenuAnotherPlayerSettingUpMatch");
       } else if (g_GameState != Get5State_None) {
-        Get5_Message(client, "The match setup menu cannot be used while a match is loaded.");
+        Get5_Message(client, "%t", "MenuCannotUseSetupWhileMatchLoaded");
       } else {
         if (!InWarmup()) {
           StartWarmup();  // So players can "coach ct/t" after joining their team.
@@ -629,25 +693,26 @@ static int AdminMenuHandler(Menu menu, MenuAction action, int client, int param2
 
 static void GiveConfirmEndMatchMenu(int client) {
   Menu menu = new Menu(ConfirmEndMatchMenuHandler);
-  menu.SetTitle("Select Outcome");
+  menu.SetTitle("%T", "AdminMenuSelectOutcome", client);
   char teamName[64];
   strcopy(teamName, sizeof(teamName), g_TeamNames[Get5Team_1]);
   if (strlen(teamName) > 0) {
-    Format(teamName, sizeof(teamName), "Team 1 (%s) wins", teamName);
+    Format(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWinsNamed", client, 1, teamName);
   } else {
-    FormatEx(teamName, sizeof(teamName), "Team 1 wins");
+    FormatEx(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWins", client, 1);
   }
   menu.AddItem(SETUP_MENU_CONFIRM_END_MATCH_TEAM1, teamName);
 
   strcopy(teamName, sizeof(teamName), g_TeamNames[Get5Team_2]);
   if (strlen(teamName) > 0) {
-    Format(teamName, sizeof(teamName), "Team 2 (%s) wins", teamName);
+    Format(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWinsNamed", client, 2, teamName);
   } else {
-    FormatEx(teamName, sizeof(teamName), "Team 2 wins");
+    FormatEx(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWins", client, 2);
   }
   menu.AddItem(SETUP_MENU_CONFIRM_END_MATCH_TEAM2, teamName);
 
-  menu.AddItem(SETUP_MENU_CONFIRM_END_MATCH_DRAW, "Draw");
+  FormatEx(teamName, sizeof(teamName), "%T", "CommonDraw", client);
+  menu.AddItem(SETUP_MENU_CONFIRM_END_MATCH_DRAW, teamName);
   menu.ExitButton = false;
   menu.ExitBackButton = true;
   menu.Display(client, MENU_TIME_FOREVER);
@@ -677,15 +742,18 @@ static int ConfirmEndMatchMenuHandler(Menu menu, MenuAction action, int client, 
 
 static void GiveBackupMenu(int client) {
   Menu menu = new Menu(ListBackupsMenuHandler);
-  menu.SetTitle("Select Backup");
+  menu.SetTitle("%T", "AdminMenuSelectBackup", client);
 
   char lastBackup[PLATFORM_MAX_PATH];
   g_LastGet5BackupCvar.GetString(lastBackup, sizeof(lastBackup));
-  menu.AddItem(lastBackup, "Latest", EnabledIf(!StrEqual(lastBackup, "")));
+  char buffer[64];
+  FormatEx(buffer, sizeof(buffer), "%T", "CommonLatest", client);
+  menu.AddItem(lastBackup, buffer, EnabledIf(!StrEqual(lastBackup, "")));
 
   ArrayList backups = GetBackups(g_MatchID);
   if (backups == null || backups.Length == 0) {
-    menu.AddItem("", "No backups found.", EnabledIf(false));
+    FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuNoBackupsFound", client);
+    menu.AddItem("", buffer, EnabledIf(false));
   } else {
     char backupInfo[64];
     char filename[PLATFORM_MAX_PATH];
@@ -708,7 +776,7 @@ static int ListBackupsMenuHandler(Menu menu, MenuAction action, int client, int 
     char error[PLATFORM_MAX_PATH];
     menu.GetItem(param2, backupFileString, sizeof(backupFileString));
     if (!RestoreFromBackup(backupFileString, error)) {
-      Get5_Message(client, "Failed to load backup: %s", error);
+      Get5_Message(client, "%t", "MenuFailedLoadBackup", error);
     }
   } else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack) {
     GiveAdminMenu(client);
@@ -723,7 +791,7 @@ static int ListBackupsMenuHandler(Menu menu, MenuAction action, int client, int 
 
 static void GiveRingerMenu(int client) {
   Menu menu = new Menu(RingerMenuHandler);
-  menu.SetTitle("Select Player");
+  menu.SetTitle("%T", "AdminMenuSelectPlayer", client);
   menu.ExitButton = true;
   menu.ExitBackButton = true;
 
@@ -746,15 +814,17 @@ static int RingerMenuHandler(Menu menu, MenuAction action, int client, int param
     int userId = StringToInt(infoString);
     int choiceClient = GetClientOfUserId(userId);
     if (IsPlayer(choiceClient)) {
+      char choiceName[64];
+      FormatEx(choiceName, sizeof(choiceName), "%N", choiceClient);
       if (SwapScrimTeamStatus(choiceClient)) {
-        Get5_Message(client, "Swapped %N.", choiceClient);
+        Get5_Message(client, "%t", "MenuSwappedPlayer", choiceName);
         GiveAdminMenu(client);
       } else {
-        Get5_Message(client, "Failed to swap %N.", choiceClient);
+        Get5_Message(client, "%t", "MenuFailedSwapPlayer", choiceName);
         GiveRingerMenu(client);
       }
     } else {
-      Get5_Message(client, "Invalid selection. Please try again.");
+      Get5_Message(client, "%t", "MenuInvalidSelection");
       GiveRingerMenu(client);
     }
   } else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack) {

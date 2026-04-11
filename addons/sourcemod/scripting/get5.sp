@@ -220,6 +220,7 @@ Get5Team g_LastVetoTeam;
 Handle g_InfoTimer = INVALID_HANDLE;
 Handle g_MatchConfigExecTimer = INVALID_HANDLE;
 Handle g_ResetCvarsTimer = INVALID_HANDLE;
+Handle g_ShutdownStartTimer = INVALID_HANDLE;
 Handle g_ShutdownTimer = INVALID_HANDLE;
 int g_ShutdownSecondsRemaining = 0;
 
@@ -357,6 +358,28 @@ Handle g_OnSidePicked = INVALID_HANDLE;
 #include "get5/kniferounds.sp"
 #include "get5/maps.sp"
 #include "get5/mapveto.sp"
+
+static void NormalizeLegacyDemoRecordingCvars() {
+  NormalizeLegacyDemoRecordingCvar(g_DemoNameFormatCvar, "{TIME}_{MATCHID}_map{MAPNUMBER}_{MAPNAME}",
+                                   "pug_{TIME}_{MAPNAME}");
+  NormalizeLegacyDemoRecordingCvar(g_DemoNameFormatCvar, "scrim_{TIME}_{MAPNAME}", "pug_{TIME}_{MAPNAME}");
+  NormalizeLegacyDemoRecordingCvar(g_TimeFormatCvar, "%Y-%m-%d_%H-%M-%S", "%Y-%m-%d_%H%M");
+}
+
+static void NormalizeLegacyDemoRecordingCvar(ConVar cvar, const char[] legacyValue, const char[] desiredValue) {
+  char currentValue[PLATFORM_MAX_PATH];
+  cvar.GetString(currentValue, sizeof(currentValue));
+  if (!StrEqual(currentValue, legacyValue)) {
+    return;
+  }
+
+  cvar.SetString(desiredValue, false, false);
+
+  char cvarName[MAX_CVAR_LENGTH];
+  cvar.GetName(cvarName, sizeof(cvarName));
+  LogMessage("Updated legacy %s value from \"%s\" to \"%s\".", cvarName, legacyValue, desiredValue);
+}
+
 #include "get5/matchconfig.sp"
 #include "get5/natives.sp"
 #include "get5/pausing.sp"
@@ -521,6 +544,7 @@ public void OnPluginStart() {
   // clang-format on
   /** Create and exec plugin's configuration file **/
   AutoExecConfig(true, "get5");
+  NormalizeLegacyDemoRecordingCvars();
 
   g_GameStateCvar = CreateConVar("get5_game_state", "0", "Current game state (see get5.inc)", FCVAR_DONTRECORD);
   g_LastGet5BackupCvar = CreateConVar("get5_last_backup_file", "", "Last get5 backup file written", FCVAR_DONTRECORD);
@@ -1081,7 +1105,7 @@ bool CheckAutoLoadConfig() {
 
 static Action Command_EndMatch(int client, int args) {
   if (g_GameState == Get5State_None) {
-    ReplyToCommand(client, "No match is configured; nothing to end.");
+    ReplyToCommand(client, "%t", "NoMatchConfiguredNothingToEnd");
     return Plugin_Handled;
   }
 
@@ -1098,7 +1122,7 @@ static Action Command_EndMatch(int client, int args) {
     } else if (StrEqual("team2", forcedWinningTeam, false)) {
       winningTeam = Get5Team_2;
     } else {
-      ReplyToCommand(client, "Usage: get5_endmatch <team1|team2> (omit team for tie)");
+      ReplyToCommand(client, "%t", "Get5EndMatchUsage");
       return Plugin_Handled;
     }
   }
@@ -1152,7 +1176,7 @@ static Action Command_EndMatch(int client, int args) {
 
 static Action Command_LoadMatch(int client, int args) {
   if (g_GameState != Get5State_None) {
-    ReplyToCommand(client, "Cannot load a match config when another is already loaded.");
+    ReplyToCommand(client, "%t", "CannotLoadMatchAlreadyLoaded");
     return Plugin_Handled;
   }
 
@@ -1164,7 +1188,7 @@ static Action Command_LoadMatch(int client, int args) {
       ReplyToCommand(client, error);
     }
   } else {
-    ReplyToCommand(client, "Usage: get5_loadmatch <filename>");
+    ReplyToCommand(client, "%t", "Get5LoadMatchUsage");
   }
   return Plugin_Handled;
 }
@@ -1172,11 +1196,11 @@ static Action Command_LoadMatch(int client, int args) {
 static Action Command_LoadMatchUrl(int client, int args) {
   char url[PLATFORM_MAX_PATH];
   if ((args != 1 && args != 3) || !GetCmdArg(1, url, sizeof(url))) {
-    ReplyToCommand(client, "Usage: get5_loadmatch_url <url> [header name] [header value]");
+    ReplyToCommand(client, "%t", "Get5LoadMatchUrlUsage");
     return Plugin_Handled;
   }
   if (g_GameState != Get5State_None) {
-    ReplyToCommand(client, "Cannot load a match config when another is already loaded.");
+    ReplyToCommand(client, "%t", "CannotLoadMatchAlreadyLoaded");
     return Plugin_Handled;
   }
 
@@ -1193,9 +1217,9 @@ static Action Command_LoadMatchUrl(int client, int args) {
   }
   char error[PLATFORM_MAX_PATH];
   if (!LoadMatchFromUrl(url, _, _, headerNames, headerValues, error)) {
-    ReplyToCommand(client, "Failed to initiate request for remote match config: %s", error);
+    ReplyToCommand(client, "%t", "FailedInitiateRemoteMatchConfig", error);
   } else {
-    ReplyToCommand(client, "Loading match configuration...");
+    ReplyToCommand(client, "%t", "LoadingMatchConfiguration");
   }
   delete headerNames;
   delete headerValues;
@@ -1204,7 +1228,7 @@ static Action Command_LoadMatchUrl(int client, int args) {
 
 static Action Command_DumpStats(int client, int args) {
   if (g_GameState == Get5State_None) {
-    ReplyToCommand(client, "Cannot dump match stats when no match is loaded.");
+    ReplyToCommand(client, "%t", "CannotDumpStatsNoMatchLoaded");
     return Plugin_Handled;
   }
 
@@ -1217,9 +1241,9 @@ static Action Command_DumpStats(int client, int args) {
 
   if (DumpToFilePath(arg)) {
     g_StatsKv.Rewind();
-    ReplyToCommand(client, "Saved match stats to %s", arg);
+    ReplyToCommand(client, "%t", "SavedMatchStatsTo", arg);
   } else {
-    ReplyToCommand(client, "Failed to save match stats to %s", arg);
+    ReplyToCommand(client, "%t", "FailedSaveMatchStatsTo", arg);
   }
   return Plugin_Handled;
 }
@@ -1332,7 +1356,7 @@ static Action Command_BlockSuicide(int client, const char[] command, int argc) {
   if (g_GameState == Get5State_None) {
     return Plugin_Continue;
   }
-  ReplyToCommand(client, "You cannot kill yourself while Get5 is running.");
+  ReplyToCommand(client, "%t", "CannotKillSelfWhileGet5Running");
   return Plugin_Stop;
 }
 
@@ -1349,7 +1373,7 @@ void RestoreLastRound(int client) {
       ReplyToCommand(client, error);
     }
   } else {
-    ReplyToCommand(client, "Failed to load backup as no backup file from this round exists.");
+    ReplyToCommand(client, "%t", "NoBackupFileFromCurrentRound");
   }
 }
 
@@ -1698,19 +1722,64 @@ void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay
 }
 
 void StartPostMatchShutdownCountdown() {
+  if (g_ShutdownStartTimer != INVALID_HANDLE) {
+    delete g_ShutdownStartTimer;
+  }
   if (g_ShutdownTimer != INVALID_HANDLE) {
     delete g_ShutdownTimer;
   }
 
   g_ShutdownSecondsRemaining = g_ShutdownDelayCvar.IntValue;
-  AnnouncePostMatchShutdown(g_ShutdownSecondsRemaining);
-  g_ShutdownTimer = CreateTimer(1.0, Timer_PostMatchShutdownCountdown, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+  g_ShutdownStartTimer = CreateTimer(5.0, Timer_StartPostMatchShutdownCountdown, _, TIMER_FLAG_NO_MAPCHANGE);
 
-  LogMessage("Match ended. Server shutdown countdown started for %d seconds.", g_ShutdownSecondsRemaining);
+  LogMessage("Match ended. Server shutdown countdown will start in 5 seconds for %d seconds.",
+             g_ShutdownSecondsRemaining);
 }
 
 static void AnnouncePostMatchShutdown(int secondsRemaining) {
-  Get5_MessageToAll("%t", "PostMatchShutdownCountdown", secondsRemaining);
+  char prefix[64];
+  g_MessagePrefixCvar.GetString(prefix, sizeof(prefix));
+
+  for (int i = 0; i <= MaxClients; i++) {
+    if (i != 0 && !IsClientInGame(i)) {
+      continue;
+    }
+
+    char message[128];
+    if (ShouldUseChineseText(i)) {
+      FormatEx(message, sizeof(message), "服务器将在 %d 秒后关闭。", secondsRemaining);
+    } else {
+      FormatEx(message, sizeof(message), "Server will shut down in %d seconds.", secondsRemaining);
+    }
+
+    char finalMsg[1024];
+    if (StrEqual(prefix, "")) {
+      FormatEx(finalMsg, sizeof(finalMsg), " %s", message);
+    } else {
+      FormatEx(finalMsg, sizeof(finalMsg), "%s %s", prefix, message);
+    }
+
+    if (i == 0) {
+      Colorize(finalMsg, sizeof(finalMsg), true);
+      PrintToConsole(i, finalMsg);
+    } else {
+      Colorize(finalMsg, sizeof(finalMsg));
+      PrintToChat(i, finalMsg);
+    }
+  }
+}
+
+static Action Timer_StartPostMatchShutdownCountdown(Handle timer) {
+  if (timer != g_ShutdownStartTimer) {
+    return Plugin_Stop;
+  }
+
+  g_ShutdownStartTimer = INVALID_HANDLE;
+  AnnouncePostMatchShutdown(g_ShutdownSecondsRemaining);
+  g_ShutdownTimer = CreateTimer(1.0, Timer_PostMatchShutdownCountdown, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
+  LogMessage("Server shutdown countdown started for %d seconds.", g_ShutdownSecondsRemaining);
+  return Plugin_Stop;
 }
 
 static Action Timer_PostMatchShutdownCountdown(Handle timer) {
@@ -1825,7 +1894,13 @@ void ResetMatchCvarsAndHostnameAndKickPlayers(bool kickPlayers) {
     bool kickImmunity = g_KickClientImmunityCvar.BoolValue;
     LOOP_CLIENTS(i) {
       if (IsPlayer(i) && !(kickImmunity && CheckCommandAccess(i, "get5_kickcheck", ADMFLAG_CHANGEMAP))) {
-        KickClient(i, "%t", "MatchFinishedInfoMessage");
+        char kickReason[64];
+        if (ShouldUseChineseText(i)) {
+          strcopy(kickReason, sizeof(kickReason), "服务器正在关闭。");
+        } else {
+          strcopy(kickReason, sizeof(kickReason), "Server is shutting down.");
+        }
+        KickClient(i, "%s", kickReason);
       }
     }
   }
@@ -2525,4 +2600,16 @@ void CheckAndCreateFolderPath(const ConVar cvar, const char[][] varsToReplace, c
     CreateFolderStructure(path);
   }
   Format(outputFolder, outputFolderSize, "%s", path);
+}
+
+static bool ShouldUseChineseText(int client) {
+  if (client <= 0) {
+    return false;
+  }
+
+  int language = GetClientLanguage(client);
+  char code[16];
+  char name[64];
+  GetLanguageInfo(language, code, sizeof(code), name, sizeof(name));
+  return StrEqual(code, "chi", false) || StrEqual(code, "zho", false);
 }

@@ -1231,7 +1231,6 @@ void PrintDamageInfo(int client) {
 
   char message[256];
   int msgSize = sizeof(message);
-  int replacedNameIndex;
   int otherTeam = (team == CS_TEAM_T) ? CS_TEAM_CT : CS_TEAM_T;
 
   LOOP_CLIENTS(i) {
@@ -1265,16 +1264,14 @@ void PrintDamageInfo(int client) {
         ReplaceStringEx(message, msgSize, "{KILL_FROM}", "–");
       }
 
-      replacedNameIndex = ReplaceStringEx(message, msgSize, "{NAME}", "%N");
+      char formattedName[MAX_CVAR_LENGTH];
+      FormatPlayerName(formattedName, sizeof(formattedName), i, GetClientMatchTeam(i));
+      ReplaceStringEx(message, msgSize, "{NAME}", formattedName);
 
       ReplaceStringWithInt(message, msgSize, "{HEALTH}", health);
 
       Colorize(message, msgSize);
-      if (replacedNameIndex != -1) {
-        PrintToChat(client, message, i);  // Replaces %N with player name.
-      } else {
-        PrintToChat(client, message);  // {NAME} was not part of the string.
-      }
+      PrintToChat(client, message);  // {NAME} was already replaced if it was part of the string.
     }
   }
 }
