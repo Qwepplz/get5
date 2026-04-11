@@ -71,6 +71,8 @@ ConVar g_FixedPauseTimeCvar;
 ConVar g_KickClientImmunityCvar;
 ConVar g_KickClientsWithNoMatchCvar;
 ConVar g_KickOnForceEndCvar;
+ConVar g_ShutdownOnEndCvar;
+ConVar g_ShutdownDelayCvar;
 ConVar g_LiveCfgCvar;
 ConVar g_LiveWingmanCfgCvar;
 ConVar g_TeamsFileCvar;
@@ -218,6 +220,8 @@ Get5Team g_LastVetoTeam;
 Handle g_InfoTimer = INVALID_HANDLE;
 Handle g_MatchConfigExecTimer = INVALID_HANDLE;
 Handle g_ResetCvarsTimer = INVALID_HANDLE;
+Handle g_ShutdownTimer = INVALID_HANDLE;
+int g_ShutdownSecondsRemaining = 0;
 
 /** Backup data **/
 bool g_DoingBackupRestoreNow = false;
@@ -499,6 +503,8 @@ public void OnPluginStart() {
   g_KickClientImmunityCvar              = CreateConVar("get5_kick_immunity", "1", "Whether admins with the 'changemap' flag will be immune to kicks from \"get5_kick_when_no_match_loaded\".");
   g_KickClientsWithNoMatchCvar          = CreateConVar("get5_kick_when_no_match_loaded", "0", "Whether the plugin kicks players when no match is loaded and when a match ends.");
   g_KickOnForceEndCvar                  = CreateConVar("get5_kick_on_force_end", "0", "Whether players are kicked from the server when a match is forcefully ended. Requires get5_kick_when_no_match_loaded to be enabled also.");
+  g_ShutdownOnEndCvar                   = CreateConVar("get5_shutdown_on_end", "1", "Whether to kick all human clients and shut the server down after a match ends.");
+  g_ShutdownDelayCvar                   = CreateConVar("get5_shutdown_delay", "20", "Seconds to count down in chat before the server kicks everyone and shuts down after a match ends.", 0, true, 1.0, true, 300.0);
   g_KnifeCfgCvar                        = CreateConVar("get5_knife_cfg", "get5/knife.cfg", "Config file to execute for the knife round.");
   g_LiveCfgCvar                         = CreateConVar("get5_live_cfg", "get5/live.cfg", "Config file to execute when the game goes live.");
   g_LiveWingmanCfgCvar                  = CreateConVar("get5_live_wingman_cfg", "get5/live_wingman.cfg", "Config file to execute when the game goes live, but for wingman mode.");
@@ -1606,6 +1612,11 @@ Action Timer_NextMatchMap(Handle timer) {
 }
 
 void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay, bool kickPlayers = true) {
+  bool shutdownOnEnd = g_ShutdownOnEndCvar.BoolValue;
+  if (shutdownOnEnd) {
+    kickPlayers = false;
+  }
+
   Stats_SeriesEnd(winningTeam);
 
   if (printWinnerMessage) {
@@ -1633,6 +1644,10 @@ void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay
   Call_Finish();
 
   EventLogger_LogAndDeleteEvent(event);
+
+  if (shutdownOnEnd) {
+    StartPostMatchShutdownCountdown();
+  }
 
   if (restoreDelay < 0.1) {
     ResetMatchCvarsAndHostnameAndKickPlayers(kickPlayers);
@@ -1680,6 +1695,60 @@ void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay
     UnpauseGame();
   }
   ResetMatchConfigVariables(false);
+}
+
+void StartPostMatchShutdownCountdown() {
+  if (g_ShutdownTimer != INVALID_HANDLE) {
+    delete g_ShutdownTimer;
+  }
+
+  g_ShutdownSecondsRemaining = g_ShutdownDelayCvar.IntValue;
+  AnnouncePostMatchShutdown(g_ShutdownSecondsRemaining);
+  g_ShutdownTimer = CreateTimer(1.0, Timer_PostMatchShutdownCountdown, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+
+  LogMessage("Match ended. Server shutdown countdown started for %d seconds.", g_ShutdownSecondsRemaining);
+}
+
+static void AnnouncePostMatchShutdown(int secondsRemaining) {
+  Get5_MessageToAll("比赛已结束，服务器将在 {GREEN}%d {NORMAL} 秒后关闭。", secondsRemaining);
+}
+
+static Action Timer_PostMatchShutdownCountdown(Handle timer) {
+  if (timer != g_ShutdownTimer) {
+    return Plugin_Stop;
+  }
+
+  g_ShutdownSecondsRemaining--;
+  if (g_ShutdownSecondsRemaining > 0) {
+    AnnouncePostMatchShutdown(g_ShutdownSecondsRemaining);
+    return Plugin_Continue;
+  }
+
+  g_ShutdownTimer = INVALID_HANDLE;
+  g_ShutdownSecondsRemaining = 0;
+  FinishPostMatchShutdown();
+  return Plugin_Stop;
+}
+
+static void FinishPostMatchShutdown() {
+  if (g_ResetCvarsTimer != INVALID_HANDLE) {
+    TriggerTimer(g_ResetCvarsTimer);
+  }
+
+  LOOP_CLIENTS(i) {
+    if (IsClientInGame(i) && !IsFakeClient(i)) {
+      KickClient(i, "比赛已结束，服务器正在关闭。");
+    }
+  }
+
+  LogMessage("Shutting down server after post-match countdown.");
+  CreateTimer(0.2, Timer_ShutdownServer, _, TIMER_FLAG_NO_MAPCHANGE);
+}
+
+static Action Timer_ShutdownServer(Handle timer) {
+  ServerCommand("quit");
+  ServerExecute();
+  return Plugin_Stop;
 }
 
 void ResetMatchConfigVariables(bool backup = false) {

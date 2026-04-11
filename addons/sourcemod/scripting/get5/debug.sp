@@ -164,6 +164,8 @@ static void AddInterestingCvars(File f) {
   WriteCvarString(f, "get5_check_auths");
   WriteCvarString(f, "get5_fixed_pause_time");
   WriteCvarString(f, "get5_kick_when_no_match_loaded");
+  WriteCvarString(f, "get5_shutdown_on_end");
+  WriteCvarString(f, "get5_shutdown_delay");
   WriteCvarString(f, "get5_live_cfg");
   WriteCvarString(f, "get5_tech_pause_time");
   WriteCvarString(f, "get5_max_pause_time");
