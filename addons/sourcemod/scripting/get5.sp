@@ -438,7 +438,7 @@ public void OnPluginStart() {
 
   // Demos
   g_DemoUploadDeleteAfterCvar           = CreateConVar("get5_demo_delete_after_upload", "0", "Whether to delete the demo from the game server after a successful upload.");
-  g_DemoNameFormatCvar                  = CreateConVar("get5_demo_name_format", "{TIME}_{MATCHID}_map{MAPNUMBER}_{MAPNAME}", "The format to use for demo files. Do not remove the {TIME} placeholder if you use the backup system. Set to empty string to disable automatic demo recording.");
+  g_DemoNameFormatCvar                  = CreateConVar("get5_demo_name_format", "pug_{TIME}_{MAPNAME}", "The format to use for demo files. Do not remove the {TIME} placeholder if you use the backup system. Set to empty string to disable automatic demo recording.");
   g_DemoPathCvar                        = CreateConVar("get5_demo_path", "", "The folder to save demo files in, relative to the csgo directory. If defined, it must not start with a slash and must end with a slash. Set to empty string to use the csgo root.");
   g_DemoUploadHeaderKeyCvar             = CreateConVar("get5_demo_upload_header_key", "Authorization", "If defined, a custom HTTP header with this name is added to the demo upload HTTP request.", FCVAR_PROTECTED);
   g_DemoUploadHeaderValueCvar           = CreateConVar("get5_demo_upload_header_value", "", "If defined, the value of the custom header added to the demo upload HTTP request.", FCVAR_PROTECTED);
@@ -468,7 +468,7 @@ public void OnPluginStart() {
 
   // Date/time formats
   g_DateFormatCvar                      = CreateConVar("get5_date_format", "%Y-%m-%d", "Date format to use when creating file names. Don't tweak this unless you know what you're doing! Avoid using spaces or colons.");
-  g_TimeFormatCvar                      = CreateConVar("get5_time_format", "%Y-%m-%d_%H-%M-%S", "Time format to use when creating file names. Don't tweak this unless you know what you're doing! Avoid using spaces or colons.");
+  g_TimeFormatCvar                      = CreateConVar("get5_time_format", "%Y-%m-%d_%H%M", "Time format to use when creating file names. Don't tweak this unless you know what you're doing! Avoid using spaces or colons.");
 
   // Ready system
   g_AllowForceReadyCvar                 = CreateConVar("get5_allow_force_ready", "1", "Allows players to use the !forceready command.");
@@ -587,7 +587,7 @@ public void OnPluginStart() {
   RegAdminCmd("get5_ringer", Command_Ringer, ADMFLAG_CHANGEMAP, "Adds/removes a ringer to/from the home scrim team");
   RegAdminCmd("sm_ringer", Command_Ringer, ADMFLAG_CHANGEMAP, "Adds/removes a ringer to/from the home scrim team");
 
-  RegAdminCmd("sm_get5", Command_Get5AdminMenu, ADMFLAG_CHANGEMAP, "Displays a helper menu");
+  RegConsoleCmd("sm_get5", Command_Get5AdminMenu, "Displays a helper menu");
 
   RegAdminCmd("get5_forceready", Command_AdminForceReady, ADMFLAG_CHANGEMAP, "Force readies all current teams");
   RegAdminCmd("get5_forcestart", Command_AdminForceReady, ADMFLAG_CHANGEMAP, "Force readies all current teams");

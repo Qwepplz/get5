@@ -130,7 +130,6 @@ bool LoadMatchConfig(const char[] config, char[] error, bool restoreBackup = fal
   SetStartingTeams();  // must go before SetMatchTeamCvars as it depends on correct starting teams!
   SetMatchTeamCvars();
   LoadPlayerNames();
-  AddTeamLogosToDownloadTable();
   UpdateHostname();
 
   // Set mp_backup_round_file to prevent backup file collisions
@@ -1251,7 +1250,7 @@ static void SetTeamSpecificCvars(const Get5Team team) {
   // For this specifically, the starting side is the one to use, as the game swaps _1 and _2 cvars itself after
   // halftime.
   Get5Side side = view_as<Get5Side>(g_TeamStartingSide[team]);
-  SetTeamInfo(side, g_TeamNames[team], g_TeamFlags[team], g_TeamLogos[team], teamText, teamScore);
+  SetTeamInfo(side, g_TeamNames[team], teamText, teamScore);
 }
 
 static void ExecuteMatchConfigCvars() {
@@ -2049,44 +2048,13 @@ static bool CheckIfClientIsOnSide(const int client, const Get5Side side, const b
   return currentSide == side;
 }
 
-// Adds the team logos to the download table.
-static void AddTeamLogosToDownloadTable() {
-  AddTeamLogoToDownloadTable(g_TeamLogos[Get5Team_1]);
-  AddTeamLogoToDownloadTable(g_TeamLogos[Get5Team_2]);
-}
-
-static void AddTeamLogoToDownloadTable(const char[] logoName) {
-  if (StrEqual(logoName, ""))
-    return;
-
-  char logoPath[PLATFORM_MAX_PATH + 1];
-  FormatEx(logoPath, sizeof(logoPath), "materials/panorama/images/tournaments/teams/%s.svg", logoName);
-  if (FileExists(logoPath)) {
-    LogDebug("Adding file %s to download table", logoName);
-    AddFileToDownloadsTable(logoPath);
-  } else {
-    FormatEx(logoPath, sizeof(logoPath), "resource/flash/econ/tournaments/teams/%s.png", logoName);
-    if (FileExists(logoPath)) {
-      LogDebug("Adding file %s to download table", logoName);
-      AddFileToDownloadsTable(logoPath);
-    } else {
-      LogError("Error in locating file %s. Please ensure the file exists on your game server.", logoPath);
-    }
-  }
-}
-
-void SetTeamInfo(const Get5Side side, const char[] name, const char[] flag, const char[] logo, const char[] matchstat,
-                 int series_score) {
+void SetTeamInfo(const Get5Side side, const char[] name, const char[] matchstat, int series_score) {
   int team_int = (side == Get5Side_CT) ? 1 : 2;
 
   char teamCvarName[MAX_CVAR_LENGTH];
-  char flagCvarName[MAX_CVAR_LENGTH];
-  char logoCvarName[MAX_CVAR_LENGTH];
   char textCvarName[MAX_CVAR_LENGTH];
   char scoreCvarName[MAX_CVAR_LENGTH];
   FormatEx(teamCvarName, sizeof(teamCvarName), "mp_teamname_%d", team_int);
-  FormatEx(flagCvarName, sizeof(flagCvarName), "mp_teamflag_%d", team_int);
-  FormatEx(logoCvarName, sizeof(logoCvarName), "mp_teamlogo_%d", team_int);
   FormatEx(textCvarName, sizeof(textCvarName), "mp_teammatchstat_%d", team_int);
   FormatEx(scoreCvarName, sizeof(scoreCvarName), "mp_teamscore_%d", team_int);
 
@@ -2110,8 +2078,6 @@ void SetTeamInfo(const Get5Side side, const char[] name, const char[] flag, cons
   }
 
   SetConVarStringSafe(teamCvarName, taggedName);
-  SetConVarStringSafe(flagCvarName, flag);
-  SetConVarStringSafe(logoCvarName, logo);
   SetConVarStringSafe(textCvarName, matchstat);
 
   // We do this because IntValue = 0 does not consistently set an empty string, relevant for testing.
@@ -2193,14 +2159,10 @@ void ResetHostname() {
 
 void ResetTeamConfigs() {
   SetConVarStringSafe("mp_teamname_1", "");
-  SetConVarStringSafe("mp_teamflag_1", "");
-  SetConVarStringSafe("mp_teamlogo_1", "");
   SetConVarStringSafe("mp_teammatchstat_1", "");
   SetConVarStringSafe("mp_teamscore_1", "");
 
   SetConVarStringSafe("mp_teamname_2", "");
-  SetConVarStringSafe("mp_teamflag_2", "");
-  SetConVarStringSafe("mp_teamlogo_2", "");
   SetConVarStringSafe("mp_teammatchstat_2", "");
   SetConVarStringSafe("mp_teamscore_2", "");
 }

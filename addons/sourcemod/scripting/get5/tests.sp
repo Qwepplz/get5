@@ -20,8 +20,12 @@ static void Get5_Test() {
   SetConVarStringSafe("mp_teamscore_max", "0");
   SetConVarStringSafe("mp_teammatchstat_txt", "");
   SetConVarStringSafe("mp_teamprediction_pct", "0");
+  SetConVarStringSafe("mp_teamflag_1", "T1");
+  SetConVarStringSafe("mp_teamflag_2", "T2");
 
   ResetTeamConfigs();
+  SetConVarStringSafe("mp_teamlogo_1", "get5test_logo_1");
+  SetConVarStringSafe("mp_teamlogo_2", "get5test_logo_2");
 
   ValidMatchConfigTest("addons/sourcemod/configs/get5/tests/default_valid.json");
   ValidMatchConfigTest("addons/sourcemod/configs/get5/tests/default_valid.cfg");
@@ -522,8 +526,8 @@ static void Team1StartTTest() {
   // We test that the mp_ cvars are correctly inverted when team 1 starts T.
   // Series score 1 in the loaded config puts them on the second map, where they start T.
   AssertConVarEquals("mp_teamname_2", "Team A Start T [NOT READY]");
-  AssertConVarEquals("mp_teamflag_2", "NO");
-  AssertConVarEquals("mp_teamlogo_2", "start_t_logo");
+  AssertConVarEquals("mp_teamflag_2", "T2");
+  AssertConVarEquals("mp_teamlogo_2", "get5test_logo_2");
   AssertConVarEquals("mp_teammatchstat_2", "GG T WIN");
   AssertConVarEquals("mp_teamscore_2", "1");
 
@@ -718,14 +722,14 @@ static void ValidMatchConfigTest(const char[] matchConfig) {
   AssertEq("Game state", view_as<int>(g_GameState), view_as<int>(Get5State_Warmup));
 
   AssertConVarEquals("mp_teamname_1", "Team A Default [NOT READY]");
-  AssertConVarEquals("mp_teamflag_1", "US");
-  AssertConVarEquals("mp_teamlogo_1", "logofilename");
+  AssertConVarEquals("mp_teamflag_1", "T1");
+  AssertConVarEquals("mp_teamlogo_1", "get5test_logo_1");
   AssertConVarEquals("mp_teammatchstat_1", "Defending Champions");
   AssertConVarEquals("mp_teamscore_1", "");
 
   AssertConVarEquals("mp_teamname_2", "Team B Default [NOT READY]");
-  AssertConVarEquals("mp_teamflag_2", "DE");
-  AssertConVarEquals("mp_teamlogo_2", "fromfile_team");
+  AssertConVarEquals("mp_teamflag_2", "T2");
+  AssertConVarEquals("mp_teamlogo_2", "get5test_logo_2");
   AssertConVarEquals("mp_teammatchstat_2", "0");  // blank match text = use map series score
   AssertConVarEquals("mp_teamscore_2", "");
 
@@ -842,14 +846,14 @@ static void ValidScrimMatchConfigTest(const char[] matchConfig) {
   AssertStrEq("Spectator Team Name scrim", g_TeamNames[Get5Team_Spec], "Spectator Team Name");
 
   AssertConVarEquals("mp_teamname_1", "Team A Default [NOT READY]");
-  AssertConVarEquals("mp_teamflag_1", "US");
-  AssertConVarEquals("mp_teamlogo_1", "logofilename");
+  AssertConVarEquals("mp_teamflag_1", "T1");
+  AssertConVarEquals("mp_teamlogo_1", "get5test_logo_1");
   AssertConVarEquals("mp_teammatchstat_1", "Defending Champions");
   AssertConVarEquals("mp_teamscore_1", "");
 
   AssertConVarEquals("mp_teamname_2", "[NOT READY]");
-  AssertConVarEquals("mp_teamflag_2", "");
-  AssertConVarEquals("mp_teamlogo_2", "");
+  AssertConVarEquals("mp_teamflag_2", "T2");
+  AssertConVarEquals("mp_teamlogo_2", "get5test_logo_2");
   AssertConVarEquals("mp_teammatchstat_2", "0");
   AssertConVarEquals("mp_teamscore_2", "");
 
