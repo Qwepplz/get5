@@ -4,8 +4,52 @@
 #define TEMP_MATCHCONFIG_JSON           "get5_temp_config_%s.json"
 #define TEMP_VALVE_NAMES_FILE_PATTERN   "get5_names%s.txt"
 
+bool IsBackupSystemEnabled() {
+  return false;
+}
+
+static void ForceDisableBooleanConVar(ConVar convar, const char[] cvarName) {
+  if (convar != null && convar.IntValue != 0) {
+    LogDebug("Backup support is disabled in this deployment; forcing %s back to 0.", cvarName);
+    convar.SetInt(0);
+  }
+}
+
+void BackupSystemEnabledChangedHook(ConVar convar, const char[] oldValue, const char[] newValue) {
+  if (oldValue[0] == '\0' && newValue[0] == '\0') {
+    return;
+  }
+  ForceDisableBooleanConVar(convar, "get5_backup_system_enabled");
+}
+
+void StopCommandEnabledChangedHook(ConVar convar, const char[] oldValue, const char[] newValue) {
+  if (oldValue[0] == '\0' && newValue[0] == '\0') {
+    return;
+  }
+  ForceDisableBooleanConVar(convar, "get5_stop_command_enabled");
+}
+
+void ValveBackupRoundAutoChangedHook(ConVar convar, const char[] oldValue, const char[] newValue) {
+  if (oldValue[0] == '\0' && newValue[0] == '\0') {
+    return;
+  }
+  ForceDisableBooleanConVar(convar, "mp_backup_round_auto");
+}
+
+void ForceDisableBackupSupport() {
+  ForceDisableBooleanConVar(g_BackupSystemEnabledCvar, "get5_backup_system_enabled");
+  ForceDisableBooleanConVar(g_StopCommandEnabledCvar, "get5_stop_command_enabled");
+
+  ConVar valveBackupRoundAutoCvar = FindConVar("mp_backup_round_auto");
+  ForceDisableBooleanConVar(valveBackupRoundAutoCvar, "mp_backup_round_auto");
+
+  if (g_LastGet5BackupCvar != null) {
+    g_LastGet5BackupCvar.SetString("");
+  }
+}
+
 Action Command_LoadBackupUrl(int client, int args) {
-  if (!g_BackupSystemEnabledCvar.BoolValue) {
+  if (!IsBackupSystemEnabled()) {
     ReplyToCommand(client, "%t", "BackupSystemDisabled");
     return Plugin_Handled;
   }
@@ -49,7 +93,7 @@ Action Command_LoadBackupUrl(int client, int args) {
 }
 
 Action Command_LoadBackup(int client, int args) {
-  if (!g_BackupSystemEnabledCvar.BoolValue) {
+  if (!IsBackupSystemEnabled()) {
     ReplyToCommand(client, "%t", "BackupSystemDisabled");
     return Plugin_Handled;
   }
@@ -67,7 +111,7 @@ Action Command_LoadBackup(int client, int args) {
 }
 
 Action Command_ListBackups(int client, int args) {
-  if (!g_BackupSystemEnabledCvar.BoolValue) {
+  if (!IsBackupSystemEnabled()) {
     ReplyToCommand(client, "%t", "BackupSystemDisabled");
     return Plugin_Handled;
   }
@@ -101,6 +145,10 @@ Action Command_ListBackups(int client, int args) {
 }
 
 ArrayList GetBackups(const char[] matchID) {
+  if (!IsBackupSystemEnabled()) {
+    return null;
+  }
+
   char path[PLATFORM_MAX_PATH];
   g_RoundBackupPathCvar.GetString(path, sizeof(path));
   ReplaceString(path, sizeof(path), "{MATCHID}", matchID);
@@ -230,7 +278,7 @@ static bool GetBackupInfo(const char[] path, char[] info, int maxlength) {
 }
 
 void WriteBackup() {
-  if (!g_BackupSystemEnabledCvar.BoolValue || IsDoingRestoreOrMapChange()) {
+  if (!IsBackupSystemEnabled() || IsDoingRestoreOrMapChange()) {
     return;
   }
 
@@ -436,6 +484,11 @@ static void BackupUpload_Callback(Handle request, bool failure, bool requestSucc
 }
 
 bool RestoreFromBackup(const char[] path, char[] error) {
+  if (!IsBackupSystemEnabled()) {
+    FormatEx(error, PLATFORM_MAX_PATH, "备份系统已禁用。(The backup system is disabled.)");
+    return false;
+  }
+
   if (g_PendingSideSwap || InHalftimePhase()) {
     FormatEx(error, PLATFORM_MAX_PATH, "中场阶段不能加载备份。(You cannot load a backup during halftime.)");
     return false;
@@ -750,6 +803,10 @@ static Action Timer_FinishBackup(Handle timer, bool restartRecording) {
 }
 
 void DeleteOldBackups() {
+  if (!IsBackupSystemEnabled()) {
+    return;
+  }
+
   int maxTimeDifference = g_MaxBackupAgeCvar.IntValue;
   if (maxTimeDifference <= 0) {
     LogDebug("Backups are not being deleted as get5_max_backup_age is 0.");
@@ -786,6 +843,11 @@ void DeleteOldBackups() {
 
 bool LoadBackupFromUrl(const char[] url, const ArrayList paramNames = null, const ArrayList paramValues = null,
                        const ArrayList headerNames = null, const ArrayList headerValues = null, char[] error) {
+  if (!IsBackupSystemEnabled()) {
+    FormatEx(error, PLATFORM_MAX_PATH, "备份系统已禁用。(The backup system is disabled.)");
+    return false;
+  }
+
   if (!LibraryExists("SteamWorks")) {
     FormatEx(error, PLATFORM_MAX_PATH,
              "通过 HTTP 加载备份需要 SteamWorks 扩展。(The SteamWorks extension is required in order to load backups over HTTP.)");

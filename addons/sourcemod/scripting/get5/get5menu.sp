@@ -649,7 +649,7 @@ static void GiveAdminMenu(int client) {
   FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuAddScrimRinger", client);
   menu.AddItem(SETUP_MENU_RINGER, buffer, EnabledIf(isAdmin && g_InScrimMode && g_GameState != Get5State_None));
   FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuLoadBackup", client);
-  menu.AddItem(SETUP_MENU_LIST_BACKUPS, buffer, EnabledIf(isAdmin && g_BackupSystemEnabledCvar.BoolValue));
+  menu.AddItem(SETUP_MENU_LIST_BACKUPS, buffer, EnabledIf(false));
 
   menu.Pagination = MENU_NO_PAGINATION;
   menu.ExitButton = true;
@@ -677,7 +677,7 @@ static int AdminMenuHandler(Menu menu, MenuAction action, int client, int param2
       FakeClientCommand(client, "get5_forceready");
     } else if (isAdmin && StrEqual(infoString, SETUP_MENU_END_MATCH)) {
       GiveConfirmEndMatchMenu(client);
-    } else if (isAdmin && StrEqual(infoString, SETUP_MENU_LIST_BACKUPS)) {
+    } else if (isAdmin && IsBackupSystemEnabled() && StrEqual(infoString, SETUP_MENU_LIST_BACKUPS)) {
       GiveBackupMenu(client);
     } else if (isAdmin && StrEqual(infoString, SETUP_MENU_RINGER)) {
       GiveRingerMenu(client);
@@ -743,6 +743,15 @@ static int ConfirmEndMatchMenuHandler(Menu menu, MenuAction action, int client, 
 static void GiveBackupMenu(int client) {
   Menu menu = new Menu(ListBackupsMenuHandler);
   menu.SetTitle("%T", "AdminMenuSelectBackup", client);
+
+  if (!IsBackupSystemEnabled()) {
+    char disabledText[64];
+    FormatEx(disabledText, sizeof(disabledText), "%T", "BackupSystemDisabled", client);
+    menu.AddItem("", disabledText, EnabledIf(false));
+    menu.ExitBackButton = true;
+    menu.Display(client, MENU_TIME_FOREVER);
+    return;
+  }
 
   char lastBackup[PLATFORM_MAX_PATH];
   g_LastGet5BackupCvar.GetString(lastBackup, sizeof(lastBackup));

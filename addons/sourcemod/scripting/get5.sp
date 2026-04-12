@@ -450,9 +450,9 @@ public void OnPluginStart() {
 
   // Backups
   g_RoundBackupPathCvar                 = CreateConVar("get5_backup_path", "", "The folder to save backup files in, relative to the csgo directory. If defined, it must not start with a slash and must end with a slash. Set to empty string to use the csgo root.");
-  g_BackupSystemEnabledCvar             = CreateConVar("get5_backup_system_enabled", "1", "Whether the Get5 backup system is enabled.");
+  g_BackupSystemEnabledCvar             = CreateConVar("get5_backup_system_enabled", "0", "Whether the Get5 backup system is enabled.");
   g_MaxBackupAgeCvar                    = CreateConVar("get5_max_backup_age", "172800", "Number of seconds before a backup file is automatically deleted. Set to 0 to disable. Default is 2 days.");
-  g_StopCommandEnabledCvar              = CreateConVar("get5_stop_command_enabled", "1", "Whether clients can use the !stop command to restore to the beginning of the current round.");
+  g_StopCommandEnabledCvar              = CreateConVar("get5_stop_command_enabled", "0", "Whether clients can use the !stop command to restore to the beginning of the current round.");
   g_StopCommandNoDamageCvar             = CreateConVar("get5_stop_command_no_damage", "0", "Whether the stop command becomes unavailable if a player damages a player from the opposing team.");
   g_StopCommandTimeLimitCvar            = CreateConVar("get5_stop_command_time_limit", "0", "The number of seconds into a round after which a team can no longer request/confirm to stop and restart the round.");
   g_RemoteBackupURLCvar                 = CreateConVar("get5_remote_backup_url", "", "A URL to send backup files to over HTTP. Leave empty to disable.", FCVAR_PROTECTED);
@@ -554,6 +554,14 @@ public void OnPluginStart() {
 
   g_CoachingEnabledCvar = FindConVar("sv_coaching_enabled");
   g_CoachingEnabledCvar.AddChangeHook(CoachingChangedHook);  // used to move people off coaching if it gets disabled.
+  g_BackupSystemEnabledCvar.AddChangeHook(BackupSystemEnabledChangedHook);
+  g_StopCommandEnabledCvar.AddChangeHook(StopCommandEnabledChangedHook);
+
+  ConVar valveBackupRoundAutoCvar = FindConVar("mp_backup_round_auto");
+  if (valveBackupRoundAutoCvar != null) {
+    valveBackupRoundAutoCvar.AddChangeHook(ValveBackupRoundAutoChangedHook);
+  }
+  ForceDisableBackupSupport();
 
   /** Client commands **/
   g_ChatAliases = new ArrayList(ByteCountToCells(ALIAS_LENGTH));
@@ -1283,7 +1291,7 @@ Action Command_T(int client, int args) {
 }
 
 Action Command_Stop(int client, int args) {
-  if (!g_StopCommandEnabledCvar.BoolValue) {
+  if (!IsBackupSystemEnabled() || !g_StopCommandEnabledCvar.BoolValue) {
     Get5_MessageToAll("%t", "StopCommandNotEnabled");
     return Plugin_Handled;
   }
