@@ -2130,36 +2130,62 @@ static bool CheckIfClientIsOnSide(const int client, const Get5Side side, const b
   return currentSide == side;
 }
 
+static int GetTeamConfigIndex(const Get5Side side) {
+  return (side == Get5Side_CT) ? 1 : 2;
+}
+
+static void FormatTeamConfigCvarNames(const int teamIndex, char[] teamCvarName, int teamCvarNameLength,
+                                      char[] textCvarName, int textCvarNameLength, char[] scoreCvarName,
+                                      int scoreCvarNameLength) {
+  FormatEx(teamCvarName, teamCvarNameLength, "mp_teamname_%d", teamIndex);
+  FormatEx(textCvarName, textCvarNameLength, "mp_teammatchstat_%d", teamIndex);
+  FormatEx(scoreCvarName, scoreCvarNameLength, "mp_teamscore_%d", teamIndex);
+}
+
+static void FormatTaggedTeamName(const Get5Side side, const char[] name, char[] taggedName, int taggedNameLength) {
+  strcopy(taggedName, taggedNameLength, name);
+
+  if (!g_ReadyTeamTagCvar.BoolValue || !IsReadyGameState()) {
+    return;
+  }
+
+  Get5Team matchTeam = CSTeamToGet5Team(view_as<int>(side));
+  if (IsTeamReady(matchTeam)) {
+    FormatEx(taggedName, taggedNameLength, "%s %T", name, "ReadyTag", LANG_SERVER);
+  } else {
+    FormatEx(taggedName, taggedNameLength, "%s %T", name, "NotReadyTag", LANG_SERVER);
+  }
+
+  TrimString(taggedName);
+}
+
+static void ResetTeamConfigSlot(const int teamIndex) {
+  char teamCvarName[MAX_CVAR_LENGTH];
+  char textCvarName[MAX_CVAR_LENGTH];
+  char scoreCvarName[MAX_CVAR_LENGTH];
+  FormatTeamConfigCvarNames(teamIndex, teamCvarName, sizeof(teamCvarName), textCvarName, sizeof(textCvarName),
+                            scoreCvarName, sizeof(scoreCvarName));
+
+  if (g_SetGameTeamNamesCvar.BoolValue) {
+    SetConVarStringSafe(teamCvarName, "");
+  }
+
+  SetConVarStringSafe(textCvarName, "");
+  SetConVarStringSafe(scoreCvarName, "");
+}
+
 void SetTeamInfo(const Get5Side side, const char[] name, const char[] matchstat, int series_score) {
-  int team_int = (side == Get5Side_CT) ? 1 : 2;
+  int teamIndex = GetTeamConfigIndex(side);
 
   char teamCvarName[MAX_CVAR_LENGTH];
   char textCvarName[MAX_CVAR_LENGTH];
   char scoreCvarName[MAX_CVAR_LENGTH];
-  FormatEx(teamCvarName, sizeof(teamCvarName), "mp_teamname_%d", team_int);
-  FormatEx(textCvarName, sizeof(textCvarName), "mp_teammatchstat_%d", team_int);
-  FormatEx(scoreCvarName, sizeof(scoreCvarName), "mp_teamscore_%d", team_int);
+  FormatTeamConfigCvarNames(teamIndex, teamCvarName, sizeof(teamCvarName), textCvarName, sizeof(textCvarName),
+                            scoreCvarName, sizeof(scoreCvarName));
 
   if (g_SetGameTeamNamesCvar.BoolValue) {
-    // Add Ready/Not ready tags to team name if in warmup.
     char taggedName[MAX_CVAR_LENGTH];
-    if (g_ReadyTeamTagCvar.BoolValue) {
-      if (IsReadyGameState()) {
-        Get5Team matchTeam = CSTeamToGet5Team(view_as<int>(side));
-        if (IsTeamReady(matchTeam)) {
-          FormatEx(taggedName, sizeof(taggedName), "%s %T", name, "ReadyTag", LANG_SERVER);
-        } else {
-          FormatEx(taggedName, sizeof(taggedName), "%s %T", name, "NotReadyTag", LANG_SERVER);
-        }
-        // If team has no name, remove space before not ready tag.
-        TrimString(taggedName);
-      } else {
-        strcopy(taggedName, sizeof(taggedName), name);
-      }
-    } else {
-      strcopy(taggedName, sizeof(taggedName), name);
-    }
-
+    FormatTaggedTeamName(side, name, taggedName, sizeof(taggedName));
     SetConVarStringSafe(teamCvarName, taggedName);
   }
   SetConVarStringSafe(textCvarName, matchstat);
@@ -2242,17 +2268,9 @@ void ResetHostname() {
 }
 
 void ResetTeamConfigs() {
-  if (g_SetGameTeamNamesCvar.BoolValue) {
-    SetConVarStringSafe("mp_teamname_1", "");
+  for (int teamIndex = 1; teamIndex <= 2; teamIndex++) {
+    ResetTeamConfigSlot(teamIndex);
   }
-  SetConVarStringSafe("mp_teammatchstat_1", "");
-  SetConVarStringSafe("mp_teamscore_1", "");
-
-  if (g_SetGameTeamNamesCvar.BoolValue) {
-    SetConVarStringSafe("mp_teamname_2", "");
-  }
-  SetConVarStringSafe("mp_teammatchstat_2", "");
-  SetConVarStringSafe("mp_teamscore_2", "");
 }
 
 void UpdateHostname() {
