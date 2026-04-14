@@ -2363,9 +2363,9 @@ static void DispatchMapResultEvent(Get5Team winningTeam, Get5StatsTeam team1, Ge
 }
 
 static Get5StatusTeam GetTeamInfo(Get5Team team) {
-  int side = Get5TeamToCSTeam(team);
-  return new Get5StatusTeam(g_TeamNames[team], g_TeamSeriesScores[team], CS_GetTeamScore(side), IsTeamReady(team),
-                            view_as<Get5Side>(side), GetNumHumansOnTeam(side));
+  Get5Side side = GetCurrentMatchTeamSide(team);
+  return new Get5StatusTeam(g_TeamNames[team], g_TeamSeriesScores[team], GetCurrentMatchTeamScore(team),
+                            IsTeamReady(team), side, GetNumHumansOnTeam(view_as<int>(side)));
 }
 
 bool FormatCvarString(ConVar cvar, char[] buffer, int len, bool safeTeamNames = true) {
@@ -2415,10 +2415,10 @@ bool FormatCvarString(ConVar cvar, char[] buffer, int len, bool safeTeamNames = 
   int team1Score = 0;
   int team2Score = 0;
   if (g_GameState == Get5State_Live) {
-    Get5Side team1Side = view_as<Get5Side>(Get5_Get5TeamToCSTeam(Get5Team_1));
+    Get5Side team1Side = GetCurrentMatchTeamSide(Get5Team_1);
     if (team1Side != Get5Side_None) {
-      team1Score = CS_GetTeamScore(view_as<int>(team1Side));
-      team2Score = CS_GetTeamScore(view_as<int>(team1Side == Get5Side_CT ? Get5Side_T : Get5Side_CT));
+      team1Score = GetCurrentMatchTeamScore(Get5Team_1);
+      team2Score = GetCurrentMatchTeamScore(Get5Team_2);
     }
   }
   ReplaceStringWithInt(buffer, len, "{TEAM1_SCORE}", team1Score);
