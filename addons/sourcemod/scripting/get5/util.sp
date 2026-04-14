@@ -44,14 +44,49 @@ enum GamePhase {
 /**
  * Returns the number of human clients on a team.
  */
-stock int GetNumHumansOnTeam(int team) {
+stock int CountHumanClientsOnCSTeam(int team, int exclude = -1) {
   int count = 0;
   LOOP_CLIENTS(i) {
-    if (IsPlayer(i) && GetClientTeam(i) == team) {
+    if (i != exclude && IsPlayer(i) && GetClientTeam(i) == team) {
       count++;
     }
   }
   return count;
+}
+
+stock int CountHumanMatchTeamClients(const Get5Team team, bool includeCoaches = true,
+                                     bool requireAuthed = false, bool requireCurrentSide = false,
+                                     int exclude = -1) {
+  int count = 0;
+  Get5Side side = requireCurrentSide ? view_as<Get5Side>(Get5TeamToCSTeam(team)) : Get5Side_None;
+
+  LOOP_CLIENTS(i) {
+    if (i == exclude || !IsPlayer(i) || GetClientMatchTeam(i) != team) {
+      continue;
+    }
+
+    if (requireAuthed && !IsAuthedPlayer(i)) {
+      continue;
+    }
+
+    if (!includeCoaches && IsClientCoaching(i)) {
+      continue;
+    }
+
+    if (requireCurrentSide && view_as<Get5Side>(GetClientTeam(i)) != side) {
+      continue;
+    }
+
+    count++;
+  }
+  return count;
+}
+
+/**
+ * Returns the number of human clients on a team.
+ */
+stock int GetNumHumansOnTeam(int team) {
+  return CountHumanClientsOnCSTeam(team);
 }
 
 stock int CountAlivePlayersOnTeam(const Get5Side side) {

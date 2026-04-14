@@ -281,15 +281,7 @@ int CountCoachesOnTeam(Get5Team team, int exclude = -1) {
 }
 
 int CountPlayersOnTeam(Get5Team team, int exclude = -1) {
-  int count = 0;
-  Get5Side side = view_as<Get5Side>(Get5TeamToCSTeam(team));
-  LOOP_CLIENTS(i) {
-    if (i != exclude && IsAuthedPlayer(i) && GetClientMatchTeam(i) == team &&
-        view_as<Get5Side>(GetClientTeam(i)) == side) {
-      count++;
-    }
-  }
-  return count;
+  return CountHumanMatchTeamClients(team, true, true, true, exclude);
 }
 
 bool IsClientCoaching(int client) {
