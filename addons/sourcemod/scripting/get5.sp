@@ -1142,27 +1142,17 @@ static Action Command_EndMatch(int client, int args) {
   }
 
   // Call game-ending forwards.
-  Get5Side team1Side = view_as<Get5Side>(Get5TeamToCSTeam(Get5Team_1));
-  Get5Side team2Side = view_as<Get5Side>(Get5TeamToCSTeam(Get5Team_2));
-  int team1score = CS_GetTeamScore(view_as<int>(team1Side));
-  int team2score = CS_GetTeamScore(view_as<int>(team2Side));
+  Get5Side team1Side = GetCurrentMatchTeamSide(Get5Team_1);
+  Get5Side team2Side = GetCurrentMatchTeamSide(Get5Team_2);
+  int team1score = GetCurrentMatchTeamScore(Get5Team_1);
+  int team2score = GetCurrentMatchTeamScore(Get5Team_2);
 
-  Get5StatsTeam team1 = new Get5StatsTeam(g_TeamIDs[Get5Team_1], g_TeamNames[Get5Team_1], team1score,
-                                          g_TeamSeriesScores[Get5Team_1], team1Side);
-  Get5StatsTeam team2 = new Get5StatsTeam(g_TeamIDs[Get5Team_2], g_TeamNames[Get5Team_2], team2score,
-                                          g_TeamSeriesScores[Get5Team_2], team2Side);
+  Get5StatsTeam team1 = CreateStatsTeamSnapshot(Get5Team_1, team1Side, team1score);
+  Get5StatsTeam team2 = CreateStatsTeamSnapshot(Get5Team_2, team2Side, team2score);
 
   FillPlayerStats(team1, team2);
 
-  Get5MapResultEvent mapResultEvent =
-    new Get5MapResultEvent(g_MatchID, g_MapNumber,
-                           new Get5Winner(winningTeam, view_as<Get5Side>(Get5TeamToCSTeam(winningTeam))), team1, team2);
-
-  LogDebug("Calling Get5_OnMapResult()");
-  Call_StartForward(g_OnMapResult);
-  Call_PushCell(mapResultEvent);
-  Call_Finish();
-  EventLogger_LogAndDeleteEvent(mapResultEvent);
+  DispatchMapResultEvent(winningTeam, team1, team2);
 
   StopRecording(1.0);  // must go before EndSeries as it depends on g_MatchID.
 
@@ -1514,10 +1504,10 @@ static Action Event_MatchOver(Event event, const char[] name, bool dontBroadcast
       UnpauseGame();
     }
     // Figure out who won
-    Get5Side team1Side = view_as<Get5Side>(Get5TeamToCSTeam(Get5Team_1));
-    Get5Side team2Side = view_as<Get5Side>(Get5TeamToCSTeam(Get5Team_2));
-    int team1score = CS_GetTeamScore(view_as<int>(team1Side));
-    int team2score = CS_GetTeamScore(view_as<int>(team2Side));
+    Get5Side team1Side = GetCurrentMatchTeamSide(Get5Team_1);
+    Get5Side team2Side = GetCurrentMatchTeamSide(Get5Team_2);
+    int team1score = GetCurrentMatchTeamScore(Get5Team_1);
+    int team2score = GetCurrentMatchTeamScore(Get5Team_2);
     Get5Team winningTeam = Get5Team_None;
     if (team1score > team2score) {
       winningTeam = Get5Team_1;
@@ -1536,24 +1526,12 @@ static Action Event_MatchOver(Event event, const char[] name, bool dontBroadcast
     g_TeamScoresPerMap.Set(g_MapNumber, team1score, view_as<int>(Get5Team_1));
     g_TeamScoresPerMap.Set(g_MapNumber, team2score, view_as<int>(Get5Team_2));
 
-    Get5StatsTeam team1 = new Get5StatsTeam(g_TeamIDs[Get5Team_1], g_TeamNames[Get5Team_1], team1score,
-                                            g_TeamSeriesScores[Get5Team_1], team1Side);
-    Get5StatsTeam team2 = new Get5StatsTeam(g_TeamIDs[Get5Team_2], g_TeamNames[Get5Team_2], team2score,
-                                            g_TeamSeriesScores[Get5Team_2], team2Side);
+    Get5StatsTeam team1 = CreateStatsTeamSnapshot(Get5Team_1, team1Side, team1score);
+    Get5StatsTeam team2 = CreateStatsTeamSnapshot(Get5Team_2, team2Side, team2score);
 
     FillPlayerStats(team1, team2);
 
-    Get5MapResultEvent mapResultEvent = new Get5MapResultEvent(
-      g_MatchID, g_MapNumber, new Get5Winner(winningTeam, view_as<Get5Side>(Get5TeamToCSTeam(winningTeam))), team1,
-      team2);
-
-    LogDebug("Calling Get5_OnMapResult()");
-
-    Call_StartForward(g_OnMapResult);
-    Call_PushCell(mapResultEvent);
-    Call_Finish();
-
-    EventLogger_LogAndDeleteEvent(mapResultEvent);
+    DispatchMapResultEvent(winningTeam, team1, team2);
 
     int t1maps = g_TeamSeriesScores[Get5Team_1];
     int t2maps = g_TeamSeriesScores[Get5Team_2];
@@ -1661,8 +1639,8 @@ void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay
   }
 
   Get5SeriesResultEvent event = new Get5SeriesResultEvent(
-    g_MatchID, new Get5Winner(winningTeam, view_as<Get5Side>(Get5TeamToCSTeam(winningTeam))),
-    g_TeamSeriesScores[Get5Team_1], g_TeamSeriesScores[Get5Team_2], RoundToFloor(restoreDelay));
+    g_MatchID, CreateWinnerFromMatchTeam(winningTeam), g_TeamSeriesScores[Get5Team_1],
+    g_TeamSeriesScores[Get5Team_2], RoundToFloor(restoreDelay));
 
   LogDebug("Calling Get5_OnSeriesResult()");
 
@@ -2130,11 +2108,11 @@ static Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 
   if (g_GameState == Get5State_Live) {
     Get5Side winnerSide = view_as<Get5Side>(event.GetInt("winner"));
-    Get5Side team1Side = view_as<Get5Side>(Get5TeamToCSTeam(Get5Team_1));
-    Get5Side team2Side = view_as<Get5Side>(Get5TeamToCSTeam(Get5Team_2));
+    Get5Side team1Side = GetCurrentMatchTeamSide(Get5Team_1);
+    Get5Side team2Side = GetCurrentMatchTeamSide(Get5Team_2);
 
-    int team1Score = CS_GetTeamScore(view_as<int>(team1Side));
-    int team2Score = CS_GetTeamScore(view_as<int>(team2Side));
+    int team1Score = GetCurrentMatchTeamScore(Get5Team_1);
+    int team2Score = GetCurrentMatchTeamScore(Get5Team_2);
 
     if (team1Score == team2Score) {
       // If a vote is started and the game proceeds to a tie; stop the timers as surrender can now not be performed.
@@ -2190,10 +2168,8 @@ static Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
       }
     }
 
-    Get5StatsTeam team1 = new Get5StatsTeam(g_TeamIDs[Get5Team_1], g_TeamNames[Get5Team_1], team1Score,
-                                            g_TeamSeriesScores[Get5Team_1], team1Side);
-    Get5StatsTeam team2 = new Get5StatsTeam(g_TeamIDs[Get5Team_2], g_TeamNames[Get5Team_2], team2Score,
-                                            g_TeamSeriesScores[Get5Team_2], team2Side);
+    Get5StatsTeam team1 = CreateStatsTeamSnapshot(Get5Team_1, team1Side, team1Score);
+    Get5StatsTeam team2 = CreateStatsTeamSnapshot(Get5Team_2, team2Side, team2Score);
 
     FillPlayerStats(team1, team2);
 
@@ -2202,7 +2178,7 @@ static Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
     // - which is why we subtract one.
     Get5RoundEndedEvent roundEndEvent = new Get5RoundEndedEvent(
       g_MatchID, g_MapNumber, g_RoundNumber, GetRoundTime(), view_as<CSRoundEndReason>(event.GetInt("reason") - 1),
-      new Get5Winner(CSTeamToGet5Team(view_as<int>(winnerSide)), winnerSide), team1, team2);
+      CreateWinnerFromSide(winnerSide), team1, team2);
 
     LogDebug("Calling Get5_OnRoundEnd()");
     Call_StartForward(g_OnRoundEnd);
@@ -2353,6 +2329,37 @@ static Action Command_Status(int client, int args) {
 
   json_cleanup_and_delete(status);
   return Plugin_Handled;
+}
+
+static Get5Side GetCurrentMatchTeamSide(Get5Team team) {
+  return view_as<Get5Side>(Get5TeamToCSTeam(team));
+}
+
+static int GetCurrentMatchTeamScore(Get5Team team) {
+  return CS_GetTeamScore(view_as<int>(GetCurrentMatchTeamSide(team)));
+}
+
+static Get5StatsTeam CreateStatsTeamSnapshot(Get5Team team, Get5Side side, int score) {
+  return new Get5StatsTeam(g_TeamIDs[team], g_TeamNames[team], score, g_TeamSeriesScores[team], side);
+}
+
+static Get5Winner CreateWinnerFromMatchTeam(Get5Team team) {
+  return new Get5Winner(team, GetCurrentMatchTeamSide(team));
+}
+
+static Get5Winner CreateWinnerFromSide(Get5Side side) {
+  return new Get5Winner(CSTeamToGet5Team(view_as<int>(side)), side);
+}
+
+static void DispatchMapResultEvent(Get5Team winningTeam, Get5StatsTeam team1, Get5StatsTeam team2) {
+  Get5MapResultEvent mapResultEvent =
+    new Get5MapResultEvent(g_MatchID, g_MapNumber, CreateWinnerFromMatchTeam(winningTeam), team1, team2);
+
+  LogDebug("Calling Get5_OnMapResult()");
+  Call_StartForward(g_OnMapResult);
+  Call_PushCell(mapResultEvent);
+  Call_Finish();
+  EventLogger_LogAndDeleteEvent(mapResultEvent);
 }
 
 static Get5StatusTeam GetTeamInfo(Get5Team team) {
