@@ -2140,26 +2140,28 @@ void SetTeamInfo(const Get5Side side, const char[] name, const char[] matchstat,
   FormatEx(textCvarName, sizeof(textCvarName), "mp_teammatchstat_%d", team_int);
   FormatEx(scoreCvarName, sizeof(scoreCvarName), "mp_teamscore_%d", team_int);
 
-  // Add Ready/Not ready tags to team name if in warmup.
-  char taggedName[MAX_CVAR_LENGTH];
-  if (g_ReadyTeamTagCvar.BoolValue) {
-    if (IsReadyGameState()) {
-      Get5Team matchTeam = CSTeamToGet5Team(view_as<int>(side));
-      if (IsTeamReady(matchTeam)) {
-        FormatEx(taggedName, sizeof(taggedName), "%s %T", name, "ReadyTag", LANG_SERVER);
+  if (g_SetGameTeamNamesCvar.BoolValue) {
+    // Add Ready/Not ready tags to team name if in warmup.
+    char taggedName[MAX_CVAR_LENGTH];
+    if (g_ReadyTeamTagCvar.BoolValue) {
+      if (IsReadyGameState()) {
+        Get5Team matchTeam = CSTeamToGet5Team(view_as<int>(side));
+        if (IsTeamReady(matchTeam)) {
+          FormatEx(taggedName, sizeof(taggedName), "%s %T", name, "ReadyTag", LANG_SERVER);
+        } else {
+          FormatEx(taggedName, sizeof(taggedName), "%s %T", name, "NotReadyTag", LANG_SERVER);
+        }
+        // If team has no name, remove space before not ready tag.
+        TrimString(taggedName);
       } else {
-        FormatEx(taggedName, sizeof(taggedName), "%s %T", name, "NotReadyTag", LANG_SERVER);
+        strcopy(taggedName, sizeof(taggedName), name);
       }
-      // If team has no name, remove space before not ready tag.
-      TrimString(taggedName);
     } else {
       strcopy(taggedName, sizeof(taggedName), name);
     }
-  } else {
-    strcopy(taggedName, sizeof(taggedName), name);
-  }
 
-  SetConVarStringSafe(teamCvarName, taggedName);
+    SetConVarStringSafe(teamCvarName, taggedName);
+  }
   SetConVarStringSafe(textCvarName, matchstat);
 
   // We do this because IntValue = 0 does not consistently set an empty string, relevant for testing.
@@ -2240,11 +2242,15 @@ void ResetHostname() {
 }
 
 void ResetTeamConfigs() {
-  SetConVarStringSafe("mp_teamname_1", "");
+  if (g_SetGameTeamNamesCvar.BoolValue) {
+    SetConVarStringSafe("mp_teamname_1", "");
+  }
   SetConVarStringSafe("mp_teammatchstat_1", "");
   SetConVarStringSafe("mp_teamscore_1", "");
 
-  SetConVarStringSafe("mp_teamname_2", "");
+  if (g_SetGameTeamNamesCvar.BoolValue) {
+    SetConVarStringSafe("mp_teamname_2", "");
+  }
   SetConVarStringSafe("mp_teammatchstat_2", "");
   SetConVarStringSafe("mp_teamscore_2", "");
 }

@@ -95,6 +95,7 @@ ConVar g_AllowForceReadyCvar;
 ConVar g_ResetPausesEachHalfCvar;
 ConVar g_ServerIdCvar;
 ConVar g_ResetCvarsOnEndCvar;
+ConVar g_SetGameTeamNamesCvar;
 ConVar g_SetClientClanTagCvar;
 ConVar g_SetHostnameCvar;
 ConVar g_StatsPathFormatCvar;
@@ -497,6 +498,7 @@ public void OnPluginStart() {
   g_AllowForceReadyCvar                 = CreateConVar("get5_allow_force_ready", "1", "Allows players to use the !forceready command.");
   g_AutoReadyActivePlayersCvar          = CreateConVar("get5_auto_ready_active_players", "0", "Whether to automatically mark players as ready if they kill anyone in the warmup or map selection phase.");
   g_ReadyTeamTagCvar                    = CreateConVar("get5_ready_team_tag", "1", "Adds [READY]/[NOT READY] tags to team names.");
+  g_SetGameTeamNamesCvar                = CreateConVar("get5_set_game_team_names", "0", "Whether to set mp_teamname_1 and mp_teamname_2 from Get5.");
   g_SetClientClanTagCvar                = CreateConVar("get5_set_client_clan_tags", "1", "Whether to set client clan tags to player ready status.");
 
   // Chat/color

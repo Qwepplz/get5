@@ -22,6 +22,7 @@ static void Get5_Test() {
   SetConVarStringSafe("mp_teamprediction_pct", "0");
   SetConVarStringSafe("mp_teamflag_1", "T1");
   SetConVarStringSafe("mp_teamflag_2", "T2");
+  g_SetGameTeamNamesCvar.BoolValue = true;
 
   ResetTeamConfigs();
   SetConVarStringSafe("mp_teamlogo_1", "get5test_logo_1");
