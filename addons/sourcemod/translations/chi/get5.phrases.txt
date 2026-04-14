@@ -1,0 +1,1109 @@
+"Phrases"
+{
+    "ReadyForMapSelectionInfoMessage"
+    {
+        "chi"            "当您的队伍准备好进行Veto(Ban图)时，请输入{1}。"
+    }
+    "WaitingForCastersReadyInfoMessage"
+    {
+        "chi"            "正在等待裁判输入{2}来开始比赛。"
+    }
+    "ReadyToRestoreBackupInfoMessage"
+    {
+        "chi"            "当您准备好恢复比赛至备份档案时，请输入{1}。"
+    }
+    "ReadyToKnifeInfoMessage"
+    {
+        "chi"            "当您准备好进行刀局时，请输入{1}。"
+    }
+    "ReadyToStartInfoMessage"
+    {
+        "chi"            "当您准备好开始比赛时，请输入{1}。"
+    }
+    "ReadyStatusHint"
+    {
+        "chi"            "当前已有 {1}/{2} 位所需参与者准备完毕。\n输入 {3} 表示准备，输入 {4} 取消准备。"
+    }
+    "YouAreReady"
+    {
+        "chi"            "您已被标记为准备就绪。"
+    }
+    "YouAreNotReady"
+    {
+        "chi"            "您已被标记为未准备好。"
+    }
+    "WaitingForEnemySwapInfoMessage"
+    {
+        "chi"            "{1}赢得刀局。等待他们输入{2}或是{3}来选择留下还是交换队伍。"
+    }
+    "WaitingForGOTVBroadcastEnding"
+    {
+        "chi"            "当GOTV播放结束时，地图将被切换。"
+    }
+    "NoMatchSetupInfoMessage"
+    {
+        "chi"			"没有设置比赛配置"
+    }
+    "YouAreNotAPlayerInfoMessage"
+    {
+        "chi"            "您并不是这场比赛的玩家"
+    }
+    "TeamIsFullInfoMessage"
+    {
+        "chi"            "您的团队已满"
+    }
+    "TeamForfeitInfoMessage"
+    {
+        "chi"            "{1}未及时准备就绪，已被视为弃权。"
+    }
+    "MaxPausesUsedInfoMessage"
+    {
+        "chi"            "您的队伍已经使用了最大为{1}次的暂停次数。"
+    }
+    "MaxPausesTimeUsedInfoMessage"
+    {
+        "chi"            "您的队伍已经使用了最大为{1}秒的暂停时间。"
+    }
+    "MatchPausedByTeamMessage"
+    {
+        "chi"            "{1}暂停了比赛。"
+    }
+    "MatchTechPausedByTeamMessage"
+    {
+        "chi"            "{1}要求发起一个技术暂停。"
+    }
+    "PauseRunoutInfoMessage"
+    {
+        "chi"            "{1}的暂停时间已经耗尽，已解除比赛的暂停。"
+    }
+    "MatchUnpauseInfoMessage"
+    {
+        "chi"            "{1}解除了比赛的暂停。"
+    }
+    "WaitingForUnpauseInfoMessage"
+    {
+        "chi"            "{1}想要取消暂停，正在等待{2}输入{3}来取消暂停。"
+    }
+    "TeamFailToReadyMinPlayerCheck"
+    {
+        "chi"            "服务器上至少有{1}名玩家，您才能准备就绪。"
+    }
+    "TeamIsReadyForMapSelection"
+    {
+        "chi"            "{1}已准备好进行Veto(Ban图)。"
+    }
+    "TeamIsReadyToRestoreBackup"
+    {
+        "chi"            "{1}已准备好恢复比赛至备份档案。"
+    }
+    "TeamIsReadyToKnife"
+    {
+        "chi"            "{1}已准备好拼刀选边。"
+    }
+    "TeamIsReadyToBegin"
+    {
+        "chi"            "{1}已准备好开始比赛。"
+    }
+    "TeamIsNoLongerReady"
+    {
+        "chi"            "{1}已不在准备就绪状态。"
+    }
+    "ForceReadyInfoMessage"
+    {
+        "chi"            "您可以输入{1}来强制准备您的队伍。"
+    }
+    "TeammateForceReadied"
+    {
+        "chi"            "您的队伍已被{1}强制准备就绪。"
+    }
+    "AdminForceReadyInfoMessage"
+    {
+        "chi"            "一名管理员强制准备了所有队伍。"
+    }
+    "AdminForceEndInfoMessage"
+    {
+        "chi"            "一名管理员强制结束了比赛。"
+    }
+    "AdminForcePauseInfoMessage"
+    {
+        "chi"            "一名管理员强制暂停了比赛。"
+    }
+    "AdminForceUnPauseInfoMessage"
+    {
+        "chi"            "一名管理员强制解除了比赛暂停。"
+    }
+    "TeamWantsToReloadCurrentRound"
+    {
+        "chi"            "{1}想停止比赛并重新加载比赛至上一回合，需要{2}输入{3}来确认。"
+    }
+    "TeamWinningSeriesInfoMessage"
+    {
+        "chi"            "{1}在这系列比赛中正处于领先状态 {2}-{3}"
+    }
+    "SeriesTiedInfoMessage"
+    {
+        "chi"            "此系列比赛终结于{1}-{2}"
+    }
+    "NextSeriesMapInfoMessage"
+    {
+        "chi"            "下一张地图在此系列比赛中是{1}"
+    }
+    "TeamWonMatchInfoMessage"
+    {
+        "chi"            "{1}赢得了这局比赛。"
+    }
+    "TeamTiedMatchInfoMessage"
+    {
+        "chi"            "{1}与{2}打成了平局。"
+    }
+    "TeamWonSeriesInfoMessage"
+    {
+        "chi"            "{1}赢得了此系列比赛 {2}-{3}"
+    }
+    "MatchFinishedInfoMessage"
+    {
+        "chi"            "这场比赛已完结。"
+    }
+    "BackupLoadedInfoMessage"
+    {
+        "chi"            "成功加载备份档案 {1}"
+    }
+    "MatchBeginInSecondsInfoMessage"
+    {
+        "chi"            "这场比赛将于{1}后开始。"
+    }
+    "MatchIsLiveInfoMessage"
+    {
+        "chi"            "比赛已{GREEN}开始"
+    }
+    "KnifeIn5SecInfoMessage"
+    {
+        "chi"            "刀局将在5秒后开始。"
+    }
+    "KnifeInfoMessage"
+    {
+        "chi"            "刀局!"
+    }
+    "TeamDecidedToStayInfoMessage"
+    {
+        "chi"            "{1}已决定留下。"
+    }
+    "TeamDecidedToSwapInfoMessage"
+    {
+        "chi"            "{1}已决定交换。"
+    }
+    "TeamLostTimeToDecideInfoMessage"
+    {
+        "chi"            "{1}将会留下来，因为他们没有及时做出决定。"
+    }
+    "ChangingMapInfoMessage"
+    {
+        "chi"            "切换地图至{1}..."
+    }
+    "MapDecidedInfoMessage"
+    {
+        "chi"            "地图已被确定："
+    }
+    "MapIsInfoMessage"
+    {
+        "chi"            "地图 {1}： {2}"
+    }
+    "TeamPickedMap"
+    {
+        "chi"            "{1}挑选了{2}作为地图 {3}"
+    }
+    "TeamSelectedSide"
+    {
+        "chi"            "{1}已选择在{2}开始 {3}"
+    }
+    "TeamBannedMap"
+    {
+        "chi"            "{1}vetoed(Ban掉)了{2}"
+    }
+    "CaptainLeftDuringMapSelection"
+    {
+        "chi"            "一个队长在Veto(Ban图)期间离开，暂停Veto(Ban图)"
+    }
+    "ReadyToResumeMapSelection"
+    {
+        "chi"            "当您准备好恢复Veto(Ban图)时，请输入{1}。"
+    }
+    "MatchConfigLoadedInfoMessage"
+    {
+        "chi"            "已加载比赛配置。"
+    }
+    "MoveToCoachInfoMessage"
+    {
+        "chi"            "因为您的团队已经满员，所以您被移到了教练的位置。"
+    }
+    "ReadyTag"
+    {
+        "chi"            "[准备]"
+    }
+    "NotReadyTag"
+    {
+        "chi"            "[未准备]"
+    }
+    "MapSelectionTeamChatOnly"
+    {
+        "chi"        "在地图选择期间，您只能在团队聊天中输入信息。"
+    }
+    "MapSelectionInvalidMap"
+    {
+        "chi"        "{1}不是有效的地图指令。"
+    }
+    "MapSelectionPickMapHelp"
+    {
+        "chi"        "使用{1} <地图>选择地图。"
+    }
+    "MapSelectionBanMapHelp"
+    {
+        "chi"        "使用{1} <地图>进行地图禁用。"
+    }
+    "MapSelectionPickSideHelp"
+    {
+        "chi"        "使用{1}或{2}进行选边。"
+    }
+    "MapSelectionAnnounceCaptains"
+    {
+        "chi"        "{1}队长：{2}"
+    }
+    "MapSelectionBan"
+    {
+        "chi"        "禁用"
+    }
+    "MapSelectionPick"
+    {
+        "chi"        "选"
+    }
+    "MapSelectionTurnToPick"
+    {
+        "chi"        "{1}现在必须{2}一张地图作为第{3}张地图进行比赛。"
+    }
+    "MapSelectionTurnToBan"
+    {
+        "chi"        "{1}现在必须{2}一张地图作为禁用的地图。"
+    }
+    "MapSelectionPickSide"
+    {
+        "chi"        "{1}现在必须选择一方在{2}上进行比赛。"
+    }
+    "MapSelectionRemainingMaps"
+    {
+        "chi"        "剩余地图："
+    }
+    "MapSelectionCountdown"
+    {
+        "chi"        "地图选择将在{1}秒后开始。"
+    }
+    "YouAreReadyAuto"
+    {
+        "chi"            "注意：由于游戏行为，您已被自动标记为准备就绪。"
+    }
+    "TypeUnreadyIfNotReady"
+    {
+        "#format"        "{1:s}"
+        "chi"            "如果您尚未准备好，请输入{1}。"
+    }
+    "WaitingForGOTVMapSelection"
+    {
+        "chi"            "地图将在 GOTV 播放完地图选择后切换。"
+    }
+    "TeamMustBeReadyOrForfeit"
+    {
+        "#format"        "{1:s},{2:s}"
+        "chi"            "{1}必须在{2}内准备就绪，否则将被判负。"
+    }
+    "TeamsMustBeReadyOrTie"
+    {
+        "#format"        "{1:s}"
+        "chi"            "双方队伍必须在{1}内准备就绪，否则比赛将以平局结束。"
+    }
+    "PausesNotEnabled"
+    {
+        "chi"            "暂停功能未启用。"
+    }
+    "TechPausesNotEnabled"
+    {
+        "chi"            "技术暂停未启用。"
+    }
+    "TechnicalPauseMidSentence"
+    {
+        "chi"            "技术暂停"
+    }
+    "TacticalPauseMidSentence"
+    {
+        "chi"            "战术暂停"
+    }
+    "TimeRemainingBeforeAnyoneCanUnpausePrefix"
+    {
+        "chi"            "任意玩家可解除暂停前的剩余时间"
+    }
+    "PauseTimeRemainingPrefix"
+    {
+        "chi"            "剩余暂停时间"
+    }
+    "AwaitingUnpause"
+    {
+        "chi"            "等待解除暂停"
+    }
+    "PausedByAdministrator"
+    {
+        "chi"            "管理员已暂停比赛。"
+    }
+    "PausedForBackup"
+    {
+        "chi"            "比赛已从备份恢复，双方队伍必须解除暂停后才能继续。"
+    }
+    "UserCannotUnpauseAdmin"
+    {
+        "chi"            "此次暂停由管理员发起，因此也必须由管理员解除。"
+    }
+    "PauseRequestCanceled"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}取消了他们的暂停请求。"
+    }
+    "PausingTeamCannotUnpauseUntilFreezeTime"
+    {
+        "chi"            "在您的暂停正式开始前，不能解除暂停。"
+    }
+    "TechPauseRunoutInfoMessage"
+    {
+        "#format"        "{1:s}"
+        "chi"            "技术暂停的最长时长已到。现在任何人都可以输入{1}解除暂停。"
+    }
+    "TechPauseNoTimeRemaining"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}已没有剩余技术暂停时间，请改用战术暂停。"
+    }
+    "TechPauseNoPausesRemaining"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}已没有剩余技术暂停次数，请改用战术暂停。"
+    }
+    "TechPauseAutomaticallyStarted"
+    {
+        "#format"        "{1:s}"
+        "chi"            "已自动为{1}发起技术暂停。"
+    }
+    "PrereleaseVersionWarning"
+    {
+        "#format"        "{1:s},{2:s}"
+        "chi"            "您当前运行的是仅用于开发和测试的非正式 Get5 版本（{1}）。可通过{2}关闭此提示。"
+    }
+    "NewVersionAvailable"
+    {
+        "#format"        "{1:s}"
+        "chi"            "Get5 有新版本可用，请访问 {1} 更新。"
+    }
+    "ForceReadyDisabled"
+    {
+        "#format"        "{1:s},{2:s}"
+        "chi"            "{1}命令已禁用，但可通过{2}启用。"
+    }
+    "AdminForceEndWithWinnerInfoMessage"
+    {
+        "#format"        "{1:s}"
+        "chi"            "管理员已强制结束比赛，并将{1}设为获胜方。"
+    }
+    "StopCommandNotEnabled"
+    {
+        "chi"            "停止命令未启用。"
+    }
+    "StopCommandOnlyAfterRoundStart"
+    {
+        "chi"            "在回合开始前，不能请求重开当前回合。"
+    }
+    "StopCommandVotingReset"
+    {
+        "#format"        "{1:s}"
+        "chi"            "由于回合已结束，{1}发起的停止比赛请求已被取消。"
+    }
+    "StopCommandRequiresNoDamage"
+    {
+        "chi"            "一旦有玩家对敌方造成伤害，就不能再请求重开当前回合。"
+    }
+    "StopCommandTimeLimitExceeded"
+    {
+        "#format"        "{1:s}"
+        "chi"            "请求重开当前回合必须在回合开始后的{1}内提出。"
+    }
+    "ExitCoachSlotHelp"
+    {
+        "#format"        "{1:s}"
+        "chi"            "输入{1}退出教练位。"
+    }
+    "EnterCoachSlotHelp"
+    {
+        "#format"        "{1:s}"
+        "chi"            "输入{1}成为你队伍的教练。"
+    }
+    "CannotLeaveCoachingTeamIsFull"
+    {
+        "chi"            "由于你的队伍已满员，你不能离开教练位。"
+    }
+    "CoachingNotEnabled"
+    {
+        "#format"        "{1:s}"
+        "chi"            "教练功能未启用。你必须将{1}设为1。"
+    }
+    "PlayerIsCoachingTeam"
+    {
+        "#format"        "{1:s},{2:s}"
+        "chi"            "{1}正在执教{2}。"
+    }
+    "CanOnlyCoachDuringWarmup"
+    {
+        "chi"            "只能在热身阶段切换为教练或退出教练。"
+    }
+    "AllCoachSlotsFilledForTeam"
+    {
+        "#format"        "{1:d}"
+        "chi"            "你队伍的所有教练位（{1}个）当前都已占满。"
+    }
+    "SurrenderCommandNotEnabled"
+    {
+        "chi"            "投降命令未启用。"
+    }
+    "SurrenderMinimumRoundDeficit"
+    {
+        "#format"        "{1:d}"
+        "chi"            "至少落后{1}个回合时，才可以发起投降。"
+    }
+    "SurrenderInitiated"
+    {
+        "#format"        "{1:s},{2:d},{3:d}"
+        "chi"            "{1}发起了投降投票。你的队伍必须在{3}秒内达到{2}票。"
+    }
+    "SurrenderVoteStatus"
+    {
+        "#format"        "{1:d},{2:d}"
+        "chi"            "当前已获得{1}/{2}张所需投降票。"
+    }
+    "SurrenderSuccessful"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}已投降。"
+    }
+    "SurrenderVoteFailed"
+    {
+        "chi"            "你队伍投赞成投降的人数不足。"
+    }
+    "SurrenderOnCooldown"
+    {
+        "#format"        "{1:s}"
+        "chi"            "你必须等待{1}后才能再次发起投降投票。"
+    }
+    "WinByForfeitAvailable"
+    {
+        "#format"        "{1:s},{2:s},{3:s}"
+        "chi"            "{1}已离开服务器。只要{2}阵容完整，现在就可以输入{3}发起判负获胜倒计时。"
+    }
+    "WinByForfeitRequiresFullTeam"
+    {
+        "chi"            "只有在你的队伍满员时，才能请求或取消判负获胜。"
+    }
+    "WinByForfeitAlreadyRequested"
+    {
+        "chi"            "已经有一个判负获胜请求在等待处理中。"
+    }
+    "WinByForfeitCountdownStarted"
+    {
+        "#format"        "{1:s},{2:s},{3:s},{4:s}"
+        "chi"            "若{3}没有玩家在{2}内重新加入比赛，{1}将直接获胜。此请求可通过{4}取消。"
+    }
+    "WinByForfeitCountdownCanceled"
+    {
+        "#format"        "{1:s}"
+        "chi"            "来自{1}的判负获胜请求已被取消。"
+    }
+    "TeamForfeited"
+    {
+        "#format"        "{1:s}"
+        "chi"            "{1}已弃权本次系列赛。"
+    }
+    "AllPlayersLeftTieCountdown"
+    {
+        "#format"        "{1:s}"
+        "chi"            "双方队伍都已离开服务器。每队至少需要有一名玩家在{1}内重新加入，否则系列赛将以平局结束。"
+    }
+    "TieCountdownCanceled"
+    {
+        "chi"            "由于双方队伍现在都已有玩家，平局倒计时已取消。"
+    }
+    "PostMatchShutdownCountdown"
+    {
+        "#format"        "{1:d}"
+        "chi"            "服务器将在 {1} 秒后关闭。"
+    }
+    "CommonOn"
+    {
+        "chi"            "开"
+    }
+    "CommonOff"
+    {
+        "chi"            "关"
+    }
+    "CommonYes"
+    {
+        "chi"            "是"
+    }
+    "CommonNo"
+    {
+        "chi"            "否"
+    }
+    "CommonCurrent"
+    {
+        "chi"            "当前"
+    }
+    "CommonManual"
+    {
+        "chi"            "手动"
+    }
+    "CommonAuto"
+    {
+        "chi"            "自动"
+    }
+    "CommonDraw"
+    {
+        "chi"            "平局"
+    }
+    "CommonLatest"
+    {
+        "chi"            "最新"
+    }
+    "SetupMenuTitle"
+    {
+        "chi"            "比赛选项"
+    }
+    "SetupMenuValueWingman"
+    {
+        "chi"            "搭档模式"
+    }
+    "SetupMenuValueCompetitive"
+    {
+        "chi"            "竞技模式"
+    }
+    "SetupMenuGameModeItem"
+    {
+        "chi"            "游戏模式：{1}"
+    }
+    "SetupMenuSeriesLengthItem"
+    {
+        "chi"            "系列赛长度：{1} 张地图"
+    }
+    "SetupMenuValuePickBan"
+    {
+        "chi"            "BP/Veto"
+    }
+    "SetupMenuMapSelectionItem"
+    {
+        "chi"            "选图方式：{1}"
+    }
+    "SetupMenuMapPoolItem"
+    {
+        "chi"            "地图池：{1}"
+    }
+    "SetupMenuMapsItem"
+    {
+        "chi"            "地图：{1}"
+    }
+    "SetupMenuSelectMaps"
+    {
+        "chi"            "选择地图"
+    }
+    "SetupMenuTeamSizeItem"
+    {
+        "chi"            "队伍人数：{1}"
+    }
+    "SetupMenuValueFixed"
+    {
+        "chi"            "固定队伍"
+    }
+    "SetupMenuValueScrim"
+    {
+        "chi"            "Scrim"
+    }
+    "SetupMenuTeamSelectionItem"
+    {
+        "chi"            "队伍选择：{1}"
+    }
+    "SetupMenuSelectTeams"
+    {
+        "chi"            "选择队伍"
+    }
+    "SetupMenuTeamsVersusItem"
+    {
+        "chi"            "队伍：{1} vs {2}"
+    }
+    "SetupMenuHomeTeamItem"
+    {
+        "chi"            "主队：{1}"
+    }
+    "SetupMenuValueStandard"
+    {
+        "chi"            "标准"
+    }
+    "SetupMenuValueAlwaysKnife"
+    {
+        "chi"            "始终刀局"
+    }
+    "SetupMenuValueTeam1CT"
+    {
+        "chi"            "队伍 1 为 CT"
+    }
+    "SetupMenuValueRandom"
+    {
+        "chi"            "随机"
+    }
+    "SetupMenuSideTypeItem"
+    {
+        "chi"            "边设置：{1}"
+    }
+    "SetupMenuSwapSides"
+    {
+        "chi"            "互换阵营"
+    }
+    "SetupMenuFriendlyFireItem"
+    {
+        "chi"            "友伤：{1}"
+    }
+    "SetupMenuOvertimeItem"
+    {
+        "chi"            "加时：{1}"
+    }
+    "SetupMenuPlayAllRoundsItem"
+    {
+        "chi"            "打满全部回合：{1}"
+    }
+    "SetupMenuStartMatch"
+    {
+        "chi"            "开始比赛"
+    }
+    "SetupMenuNeedBothTeams"
+    {
+        "chi"            "固定队伍模式下必须同时选择双方队伍。"
+    }
+    "SetupMenuNeedHomeTeam"
+    {
+        "chi"            "Scrim 模式下必须选择主队。"
+    }
+    "SetupMenuNeedAllMaps"
+    {
+        "chi"            "手动选图模式下必须选满全部比赛地图。当前已选择 {1}/{2} 张。"
+    }
+    "CaptainsMenuTitle"
+    {
+        "chi"            "队长设置"
+    }
+    "CaptainsMenuTeamItem"
+    {
+        "chi"            "队伍 {1}：{2}"
+    }
+    "CaptainsMenuTeamAuto"
+    {
+        "chi"            "队伍 {1}：自动"
+    }
+    "CaptainSelectionMenuTitle"
+    {
+        "chi"            "选择队伍 {1} 队长"
+    }
+    "MenuFailedLoadMapsGeneratingDefault"
+    {
+        "chi"            "加载地图文件失败，将生成默认地图池。错误：{1}"
+    }
+    "MenuReloadedMapsFoundPools"
+    {
+        "chi"            "已重新加载地图文件，找到 {1} 个地图池。"
+    }
+    "MenuMatchAlreadyLoaded"
+    {
+        "chi"            "当前已有比赛在运行。"
+    }
+    "MenuErrorLoadingCvars"
+    {
+        "chi"            "加载 cvars 失败：{1}"
+    }
+    "MenuFailedWriteMatchConfigFile"
+    {
+        "chi"            "写入比赛配置文件失败：\"{1}\"。"
+    }
+    "MenuFailedStartMatch"
+    {
+        "chi"            "开始比赛失败。错误：{1}"
+    }
+    "MenuCommandInGameOnly"
+    {
+        "chi"            "此命令只能在游戏内使用。"
+    }
+    "AdminMenuTitle"
+    {
+        "chi"            "Get5 菜单"
+    }
+    "AdminMenuCreateMatch"
+    {
+        "chi"            "创建比赛"
+    }
+    "AdminMenuForceReadyAll"
+    {
+        "chi"            "强制所有玩家准备"
+    }
+    "AdminMenuEndMatch"
+    {
+        "chi"            "结束比赛"
+    }
+    "AdminMenuAddScrimRinger"
+    {
+        "chi"            "添加 Scrim 替补"
+    }
+    "AdminMenuLoadBackup"
+    {
+        "chi"            "加载备份"
+    }
+    "MenuAnotherPlayerSettingUpMatch"
+    {
+        "chi"            "另一名玩家正在设置比赛。"
+    }
+    "MenuCannotUseSetupWhileMatchLoaded"
+    {
+        "chi"            "已有比赛加载时不能使用比赛设置菜单。"
+    }
+    "AdminMenuSelectOutcome"
+    {
+        "chi"            "选择结果"
+    }
+    "AdminMenuOutcomeTeamWinsNamed"
+    {
+        "chi"            "队伍 {1}（{2}）获胜"
+    }
+    "AdminMenuOutcomeTeamWins"
+    {
+        "chi"            "队伍 {1} 获胜"
+    }
+    "AdminMenuSelectBackup"
+    {
+        "chi"            "选择备份"
+    }
+    "AdminMenuNoBackupsFound"
+    {
+        "chi"            "未找到备份。"
+    }
+    "MenuFailedLoadBackup"
+    {
+        "chi"            "加载备份失败：{1}"
+    }
+    "AdminMenuSelectPlayer"
+    {
+        "chi"            "选择玩家"
+    }
+    "MenuSwappedPlayer"
+    {
+        "chi"            "已切换 {1}。"
+    }
+    "MenuFailedSwapPlayer"
+    {
+        "chi"            "切换 {1} 失败。"
+    }
+    "MenuInvalidSelection"
+    {
+        "chi"            "无效选择，请重试。"
+    }
+    "NoMatchConfiguredNothingToEnd"
+    {
+        "chi"            "当前没有已配置的比赛，无需结束。"
+    }
+    "Get5EndMatchUsage"
+    {
+        "chi"            "用法：get5_endmatch <team1|team2>（不填队伍则判为平局）"
+    }
+    "CannotLoadMatchAlreadyLoaded"
+    {
+        "chi"            "已有比赛加载中，无法再加载新的比赛配置。"
+    }
+    "Get5LoadMatchUsage"
+    {
+        "chi"            "用法：get5_loadmatch <filename>"
+    }
+    "Get5LoadMatchUrlUsage"
+    {
+        "chi"            "用法：get5_loadmatch_url <url> [header name] [header value]"
+    }
+    "FailedInitiateRemoteMatchConfig"
+    {
+        "chi"            "发起远程比赛配置请求失败：{1}"
+    }
+    "LoadingMatchConfiguration"
+    {
+        "chi"            "正在加载比赛配置……"
+    }
+    "CannotDumpStatsNoMatchLoaded"
+    {
+        "chi"            "当前没有加载比赛，无法导出统计。"
+    }
+    "SavedMatchStatsTo"
+    {
+        "chi"            "已将比赛统计保存到 {1}"
+    }
+    "FailedSaveMatchStatsTo"
+    {
+        "chi"            "保存比赛统计到 {1} 失败"
+    }
+    "CannotKillSelfWhileGet5Running"
+    {
+        "chi"            "Get5 运行期间不能自杀。"
+    }
+    "NoBackupFileFromCurrentRound"
+    {
+        "chi"            "加载备份失败：本回合没有可用备份文件。"
+    }
+    "BackupSystemDisabled"
+    {
+        "chi"            "备份系统已禁用。"
+    }
+    "CannotLoadBackupDuringHalftime"
+    {
+        "chi"            "中场阶段不能加载备份。"
+    }
+    "CannotLoadBackupDuringRestore"
+    {
+        "chi"            "当前正在换图或恢复备份，暂时不能加载备份。"
+    }
+    "Get5LoadBackupUrlUsage"
+    {
+        "chi"            "用法：get5_loadbackup_url <url> [header name] [header value]"
+    }
+    "FailedInitiateRemoteBackupLoad"
+    {
+        "chi"            "发起远程备份加载请求失败：{1}"
+    }
+    "LoadingBackupFromRemote"
+    {
+        "chi"            "正在从远程加载备份……"
+    }
+    "Get5LoadBackupUsage"
+    {
+        "chi"            "用法：get5_loadbackup <file>"
+    }
+    "NoMatchingBackupsFound"
+    {
+        "chi"            "没有找到符合条件的备份文件。"
+    }
+    "WroteDebugDataTo"
+    {
+        "chi"            "已将调试数据写入 {1}"
+    }
+    "DeductedReadyTime"
+    {
+        "chi"            "已从已用准备时间中扣除 {1} 秒，当前为：{2}。"
+    }
+    "Get5AddReadyTimeUsage"
+    {
+        "chi"            "用法：get5_add_ready_time <seconds>"
+    }
+    "PauseCommandPrevented"
+    {
+        "chi"            "Get5 已拦截 {1}。管理员请使用 sm_pause/sm_unpause。"
+    }
+    "PoweredByGet5"
+    {
+        "chi"            "由 {YELLOW}Get5{NORMAL} 驱动"
+    }
+    "LoadTeamUsage"
+    {
+        "chi"            "用法：get_loadteam <team1|team2|spec> <filename>"
+    }
+    "MatchConfigMustBeLoadedBeforeLoadTeam"
+    {
+        "chi"            "加载队伍文件前必须先加载比赛配置。"
+    }
+    "LoadTeamScrimOnlyTeam1OrSpec"
+    {
+        "chi"            "Scrim 模式下只能加载 team1 或 spec。"
+    }
+    "LoadTeamUnknownTeamArgument"
+    {
+        "chi"            "未知队伍参数。必须是以下之一：team1、team2、spec。"
+    }
+    "LoadedTeamDataFor"
+    {
+        "chi"            "已为 {1} 加载队伍数据。"
+    }
+    "NoMatchConfigurationLoaded"
+    {
+        "chi"            "当前没有加载比赛配置。"
+    }
+    "AddPlayerScrimUseRinger"
+    {
+        "chi"            "Scrim 模式下不能使用 get5_addplayer。请使用 get5_ringer 来交换玩家队伍。"
+    }
+    "CannotAddPlayersWaitingBackup"
+    {
+        "chi"            "等待回合备份时不能添加玩家。"
+    }
+    "CannotAddPlayersDuringHalftime"
+    {
+        "chi"            "中场阶段不能添加玩家，请等待下一回合开始。"
+    }
+    "UnknownTeamSpecifier"
+    {
+        "chi"            "未知队伍参数：必须为 team1、team2 或 spec"
+    }
+    "AddedPlayerToTeam"
+    {
+        "chi"            "已成功将玩家 {1} 添加到 {2}。"
+    }
+    "FailedToAddPlayerToTeam"
+    {
+        "chi"            "将玩家 {1} 添加到 {2} 失败。该玩家可能已在某支队伍中，或您提供了无效的 Steam ID。"
+    }
+    "AddPlayerUsage"
+    {
+        "chi"            "用法：get5_addplayer <auth> <team1|team2|spec> [name]"
+    }
+    "AddKickedPlayerScrimUseRinger"
+    {
+        "chi"            "Scrim 模式下不能使用 get5_addkickedplayer。请使用 get5_ringer 来交换玩家队伍。"
+    }
+    "NoPlayerKickedYet"
+    {
+        "chi"            "当前还没有玩家被踢出。"
+    }
+    "AddedKickedPlayerToTeam"
+    {
+        "chi"            "已成功将被踢出的玩家 {1} 添加到 {2}。"
+    }
+    "AddKickedPlayerUsage"
+    {
+        "chi"            "用法：get5_addkickedplayer <team1|team2|spec> [name]"
+    }
+    "RemovePlayerScrimUseRinger"
+    {
+        "chi"            "Scrim 模式下不能使用 get5_removeplayer。请使用 get5_ringer 来交换玩家队伍。"
+    }
+    "RemovedPlayer"
+    {
+        "chi"            "已成功移除玩家 {1}。"
+    }
+    "PlayerAuthNotFoundOrInvalid"
+    {
+        "chi"            "在授权列表中未找到玩家 {1}，或该 Steam ID 无效。"
+    }
+    "RemovePlayerUsage"
+    {
+        "chi"            "用法：get5_removeplayer <auth>"
+    }
+    "RemoveKickedPlayerScrimUseRinger"
+    {
+        "chi"            "Scrim 模式下不能使用 get5_removekickedplayer。请使用 get5_ringer 来交换玩家队伍。"
+    }
+    "RemovedKickedPlayer"
+    {
+        "chi"            "已成功移除被踢出的玩家 {1}。"
+    }
+    "CannotCreateMatchAlreadyLoaded"
+    {
+        "chi"            "已有比赛加载时不能创建新比赛。"
+    }
+    "ParameterMustBeGreaterThanZeroInt"
+    {
+        "chi"            "参数“{1}”必须是大于 0 的整数。"
+    }
+    "ParameterMustBeNonNegativeInt"
+    {
+        "chi"            "参数“{1}”必须是非负整数。"
+    }
+    "CommandParameterError"
+    {
+        "chi"            "参数“{1}”错误：{2}"
+    }
+    "MapIsNotValid"
+    {
+        "chi"            "地图“{1}”无效。"
+    }
+    "UnknownParameter"
+    {
+        "chi"            "未知参数：{1}"
+    }
+    "NumMapsCannotExceedMaplist"
+    {
+        "chi"            "--num_maps 不能大于 --maplist 的地图数量。"
+    }
+    "Team2OrScrimRequiredWhenTeam1Provided"
+    {
+        "chi"            "提供 --team1 时，必须同时提供 --team2 或 --scrim。"
+    }
+    "Team1RequiredWhenTeam2OrScrimProvided"
+    {
+        "chi"            "提供 --team2 或 --scrim 时，必须同时提供 --team1。"
+    }
+    "ScrimCannotCombineBothTeams"
+    {
+        "chi"            "--scrim 不能与 --team1 和 --team2 同时组合使用。"
+    }
+    "TeamsCannotBeIdentical"
+    {
+        "chi"            "--team1 和 --team2 不能相同。"
+    }
+    "CurrentMapCannotCombineMaplist"
+    {
+        "chi"            "--current_map 不能与 --maplist 同时使用。"
+    }
+    "CurrentMapCannotCombineNumMaps"
+    {
+        "chi"            "--current_map 不能与大于 1 的 --num_maps 同时使用。"
+    }
+    "FailedLoadMapsFile"
+    {
+        "chi"            "加载地图文件失败：{1}"
+    }
+    "SeriesMapsExceedPool"
+    {
+        "chi"            "所选地图池只有 {2} 张地图，无法进行 {1} 图系列赛。"
+    }
+    "CvarsArgumentError"
+    {
+        "chi"            "--cvars 错误：{1}"
+    }
+    "FailedLoadTeamsError"
+    {
+        "chi"            "加载队伍失败。错误：{1}"
+    }
+    "TeamNotFoundInTeamsFile"
+    {
+        "chi"            "在队伍文件中未找到队伍“{1}”。"
+    }
+    "CannotCreateScrimAlreadyLoaded"
+    {
+        "chi"            "已有比赛加载时不能创建 Scrim。"
+    }
+    "InvalidMap"
+    {
+        "chi"            "无效地图：{1}"
+    }
+    "FailedReadScrimTemplate"
+    {
+        "chi"            "读取 Scrim 模板文件失败：\"{1}\""
+    }
+    "ScrimTemplateMissingTeam1Players"
+    {
+        "chi"            "您的 Scrim 模板里必须给 team1 添加玩家！"
+    }
+    "FailedWriteScrimConfig"
+    {
+        "chi"            "写入 Scrim 配置文件失败：\"{1}\"。"
+    }
+    "CommandOnlyInScrimMode"
+    {
+        "chi"            "此命令只能在 Scrim 模式下使用。"
+    }
+    "PlayerNotFound"
+    {
+        "chi"            "未找到玩家"
+    }
+    "SmRingerUsage"
+    {
+        "chi"            "用法：sm_ringer <player>"
+    }
+}

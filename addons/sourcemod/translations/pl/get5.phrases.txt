@@ -1,0 +1,267 @@
+"Phrases"
+{
+    "ReadyForMapSelectionInfoMessage"
+    {
+        "pl"            "Napisz {1} kiedy twoja drużyna jest gotowa do wyboru mapy."
+    }
+    "WaitingForCastersReadyInfoMessage"
+    {
+        "pl"            "Czekamy na komentatorów na wpisanie {2} aby zacząć rozgrywkę."
+    }
+    "ReadyToRestoreBackupInfoMessage"
+    {
+        "pl"            "Napisz {1} kiedy Twoja drużyna będzie gotowa do wczytania meczu."
+    }
+    "ReadyToKnifeInfoMessage"
+    {
+        "pl"            "Napisz {1} kiedy Twoja drużyna będzie gotowa do rundy nożowej."
+    }
+    "ReadyToStartInfoMessage"
+    {
+        "pl"            "Napisz {1} kiedy Twoja drużyna będzie gotowa."
+    }
+    "WaitingForEnemySwapInfoMessage"
+    {
+        "pl"            "{1} wygralo runde nożową. Oczekiwanie na {2} lub {3}."
+    }
+    "WaitingForGOTVBroadcastEnding"
+    {
+        "pl"            "Mapa zostanie zmieniona gdy transmisja GOTV zostanie zakończona."
+    }
+    "WaitingForGOTVMapSelection"
+    {
+        "pl"            "Mapa ulegnie zmianie po nadaniu przez GOTV wyboru mapy."
+    }
+    "NoMatchSetupInfoMessage"
+    {
+        "pl"			"Brak ustawień meczu"
+    }
+    "YouAreNotAPlayerInfoMessage"
+    {
+        "pl"            "Nie jesteś graczem w tym meczu"
+    }
+    "TeamIsFullInfoMessage"
+    {
+        "pl"            "Twoja drużyna jest pełna"
+    }
+    "TeamForfeitInfoMessage"
+    {
+        "pl"            "{1} nie bylo gotowe w wymaganym czasie i mecz został oddany na korzyść drużyny przeciwnej."
+    }
+    "TeamMustBeReadyOrForfeit"
+    {
+        "pl"            "{1} musi być gotowe w ciągu {2}, w przeciwnym razie przegra mecz."
+    }
+    "TeamsMustBeReadyOrTie"
+    {
+        "pl"            "Drużyny muszą być gotowe w ciągu {1} lub mecz zakończy się remisem."
+    }
+    "MaxPausesUsedInfoMessage"
+    {
+        "pl"            "Twoja drużyna użyła już maksymalnie {1} pauzy."
+    }
+    "MaxPausesTimeUsedInfoMessage"
+    {
+        "pl"            "Twoja drużyna użyła już maksymalnie {1} pauzy."
+    }
+    "MatchPausedByTeamMessage"
+    {
+        "pl"            "{1} zatrzymało mecz."
+    }
+    "PauseRunoutInfoMessage"
+    {
+        "pl"            "{1} skończył się czas pauzy, wznawianie rozgrywki."
+    }
+    "MatchUnpauseInfoMessage"
+    {
+        "pl"            "{1} odpauzowało mecz."
+    }
+    "WaitingForUnpauseInfoMessage"
+    {
+        "pl"            "{1} chce wznowić rozgrywkę, oczekiwanie na {2} na wpisanie {3}."
+    }
+    "TeamFailToReadyMinPlayerCheck"
+    {
+        "pl"            "Musi być conajmniej {1} graczy na serwerze aby móc być gotowym."
+    }
+    "TeamIsReadyForMapSelection"
+    {
+        "pl"            "{1} jest gotowa do wyboru mapy."
+    }
+    "TeamIsReadyToRestoreBackup"
+    {
+        "pl"            "{1} jest gotowe do przywrócenia meczu."
+    }
+    "TeamIsReadyToKnife"
+    {
+        "pl"            "{1} jest gotowe do nożówki za strony."
+    }
+    "TeamIsReadyToBegin"
+    {
+        "pl"            "{1} jest gotowe do rozpoczęcia meczu."
+    }
+    "TeamIsNoLongerReady"
+    {
+        "pl"            "{1} anulowali swoją gotowość."
+    }
+    "AdminForceReadyInfoMessage"
+    {
+        "pl"            "Administrator wymusił gotowość na wszystkich drużynach."
+    }
+    "AdminForceEndInfoMessage"
+    {
+        "pl"            "Administrator zakończył mecz."
+    }
+    "AdminForcePauseInfoMessage"
+    {
+        "pl"            "Administrator zatrzymał mecz."
+    }
+    "AdminForceUnPauseInfoMessage"
+    {
+        "pl"            "Administrator wznowił mecz."
+    }
+    "TeamWantsToReloadCurrentRound"
+    {
+        "pl"            "{1} chce zatrzymać mecz i wczytać poprzednią rundę, oczekiwanie na potwierdzenie przez {2} i wpisanie {3}."
+    }
+    "TeamWinningSeriesInfoMessage"
+    {
+        "pl"            "{1} wygrywa {2}-{3}."
+    }
+    "SeriesTiedInfoMessage"
+    {
+        "pl"            "Drużyny remisują {1}-{2}."
+    }
+    "NextSeriesMapInfoMessage"
+    {
+        "pl"            "Następna mapa w meczu to {1}."
+    }
+    "TeamWonMatchInfoMessage"
+    {
+        "pl"            "{1} wygrało mapę."
+    }
+    "TeamWonSeriesInfoMessage"
+    {
+        "pl"            "{1} wygrało spotkanie {2}-{3}."
+    }
+    "MatchFinishedInfoMessage"
+    {
+        "pl"            "Mecz został zakończony"
+    }
+    "StopCommandRequiresNoDamage"
+    {
+        "pl"            "Prośba o wznowienie rundy nie może być zgłoszona, gdy gracz zadał obrażenia jakiemukolwiek graczowi przeciwnika."
+    }
+    "StopCommandTimeLimitExceeded"
+    {
+        "pl"            "Prośba o wznowienie rundy musi zostać zgłoszona w ciągu {1} po rozpoczęciu rundy."
+    }
+    "BackupLoadedInfoMessage"
+    {
+        "pl"            "Pomyślnie wczytano kopię meczu {1}."
+    }
+    "MatchBeginInSecondsInfoMessage"
+    {
+        "pl"            "Mecz rozpocznie się za {1} sekund."
+    }
+    "MatchIsLiveInfoMessage"
+    {
+        "pl"            "Mecz jest {GREEN}LIVE"
+    }
+    "KnifeIn5SecInfoMessage"
+    {
+        "pl"            "Runda nożowa rozpocznie się za 5 sekund."
+    }
+    "KnifeInfoMessage"
+    {
+        "pl"            "Nozówka!"
+    }
+    "TeamDecidedToStayInfoMessage"
+    {
+        "pl"            "{1} zdecydowało na pozostanie w aktualnych drużynach."
+    }
+    "TeamDecidedToSwapInfoMessage"
+    {
+        "pl"            "{1} zdecydowało na zamianę drużyn."
+    }
+    "TeamLostTimeToDecideInfoMessage"
+    {
+        "pl"            "{1} drużyny zostały w aktualnych drużynach, ponieważ żadna decyzja nie została podjęta."
+    }
+    "ChangingMapInfoMessage"
+    {
+        "pl"            "Zmiana mapy na {1}..."
+    }
+    "MapDecidedInfoMessage"
+    {
+        "pl"            "Wybrano następujące mapy:"
+    }
+    "MapIsInfoMessage"
+    {
+        "pl"            "Mapa {1}: {2}"
+    }
+    "TeamPickedMap"
+    {
+        "pl"            "{1} wybrało {2} jako mapę {3}."
+    }
+    "TeamSelectedSide"
+    {
+        "pl"            "{1} wybrało stronę {2} na {3}."
+    }
+    "TeamBannedMap"
+    {
+        "pl"            "{1} odrzuciła {2}."
+    }
+    "CaptainLeftDuringMapSelection"
+    {
+        "pl"            "Kapitan drużyny wyszedł podczas wybierania mapy. Wybór mapy został wstrzymany."
+    }
+    "ReadyToResumeMapSelection"
+    {
+        "pl"            "Napisz {1}, gdy będziesz gotowy do wznowienia wyboru mapy."
+    }
+    "MatchConfigLoadedInfoMessage"
+    {
+        "pl"            "Załadowano ustawawienia meczu."
+    }
+    "ExitCoachSlotHelp"
+    {
+        "pl"            "Wpisz {1}, aby wyjść z roli trenera."
+    }
+    "EnterCoachSlotHelp"
+    {
+        "pl"            "Wpisz {1}, aby zostać trenerem swojej drużyny."
+    }
+    "MoveToCoachInfoMessage"
+    {
+        "pl"            "Ponieważ Twoja drużyna jest pełna, zostałeś przeniesiony na stanowisko coach'a."
+    }
+    "MapSelectionPickMenuText"
+    {
+        "pl"            "Wybierz mapę do GRANIA:"
+    }
+    "MapSelectionPickConfirmMenuText"
+    {
+        "pl"            "Potwierdź, że chcesz GRAĆ {1}:"
+    }
+    "MapSelectionBanMenuText"
+    {
+        "pl"            "Wybierz mapę do ODRZUCENIA:"
+    }
+    "MapSelectionBanConfirmMenuText"
+    {
+        "pl"            "Potwierdź, że chcesz ODRZUCIĆ {1}:"
+    }
+    "MapSelectionSidePickMenuText"
+    {
+        "pl"            "Wybierz stronę dla {1}:"
+    }
+    "MapSelectionSidePickConfirmMenuText"
+    {
+        "pl"            "Potwierdź, że chcesz rozpocząć po stronie {1}:"
+    }
+    "MapSelectionCountdown"
+    {
+        "pl"            "Wybór mapy rozpoczyna się za {1}..."
+    }
+}
