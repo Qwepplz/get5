@@ -935,6 +935,38 @@ static void Utils_Test() {
   AssertStrEq("Check regular map name correctly formatted", "Dust II", formattedMapName);
   FormatMapName(mapName, formattedMapName, sizeof(formattedMapName), true, true);
   AssertStrEq("Check regular map name correctly formatted and colored", "{GREEN}Dust II{NORMAL}", formattedMapName);
+
+  char teamDisplayName[MAX_CVAR_LENGTH];
+  g_TeamStartingSide[Get5Team_1] = CS_TEAM_CT;
+  g_TeamStartingSide[Get5Team_2] = CS_TEAM_T;
+  g_TeamSide[Get5Team_1] = CS_TEAM_CT;
+  g_TeamSide[Get5Team_2] = CS_TEAM_T;
+
+  SetConVarStringSafe("mp_teamname_1", "Scoreboard Team A");
+  SetConVarStringSafe("mp_teamname_2", "Scoreboard Team B");
+  GetTeamDisplayName(Get5Team_1, teamDisplayName, sizeof(teamDisplayName));
+  AssertStrEq("Display team name uses scoreboard team 1", teamDisplayName, "Scoreboard Team A");
+  GetTeamDisplayName(Get5Team_2, teamDisplayName, sizeof(teamDisplayName));
+  AssertStrEq("Display team name uses scoreboard team 2", teamDisplayName, "Scoreboard Team B");
+
+  g_TeamStartingSide[Get5Team_1] = CS_TEAM_T;
+  g_TeamStartingSide[Get5Team_2] = CS_TEAM_CT;
+  GetTeamDisplayName(Get5Team_1, teamDisplayName, sizeof(teamDisplayName));
+  AssertStrEq("Display team name follows starting side mapping", teamDisplayName, "Scoreboard Team B");
+
+  SetConVarStringSafe("mp_teamname_2", "");
+  GetTeamDisplayName(Get5Team_1, teamDisplayName, sizeof(teamDisplayName));
+  AssertStrEq("Display team name falls back when scoreboard empty", teamDisplayName, "team1");
+
+  char team1Color[32];
+  char expectedFormattedTeamName[MAX_CVAR_LENGTH];
+  g_Team1NameColorCvar.GetString(team1Color, sizeof(team1Color));
+  g_TeamStartingSide[Get5Team_1] = CS_TEAM_CT;
+  SetConVarStringSafe("mp_teamname_1", "Scoreboard Team A");
+  FormatTeamName(Get5Team_1);
+  FormatEx(expectedFormattedTeamName, sizeof(expectedFormattedTeamName), "%sScoreboard Team A{NORMAL}", team1Color);
+  AssertStrEq("Formatted team name uses scoreboard team name", g_FormattedTeamNames[Get5Team_1],
+              expectedFormattedTeamName);
 }
 
 static void AssertConVarEquals(const char[] conVarName, const char[] expectedValue) {

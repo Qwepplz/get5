@@ -513,6 +513,9 @@ static Action Timer_PauseTimeCheck(Handle timer) {
   char teamString[4];
   CSTeamString(Get5TeamToCSTeam(team), teamString, sizeof(teamString));
 
+  char pauseTeamName[MAX_CVAR_LENGTH];
+  GetTeamDisplayName(team, pauseTeamName, sizeof(pauseTeamName));
+
   if (g_LatestPauseDuration == 0) {
     // g_LatestPauseDuration is -1, so on 0, it means the pause just started.
     // Important that this block is *after* g_LatestPauseDuration++ above!
@@ -619,36 +622,36 @@ static Action Timer_PauseTimeCheck(Handle timer) {
                                // timeLeft for simplicity
           if (maxTacticalPauses > 0) {
             // Team A (CT) tactical pause (2/4): 0:45
-            PrintHintText(i, "%s (%s) %t (%d/%d): %s", g_TeamNames[team], teamString, "TacticalPauseMidSentence",
+            PrintHintText(i, "%s (%s) %t (%d/%d): %s", pauseTeamName, teamString, "TacticalPauseMidSentence",
                           tacticalPausesUsed, maxTacticalPauses, timeLeftFormatted);
           } else {
             // Team A (CT) tactical pause: 0:45
-            PrintHintText(i, "%s (%s) %t: %s", g_TeamNames[team], teamString, "TacticalPauseMidSentence",
+            PrintHintText(i, "%s (%s) %t: %s", pauseTeamName, teamString, "TacticalPauseMidSentence",
                           timeLeftFormatted);
           }
         } else if (timeLeft >= 0) {  // If total time restriction
           if (maxTacticalPauses > 0) {
             // Team A (CT) tactical pause (2/4).
             // Remaining pause time: 0:45 / 3:00
-            PrintHintText(i, "%s (%s) %t (%d/%d).\n%t: %s / %s", g_TeamNames[team], teamString,
+            PrintHintText(i, "%s (%s) %t (%d/%d).\n%t: %s / %s", pauseTeamName, teamString,
                           "TacticalPauseMidSentence", tacticalPausesUsed, maxTacticalPauses, "PauseTimeRemainingPrefix",
                           timeLeftFormatted, pauseTimeMaxFormatted);
           } else {
             // Team A (CT) tactical pause.
             // Remaining pause time: 0:45 / 3:00
-            PrintHintText(i, "%s (%s) %t.\n%t: %s / %s", g_TeamNames[team], teamString, "TacticalPauseMidSentence",
+            PrintHintText(i, "%s (%s) %t.\n%t: %s / %s", pauseTeamName, teamString, "TacticalPauseMidSentence",
                           "PauseTimeRemainingPrefix", timeLeftFormatted, pauseTimeMaxFormatted);
           }
         } else {  // if no time restriction or awaiting unpause
           if (maxTacticalPauses > 0) {
             // Team A (CT) tactical pause (2/4).
             // Awaiting unpause.
-            PrintHintText(i, "%s (%s) %t (%d/%d).\n%t.", g_TeamNames[team], teamString, "TacticalPauseMidSentence",
+            PrintHintText(i, "%s (%s) %t (%d/%d).\n%t.", pauseTeamName, teamString, "TacticalPauseMidSentence",
                           tacticalPausesUsed, maxTacticalPauses, "AwaitingUnpause");
           } else {
             // Team A (CT) tactical pause.
             // Awaiting unpause.
-            PrintHintText(i, "%s (%s) %t.\n%t.", g_TeamNames[team], teamString, "TacticalPauseMidSentence",
+            PrintHintText(i, "%s (%s) %t.\n%t.", pauseTeamName, teamString, "TacticalPauseMidSentence",
                           "AwaitingUnpause");
           }
         }
@@ -696,22 +699,22 @@ static Action Timer_PauseTimeCheck(Handle timer) {
         if (timeLeft >= 0) {
           if (maxTechPauses > 0) {
             // Team A (CT) technical pause (3/4): Time remaining before anyone can unpause: 1:30
-            PrintHintText(i, "%s (%s) %t (%d/%d).\n%t: %s", g_TeamNames[team], teamString, "TechnicalPauseMidSentence",
+            PrintHintText(i, "%s (%s) %t (%d/%d).\n%t: %s", pauseTeamName, teamString, "TechnicalPauseMidSentence",
                           techPausesUsed, maxTechPauses, "TimeRemainingBeforeAnyoneCanUnpausePrefix",
                           timeLeftFormatted);
           } else {
             // Team A (CT) technical pause. Time remaining before anyone can unpause: 1:30
-            PrintHintText(i, "%s (%s) %t.\n%t: %s", g_TeamNames[team], teamString, "TechnicalPauseMidSentence",
+            PrintHintText(i, "%s (%s) %t.\n%t: %s", pauseTeamName, teamString, "TechnicalPauseMidSentence",
                           "TimeRemainingBeforeAnyoneCanUnpausePrefix", timeLeftFormatted);
           }
         } else {
           if (maxTechPauses > 0) {
             // Team A (CT) technical pause (3/4). Awaiting unpause.
-            PrintHintText(i, "%s (%s) %t (%d/%d).\n%t.", g_TeamNames[team], teamString, "TechnicalPauseMidSentence",
+            PrintHintText(i, "%s (%s) %t (%d/%d).\n%t.", pauseTeamName, teamString, "TechnicalPauseMidSentence",
                           techPausesUsed, maxTechPauses, "AwaitingUnpause");
           } else {
             // Team A (CT) technical pause. Awaiting unpause.
-            PrintHintText(i, "%s (%s) %t.\n%t.", g_TeamNames[team], teamString, "TechnicalPauseMidSentence",
+            PrintHintText(i, "%s (%s) %t.\n%t.", pauseTeamName, teamString, "TechnicalPauseMidSentence",
                           "AwaitingUnpause");
           }
         }

@@ -1241,18 +1241,16 @@ bool ValidateMapBanLogic(const ArrayList mapPool, const ArrayList mapBanPickOrde
 
 void FormatTeamName(const Get5Team team) {
   char color[32];
-  char teamNameFallback[MAX_CVAR_LENGTH];
+  char displayName[MAX_CVAR_LENGTH];
   if (team == Get5Team_1) {
     g_Team1NameColorCvar.GetString(color, sizeof(color));
-    teamNameFallback = "team1";
   } else if (team == Get5Team_2) {
     g_Team2NameColorCvar.GetString(color, sizeof(color));
-    teamNameFallback = "team2";
   } else if (team == Get5Team_Spec) {
     g_SpecNameColorCvar.GetString(color, sizeof(color));
   }
-  FormatEx(g_FormattedTeamNames[team], MAX_CVAR_LENGTH, "%s%s{NORMAL}", color,
-           strlen(g_TeamNames[team]) > 0 ? g_TeamNames[team] : teamNameFallback);
+  GetTeamDisplayName(team, displayName, sizeof(displayName));
+  FormatEx(g_FormattedTeamNames[team], MAX_CVAR_LENGTH, "%s%s{NORMAL}", color, displayName);
 }
 
 void SetMatchTeamCvars() {
@@ -1265,6 +1263,8 @@ void SetMatchTeamCvars() {
 
   SetTeamSpecificCvars(Get5Team_1);
   SetTeamSpecificCvars(Get5Team_2);
+  FormatTeamName(Get5Team_1);
+  FormatTeamName(Get5Team_2);
 
   // Set prediction cvars.
   SetConVarStringSafe("mp_teamprediction_txt", g_FavoredTeamText);
@@ -2048,7 +2048,7 @@ JSON_Object GetTeamObjectFromCurrentPlayers(const Get5Side side, int forcedCapta
   JSON_Array players = new JSON_Array();
 
   bool first = true;
-  char teamName[64];
+  char teamName[64] = "";
   char auth[AUTH_LENGTH];
   // If forcing a captain, find that player first. We have to loop twice because JSON doesn't support anything
   // that would easily allow us to swap the captain to index 0.
@@ -2056,7 +2056,9 @@ JSON_Object GetTeamObjectFromCurrentPlayers(const Get5Side side, int forcedCapta
     LOOP_CLIENTS(i) {
       if (i == forcedCaptainClient) {
         if (CheckIfClientIsOnSide(i, side, false) && GetAuth(i, auth, sizeof(auth))) {
-          SetTeamNameFromClient(i, teamName, sizeof(teamName));
+          if (g_SetGameTeamNamesCvar.BoolValue) {
+            SetTeamNameFromClient(i, teamName, sizeof(teamName));
+          }
           players.PushString(auth);
           first = false;
         }
@@ -2071,13 +2073,13 @@ JSON_Object GetTeamObjectFromCurrentPlayers(const Get5Side side, int forcedCapta
     }
     if (CheckIfClientIsOnSide(i, side, false) && GetAuth(i, auth, sizeof(auth))) {
       players.PushString(auth);
-      if (first && side != Get5Side_Spec) {
+      if (first && side != Get5Side_Spec && g_SetGameTeamNamesCvar.BoolValue) {
         SetTeamNameFromClient(i, teamName, sizeof(teamName));
       }
       first = false;
     }
   }
-  if (strlen(teamName) == 0 && side != Get5Side_Spec) {
+  if (strlen(teamName) == 0 && side != Get5Side_Spec && g_SetGameTeamNamesCvar.BoolValue) {
     SetTeamNameFromSideClient(side, teamName, sizeof(teamName));
   }
   if (strlen(teamName) > 0) {
@@ -2142,6 +2144,38 @@ static void FormatTeamConfigCvarNames(const int teamIndex, char[] teamCvarName, 
   FormatEx(scoreCvarName, scoreCvarNameLength, "mp_teamscore_%d", teamIndex);
 }
 
+static bool GetScoreboardTeamName(const Get5Team team, char[] buffer, int bufferLength) {
+  if (team != Get5Team_1 && team != Get5Team_2) {
+    return false;
+  }
+
+  Get5Side side = view_as<Get5Side>(g_TeamStartingSide[team]);
+  if (side != Get5Side_CT && side != Get5Side_T) {
+    side = view_as<Get5Side>(g_TeamSide[team]);
+  }
+  if (side != Get5Side_CT && side != Get5Side_T) {
+    return false;
+  }
+
+  char teamCvarName[MAX_CVAR_LENGTH];
+  FormatEx(teamCvarName, sizeof(teamCvarName), "mp_teamname_%d", GetTeamConfigIndex(side));
+  GetConVarStringSafe(teamCvarName, buffer, bufferLength);
+  TrimString(buffer);
+  return strlen(buffer) > 0;
+}
+
+void GetTeamDisplayName(const Get5Team team, char[] buffer, int bufferLength) {
+  if (GetScoreboardTeamName(team, buffer, bufferLength)) {
+    return;
+  }
+
+  if (team == Get5Team_Spec && strlen(g_TeamNames[team]) > 0) {
+    strcopy(buffer, bufferLength, g_TeamNames[team]);
+  } else {
+    GetTeamString(team, buffer, bufferLength);
+  }
+}
+
 static void FormatTaggedTeamName(const Get5Side side, const char[] name, char[] taggedName, int taggedNameLength) {
   strcopy(taggedName, taggedNameLength, name);
 
@@ -2199,7 +2233,7 @@ void SetTeamInfo(const Get5Side side, const char[] name, const char[] matchstat,
 }
 
 void CheckTeamNameStatus(Get5Team team) {
-  if (StrEqual(g_TeamNames[team], "") && team != Get5Team_Spec) {
+  if (StrEqual(g_TeamNames[team], "") && team != Get5Team_Spec && g_SetGameTeamNamesCvar.BoolValue) {
     LOOP_CLIENTS(i) {
       if (IsAuthedPlayer(i)) {
         if (GetClientMatchTeam(i) == team) {
@@ -2235,8 +2269,8 @@ void CheckTeamNameStatus(Get5Team team) {
         }
       }
     }
-    FormatTeamName(team);
   }
+  FormatTeamName(team);
 }
 
 void ExecCfg(ConVar cvar) {

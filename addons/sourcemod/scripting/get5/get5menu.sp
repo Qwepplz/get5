@@ -695,7 +695,7 @@ static void GiveConfirmEndMatchMenu(int client) {
   Menu menu = new Menu(ConfirmEndMatchMenuHandler);
   menu.SetTitle("%T", "AdminMenuSelectOutcome", client);
   char teamName[64];
-  strcopy(teamName, sizeof(teamName), g_TeamNames[Get5Team_1]);
+  GetTeamDisplayName(Get5Team_1, teamName, sizeof(teamName));
   if (strlen(teamName) > 0) {
     Format(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWinsNamed", client, 1, teamName);
   } else {
@@ -703,7 +703,7 @@ static void GiveConfirmEndMatchMenu(int client) {
   }
   menu.AddItem(SETUP_MENU_CONFIRM_END_MATCH_TEAM1, teamName);
 
-  strcopy(teamName, sizeof(teamName), g_TeamNames[Get5Team_2]);
+  GetTeamDisplayName(Get5Team_2, teamName, sizeof(teamName));
   if (strlen(teamName) > 0) {
     Format(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWinsNamed", client, 2, teamName);
   } else {
