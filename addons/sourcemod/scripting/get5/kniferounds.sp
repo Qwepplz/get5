@@ -195,10 +195,15 @@ static Action Timer_AutoKnifeDecision(Handle timer) {
   }
 
   Get5Side currentSide = view_as<Get5Side>(g_TeamSide[g_KnifeWinnerTeam]);
-  Get5Side desiredSide = GetRandomInt(1, 100) <= 60 ? Get5Side_CT : Get5Side_T;
+  char mapName[64];
+  GetCurrentMap(mapName, sizeof(mapName));
+  bool preferT = StrContains(mapName, "de_anubis", false) != -1;
+  Get5Side desiredSide = GetRandomInt(1, 100) <= 75
+                           ? (preferT ? Get5Side_T : Get5Side_CT)
+                           : (preferT ? Get5Side_CT : Get5Side_T);
   bool swap = currentSide != desiredSide;
-  LogDebug("Auto-selecting knife decision for pure-bot team %d after delay: choose %s via %s.",
-           g_KnifeWinnerTeam, desiredSide == Get5Side_CT ? "ct" : "t", swap ? "swap" : "stay");
+  LogDebug("Auto-selecting knife decision for pure-bot team %d after delay on map %s: choose %s via %s.",
+           g_KnifeWinnerTeam, mapName, desiredSide == Get5Side_CT ? "ct" : "t", swap ? "swap" : "stay");
 
   if (swap) {
     Get5_MessageToAll("%t", "TeamDecidedToSwapInfoMessage", g_FormattedTeamNames[g_KnifeWinnerTeam]);
