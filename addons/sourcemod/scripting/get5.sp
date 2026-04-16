@@ -184,6 +184,7 @@ bool g_HasKnifeRoundStarted = false;
 Get5Team g_KnifeWinnerTeam = Get5Team_None;
 Handle g_KnifeChangedCvars = INVALID_HANDLE;
 Handle g_KnifeDecisionTimer = INVALID_HANDLE;
+Handle g_BotKnifeDecisionTimer = INVALID_HANDLE;
 Handle g_KnifeCountdownTimer = INVALID_HANDLE;
 
 /** Pausing **/
@@ -984,6 +985,7 @@ public void OnMapStart() {
   g_DoingBackupRestoreNow = false;
   g_KnifeWinnerTeam = Get5Team_None;
   g_HasKnifeRoundStarted = false;
+  g_BotKnifeDecisionTimer = INVALID_HANDLE;
   g_MapReloadRequired = false;
 
   LOOP_TEAMS(team) {
@@ -1750,6 +1752,11 @@ void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay
     delete g_KnifeDecisionTimer;
   }
 
+  if (g_BotKnifeDecisionTimer != INVALID_HANDLE) {
+    LogDebug("Killing g_BotKnifeDecisionTimer as match was ended.");
+    delete g_BotKnifeDecisionTimer;
+  }
+
   // If a config exec callback is in progress, stop it;
   if (g_MatchConfigExecTimer != INVALID_HANDLE) {
     LogDebug("Killing g_MatchConfigExecTimer as match was ended.");
@@ -1911,6 +1918,7 @@ void ResetMatchConfigVariables(bool backup = false) {
   g_ReadyTimeWaitingUsed = 0;
   g_HasKnifeRoundStarted = false;
   g_KnifeWinnerTeam = Get5Team_None;
+  g_BotKnifeDecisionTimer = INVALID_HANDLE;
   g_RoundStartedTime = 0.0;
   g_BombPlantedTime = 0.0;
   g_BombSiteLastPlanted = Get5BombSite_Unknown;
@@ -2064,7 +2072,9 @@ static Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
       // Change state *after* starting the warmup just to reduce !swap/!stay race condition windows.
       ChangeState(Get5State_WaitingForKnifeRoundDecision);
       PromptForKnifeDecision();
-      StartKnifeTimer();
+      if (g_GameState == Get5State_WaitingForKnifeRoundDecision) {
+        StartKnifeTimer();
+      }
       return Plugin_Continue;
     }
     if (g_GameState == Get5State_GoingLive) {

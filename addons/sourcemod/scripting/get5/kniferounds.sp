@@ -50,6 +50,24 @@ void PromptForKnifeDecision() {
     // selecting a side and the game state changing, during which this message should not be printed.
     return;
   }
+
+  bool pureBotWinner = CountHumanMatchTeamClients(g_KnifeWinnerTeam, true, false, true) == 0;
+  if (pureBotWinner) {
+    if (g_BotKnifeDecisionTimer == INVALID_HANDLE) {
+      float botDecisionDelay = GetRandomFloat(10.0, 30.0);
+      LogDebug("Scheduling automatic knife decision for pure-bot team %d in %f seconds.",
+               g_KnifeWinnerTeam, botDecisionDelay);
+      g_BotKnifeDecisionTimer = CreateTimer(botDecisionDelay, Timer_AutoKnifeDecision, _, TIMER_FLAG_NO_MAPCHANGE);
+    }
+    return;
+  }
+
+  if (g_BotKnifeDecisionTimer != INVALID_HANDLE) {
+    LogDebug("Cancelling automatic knife decision because a human on team %d can now choose.",
+             g_KnifeWinnerTeam);
+    delete g_BotKnifeDecisionTimer;
+  }
+
   char formattedStayCommand[64];
   GetChatAliasForCommand(Get5ChatCommand_Stay, formattedStayCommand, sizeof(formattedStayCommand), true);
   char formattedSwapCommand[64];
@@ -115,6 +133,10 @@ static void EndKnifeRound(bool swap) {
     LogDebug("Stopped knife decision timer as a choice was made before it expired.");
     delete g_KnifeDecisionTimer;
   }
+  if (g_BotKnifeDecisionTimer != INVALID_HANDLE) {
+    LogDebug("Stopped automatic bot knife decision timer as a choice was made before it expired.");
+    delete g_BotKnifeDecisionTimer;
+  }
 
   EventLogger_LogAndDeleteEvent(knifeEvent);
   g_KnifeWinnerTeam = Get5Team_None;
@@ -154,4 +176,35 @@ static Action Timer_ForceKnifeDecision(Handle timer) {
     EndKnifeRound(false);
   }
   return Plugin_Handled;
+}
+
+static Action Timer_AutoKnifeDecision(Handle timer) {
+  if (timer != g_BotKnifeDecisionTimer) {
+    return Plugin_Stop;
+  }
+
+  g_BotKnifeDecisionTimer = INVALID_HANDLE;
+  if (g_GameState != Get5State_WaitingForKnifeRoundDecision || g_KnifeWinnerTeam == Get5Team_None) {
+    return Plugin_Stop;
+  }
+
+  if (CountHumanMatchTeamClients(g_KnifeWinnerTeam, true, false, true) > 0) {
+    LogDebug("Skipping automatic knife decision because team %d now has human players on the winning side.",
+             g_KnifeWinnerTeam);
+    return Plugin_Stop;
+  }
+
+  Get5Side currentSide = view_as<Get5Side>(g_TeamSide[g_KnifeWinnerTeam]);
+  Get5Side desiredSide = GetRandomInt(1, 100) <= 60 ? Get5Side_CT : Get5Side_T;
+  bool swap = currentSide != desiredSide;
+  LogDebug("Auto-selecting knife decision for pure-bot team %d after delay: choose %s via %s.",
+           g_KnifeWinnerTeam, desiredSide == Get5Side_CT ? "ct" : "t", swap ? "swap" : "stay");
+
+  if (swap) {
+    Get5_MessageToAll("%t", "TeamDecidedToSwapInfoMessage", g_FormattedTeamNames[g_KnifeWinnerTeam]);
+  } else {
+    Get5_MessageToAll("%t", "TeamDecidedToStayInfoMessage", g_FormattedTeamNames[g_KnifeWinnerTeam]);
+  }
+  EndKnifeRound(swap);
+  return Plugin_Stop;
 }
