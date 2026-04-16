@@ -155,6 +155,7 @@ StringMap g_PlayerNames;
 StringMap g_ChatCommands;
 char g_TeamIDs[MATCHTEAM_COUNT][MAX_CVAR_LENGTH];
 char g_TeamNames[MATCHTEAM_COUNT][MAX_CVAR_LENGTH];
+char g_TeamDisplayNames[MATCHTEAM_COUNT][MAX_CVAR_LENGTH];
 char g_TeamTags[MATCHTEAM_COUNT][MAX_CVAR_LENGTH];
 char g_FormattedTeamNames[MATCHTEAM_COUNT][MAX_CVAR_LENGTH];
 char g_TeamFlags[MATCHTEAM_COUNT][MAX_CVAR_LENGTH];
@@ -163,7 +164,6 @@ char g_TeamMatchTexts[MATCHTEAM_COUNT][MAX_CVAR_LENGTH];
 char g_MatchTitle[MAX_CVAR_LENGTH];
 int g_FavoredTeamPercentage = 0;
 char g_FavoredTeamText[MAX_CVAR_LENGTH];
-char g_HostnamePreGet5[MAX_CVAR_LENGTH];
 int g_PlayersPerTeam = 5;
 int g_CoachesPerTeam = 2;
 int g_MinPlayersToReady = 1;
@@ -367,6 +367,10 @@ static void NormalizeLegacyDemoRecordingCvars() {
   NormalizeLegacyDemoRecordingCvar(g_TimeFormatCvar, "%Y-%m-%d_%H-%M-%S", "%Y-%m-%d_%H%M");
 }
 
+static void NormalizeLegacyHostnameCvar() {
+  NormalizeLegacyDemoRecordingCvar(g_SetHostnameCvar, "Get5: {TEAM1} vs {TEAM2}", "");
+}
+
 static void NormalizeLegacyDemoRecordingCvar(ConVar cvar, const char[] legacyValue, const char[] desiredValue) {
   char currentValue[PLATFORM_MAX_PATH];
   cvar.GetString(currentValue, sizeof(currentValue));
@@ -379,6 +383,66 @@ static void NormalizeLegacyDemoRecordingCvar(ConVar cvar, const char[] legacyVal
   char cvarName[MAX_CVAR_LENGTH];
   cvar.GetName(cvarName, sizeof(cvarName));
   LogMessage("Updated legacy %s value from \"%s\" to \"%s\".", cvarName, legacyValue, desiredValue);
+}
+
+static bool FormatCvarStringWithTeamNames(ConVar cvar, char[] buffer, int len, const char[] team1Name,
+                                          const char[] team2Name, bool safeTeamNames) {
+  cvar.GetString(buffer, len);
+  if (StrEqual(buffer, "")) {
+    return false;
+  }
+
+  char mapName[PLATFORM_MAX_PATH];
+  GetCleanMapName(mapName, sizeof(mapName));
+
+  // Get the time, this is {TIME} in the format string.
+  char timeFormat[64];
+  char dateFormat[64];
+  g_TimeFormatCvar.GetString(timeFormat, sizeof(timeFormat));
+  g_DateFormatCvar.GetString(dateFormat, sizeof(dateFormat));
+  int timeStamp = GetTime();
+  char formattedTime[64];
+  char formattedDate[64];
+  FormatTime(formattedTime, sizeof(formattedTime), timeFormat, timeStamp);
+  FormatTime(formattedDate, sizeof(formattedDate), dateFormat, timeStamp);
+
+  char team1Str[MAX_CVAR_LENGTH];
+  strcopy(team1Str, sizeof(team1Str), team1Name);
+  char team2Str[MAX_CVAR_LENGTH];
+  strcopy(team2Str, sizeof(team2Str), team2Name);
+  if (safeTeamNames) {
+    // Get team names with spaces removed.
+    ReplaceString(team1Str, sizeof(team1Str), " ", "_");
+    ReplaceString(team2Str, sizeof(team2Str), " ", "_");
+  }
+  char serverId[SERVER_ID_LENGTH];
+  g_ServerIdCvar.GetString(serverId, sizeof(serverId));
+
+  // MATCHTITLE must go first as it can contain other placeholders
+  ReplaceString(buffer, len, "{MATCHTITLE}", g_MatchTitle);
+  ReplaceString(buffer, len, "{DATE}", formattedDate);
+  ReplaceStringWithInt(buffer, len, "{MAPNUMBER}", Get5_GetMapNumber() + 1);
+  ReplaceStringWithInt(buffer, len, "{MAXMAPS}", g_NumberOfMapsInSeries);
+  ReplaceString(buffer, len, "{MATCHID}", g_MatchID);
+  ReplaceString(buffer, len, "{MAPNAME}", mapName);
+  ReplaceString(buffer, len, "{SERVERID}", serverId);
+  ReplaceString(buffer, len, "{TIME}", formattedTime);
+  ReplaceString(buffer, len, "{TEAM1}", team1Str);
+  ReplaceString(buffer, len, "{TEAM2}", team2Str);
+
+  int team1Score = 0;
+  int team2Score = 0;
+  if (g_GameState == Get5State_Live) {
+    Get5Side team1Side = GetCurrentMatchTeamSide(Get5Team_1);
+    if (team1Side != Get5Side_None) {
+      team1Score = GetCurrentMatchTeamScore(Get5Team_1);
+      team2Score = GetCurrentMatchTeamScore(Get5Team_2);
+    }
+  }
+  ReplaceStringWithInt(buffer, len, "{TEAM1_SCORE}", team1Score);
+  ReplaceStringWithInt(buffer, len, "{TEAM2_SCORE}", team2Score);
+
+  return true;
 }
 
 #include "get5/matchconfig.sp"
@@ -524,7 +588,7 @@ public void OnPluginStart() {
   // Server config
   g_AutoLoadConfigCvar                  = CreateConVar("get5_autoload_config", "", "The path/name of a match config file to automatically load when the server loads or when the first player joins.");
   g_CheckAuthsCvar                      = CreateConVar("get5_check_auths", "1", "Whether players are forced onto the correct teams based on their Steam IDs.");
-  g_SetHostnameCvar                     = CreateConVar("get5_hostname_format", "Get5: {TEAM1} vs {TEAM2}", "The server hostname to use when a match is loaded. Set to \"\" to disable/use existing.");
+  g_SetHostnameCvar                     = CreateConVar("get5_hostname_format", "", "The server hostname to use when a match is loaded. Set to \"\" to disable/use existing.");
   g_KickClientImmunityCvar              = CreateConVar("get5_kick_immunity", "1", "Whether admins with the 'changemap' flag will be immune to kicks from \"get5_kick_when_no_match_loaded\".");
   g_KickClientsWithNoMatchCvar          = CreateConVar("get5_kick_when_no_match_loaded", "0", "Whether the plugin kicks players when no match is loaded and when a match ends.");
   g_KickOnForceEndCvar                  = CreateConVar("get5_kick_on_force_end", "0", "Whether players are kicked from the server when a match is forcefully ended. Requires get5_kick_when_no_match_loaded to be enabled also.");
@@ -547,6 +611,7 @@ public void OnPluginStart() {
   /** Create and exec plugin's configuration file **/
   AutoExecConfig(true, "get5");
   NormalizeLegacyDemoRecordingCvars();
+  NormalizeLegacyHostnameCvar();
 
   g_GameStateCvar = CreateConVar("get5_game_state", "0", "Current game state (see get5.inc)", FCVAR_DONTRECORD);
   g_LastGet5BackupCvar = CreateConVar("get5_last_backup_file", "", "Last get5 backup file written", FCVAR_DONTRECORD);
@@ -1816,6 +1881,9 @@ void ResetMatchConfigVariables(bool backup = false) {
   for (int i = 0; i < MATCHTEAM_COUNT; i++) {
     g_TeamIDs[i] = "";
     g_TeamNames[i] = "";
+    if (!backup) {
+      g_TeamDisplayNames[i] = "";
+    }
     g_TeamTags[i] = "";
     g_FormattedTeamNames[i] = "";
     g_TeamFlags[i] = "";
@@ -1887,8 +1955,6 @@ void ResetMatchCvarsAndHostnameAndKickPlayers(bool kickPlayers) {
   }
   if (g_ResetCvarsOnEndCvar.BoolValue) {
     RestoreCvars(g_MatchConfigChangedCvars);
-    ResetHostname();
-    ResetTeamConfigs();
   } else {
     CloseCvarStorage(g_MatchConfigChangedCvars);
   }
@@ -2119,8 +2185,15 @@ static Action Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
       EndSurrenderTimers();
     }
 
-    Get5_MessageToAll("%s {GREEN}%d {NORMAL}- {GREEN}%d %s", g_FormattedTeamNames[Get5Team_1], team1Score, team2Score,
-                      g_FormattedTeamNames[Get5Team_2]);
+    Get5Team ctTeam = CSTeamToGet5Team(CS_TEAM_CT);
+    Get5Team tTeam = CSTeamToGet5Team(CS_TEAM_T);
+    if (ctTeam != Get5Team_None && tTeam != Get5Team_None) {
+      Get5_MessageToAll("%s {GREEN}%d {NORMAL}- {GREEN}%d %s", g_FormattedTeamNames[ctTeam],
+                        CS_GetTeamScore(CS_TEAM_CT), CS_GetTeamScore(CS_TEAM_T), g_FormattedTeamNames[tTeam]);
+    } else {
+      Get5_MessageToAll("%s {GREEN}%d {NORMAL}- {GREEN}%d %s", g_FormattedTeamNames[Get5Team_1], team1Score,
+                        team2Score, g_FormattedTeamNames[Get5Team_2]);
+    }
 
     Stats_RoundEnd(winnerSide, team1Side, team2Side);
 
@@ -2369,62 +2442,8 @@ static Get5StatusTeam GetTeamInfo(Get5Team team) {
 }
 
 bool FormatCvarString(ConVar cvar, char[] buffer, int len, bool safeTeamNames = true) {
-  cvar.GetString(buffer, len);
-  if (StrEqual(buffer, "")) {
-    return false;
-  }
-
-  char mapName[PLATFORM_MAX_PATH];
-  GetCleanMapName(mapName, sizeof(mapName));
-
-  // Get the time, this is {TIME} in the format string.
-  char timeFormat[64];
-  char dateFormat[64];
-  g_TimeFormatCvar.GetString(timeFormat, sizeof(timeFormat));
-  g_DateFormatCvar.GetString(dateFormat, sizeof(dateFormat));
-  int timeStamp = GetTime();
-  char formattedTime[64];
-  char formattedDate[64];
-  FormatTime(formattedTime, sizeof(formattedTime), timeFormat, timeStamp);
-  FormatTime(formattedDate, sizeof(formattedDate), dateFormat, timeStamp);
-
-  char team1Str[MAX_CVAR_LENGTH];
-  strcopy(team1Str, sizeof(team1Str), g_TeamNames[Get5Team_1]);
-  char team2Str[MAX_CVAR_LENGTH];
-  strcopy(team2Str, sizeof(team2Str), g_TeamNames[Get5Team_2]);
-  if (safeTeamNames) {
-    // Get team names with spaces removed.
-    ReplaceString(team1Str, sizeof(team1Str), " ", "_");
-    ReplaceString(team2Str, sizeof(team2Str), " ", "_");
-  }
-  char serverId[SERVER_ID_LENGTH];
-  g_ServerIdCvar.GetString(serverId, sizeof(serverId));
-
-  // MATCHTITLE must go first as it can contain other placeholders
-  ReplaceString(buffer, len, "{MATCHTITLE}", g_MatchTitle);
-  ReplaceString(buffer, len, "{DATE}", formattedDate);
-  ReplaceStringWithInt(buffer, len, "{MAPNUMBER}", Get5_GetMapNumber() + 1);
-  ReplaceStringWithInt(buffer, len, "{MAXMAPS}", g_NumberOfMapsInSeries);
-  ReplaceString(buffer, len, "{MATCHID}", g_MatchID);
-  ReplaceString(buffer, len, "{MAPNAME}", mapName);
-  ReplaceString(buffer, len, "{SERVERID}", serverId);
-  ReplaceString(buffer, len, "{TIME}", formattedTime);
-  ReplaceString(buffer, len, "{TEAM1}", team1Str);
-  ReplaceString(buffer, len, "{TEAM2}", team2Str);
-
-  int team1Score = 0;
-  int team2Score = 0;
-  if (g_GameState == Get5State_Live) {
-    Get5Side team1Side = GetCurrentMatchTeamSide(Get5Team_1);
-    if (team1Side != Get5Side_None) {
-      team1Score = GetCurrentMatchTeamScore(Get5Team_1);
-      team2Score = GetCurrentMatchTeamScore(Get5Team_2);
-    }
-  }
-  ReplaceStringWithInt(buffer, len, "{TEAM1_SCORE}", team1Score);
-  ReplaceStringWithInt(buffer, len, "{TEAM2_SCORE}", team2Score);
-
-  return true;
+  return FormatCvarStringWithTeamNames(cvar, buffer, len, g_TeamNames[Get5Team_1], g_TeamNames[Get5Team_2],
+                                       safeTeamNames);
 }
 
 // Formats a temp file path based ont he server id. The pattern parameter is expected to have a %s

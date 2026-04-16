@@ -45,10 +45,6 @@ bool LoadMatchConfig(const char[] config, char[] error, bool restoreBackup = fal
   CloseCvarStorage(g_KnifeChangedCvars);
   CloseCvarStorage(g_MatchConfigChangedCvars);
 
-  if (g_GameState == Get5State_None) {
-    // Loading a backup should not override this, as the original hostname pre-Get5 will then be lost.
-    GetConVarStringSafe("hostname", g_HostnamePreGet5, sizeof(g_HostnamePreGet5));
-  }
 
   if (!LoadMatchFile(config, error, restoreBackup)) {
     return false;
@@ -1263,6 +1259,7 @@ void SetMatchTeamCvars() {
 
   SetTeamSpecificCvars(Get5Team_1);
   SetTeamSpecificCvars(Get5Team_2);
+  SyncScoreboardTeamNames();
   FormatTeamName(Get5Team_1);
   FormatTeamName(Get5Team_2);
 
@@ -1284,10 +1281,11 @@ static void SetTeamSpecificCvars(const Get5Team team) {
     // If we play BoX > 1 and no match team text was specifically set, overwrite with the map series score:
     IntToString(teamScore, teamText, sizeof(teamText));
   }
+  CaptureScoreboardTeamBranding(team);
   // For this specifically, the starting side is the one to use, as the game swaps _1 and _2 cvars itself after
   // halftime.
   Get5Side side = view_as<Get5Side>(g_TeamStartingSide[team]);
-  SetTeamInfo(side, g_TeamNames[team], teamText, teamScore);
+  SetTeamInfo(side, g_TeamNames[team], g_TeamFlags[team], g_TeamLogos[team], teamText, teamScore);
 }
 
 static void SetOrAddMatchConfigCvar(const char[] cvarName, const char[] cvarValue) {
@@ -2144,6 +2142,12 @@ static void FormatTeamConfigCvarNames(const int teamIndex, char[] teamCvarName, 
   FormatEx(scoreCvarName, scoreCvarNameLength, "mp_teamscore_%d", teamIndex);
 }
 
+static void FormatTeamBrandingCvarNames(const int teamIndex, char[] flagCvarName, int flagCvarNameLength,
+                                        char[] logoCvarName, int logoCvarNameLength) {
+  FormatEx(flagCvarName, flagCvarNameLength, "mp_teamflag_%d", teamIndex);
+  FormatEx(logoCvarName, logoCvarNameLength, "mp_teamlogo_%d", teamIndex);
+}
+
 static bool GetScoreboardTeamName(const Get5Team team, char[] buffer, int bufferLength) {
   if (team != Get5Team_1 && team != Get5Team_2) {
     return false;
@@ -2164,16 +2168,110 @@ static bool GetScoreboardTeamName(const Get5Team team, char[] buffer, int buffer
   return strlen(buffer) > 0;
 }
 
+static bool GetScoreboardTeamBranding(const Get5Team team, char[] flagBuffer, int flagBufferLength,
+                                      char[] logoBuffer, int logoBufferLength) {
+  if (team != Get5Team_1 && team != Get5Team_2) {
+    return false;
+  }
+
+  Get5Side side = view_as<Get5Side>(g_TeamStartingSide[team]);
+  if (side != Get5Side_CT && side != Get5Side_T) {
+    side = view_as<Get5Side>(g_TeamSide[team]);
+  }
+  if (side != Get5Side_CT && side != Get5Side_T) {
+    return false;
+  }
+
+  char flagCvarName[MAX_CVAR_LENGTH];
+  char logoCvarName[MAX_CVAR_LENGTH];
+  FormatTeamBrandingCvarNames(GetTeamConfigIndex(side), flagCvarName, sizeof(flagCvarName), logoCvarName,
+                              sizeof(logoCvarName));
+  GetConVarStringSafe(flagCvarName, flagBuffer, flagBufferLength);
+  GetConVarStringSafe(logoCvarName, logoBuffer, logoBufferLength);
+  TrimString(flagBuffer);
+  TrimString(logoBuffer);
+  return strlen(flagBuffer) > 0 || strlen(logoBuffer) > 0;
+}
+
+static void CaptureScoreboardTeamBranding(const Get5Team team) {
+  if (team != Get5Team_1 && team != Get5Team_2 ||
+      strlen(g_TeamFlags[team]) > 0 && strlen(g_TeamLogos[team]) > 0) {
+    return;
+  }
+
+  char scoreboardFlag[MAX_CVAR_LENGTH];
+  char scoreboardLogo[MAX_CVAR_LENGTH];
+  if (!GetScoreboardTeamBranding(team, scoreboardFlag, sizeof(scoreboardFlag), scoreboardLogo,
+                                 sizeof(scoreboardLogo))) {
+    return;
+  }
+
+  if (strlen(g_TeamFlags[team]) == 0 && strlen(scoreboardFlag) > 0) {
+    strcopy(g_TeamFlags[team], MAX_CVAR_LENGTH, scoreboardFlag);
+  }
+  if (strlen(g_TeamLogos[team]) == 0 && strlen(scoreboardLogo) > 0) {
+    strcopy(g_TeamLogos[team], MAX_CVAR_LENGTH, scoreboardLogo);
+  }
+}
+
+static void CaptureScoreboardTeamDisplayName(const Get5Team team) {
+  if (g_SetGameTeamNamesCvar.BoolValue || team != Get5Team_1 && team != Get5Team_2 ||
+      strlen(g_TeamDisplayNames[team]) > 0) {
+    return;
+  }
+
+  char scoreboardTeamName[MAX_CVAR_LENGTH];
+  if (GetScoreboardTeamName(team, scoreboardTeamName, sizeof(scoreboardTeamName))) {
+    strcopy(g_TeamDisplayNames[team], MAX_CVAR_LENGTH, scoreboardTeamName);
+  }
+}
+
+static void SyncScoreboardTeamNames() {
+  if (g_SetGameTeamNamesCvar.BoolValue) {
+    return;
+  }
+
+  CaptureScoreboardTeamDisplayName(Get5Team_1);
+  CaptureScoreboardTeamDisplayName(Get5Team_2);
+
+  LOOP_TEAMS(team) {
+    if (strlen(g_TeamDisplayNames[team]) == 0) {
+      continue;
+    }
+
+    Get5Side side = view_as<Get5Side>(g_TeamStartingSide[team]);
+    if (side != Get5Side_CT && side != Get5Side_T) {
+      side = view_as<Get5Side>(g_TeamSide[team]);
+    }
+    if (side != Get5Side_CT && side != Get5Side_T) {
+      continue;
+    }
+
+    char teamCvarName[MAX_CVAR_LENGTH];
+    FormatEx(teamCvarName, sizeof(teamCvarName), "mp_teamname_%d", GetTeamConfigIndex(side));
+    SetConVarStringSafe(teamCvarName, g_TeamDisplayNames[team]);
+  }
+}
+
 void GetTeamDisplayName(const Get5Team team, char[] buffer, int bufferLength) {
+  if (!g_SetGameTeamNamesCvar.BoolValue && team != Get5Team_Spec) {
+    CaptureScoreboardTeamDisplayName(team);
+    if (strlen(g_TeamDisplayNames[team]) > 0) {
+      strcopy(buffer, bufferLength, g_TeamDisplayNames[team]);
+      return;
+    }
+  }
+
   if (GetScoreboardTeamName(team, buffer, bufferLength)) {
     return;
   }
 
-  if (team == Get5Team_Spec && strlen(g_TeamNames[team]) > 0) {
+  if (strlen(g_TeamNames[team]) > 0) {
     strcopy(buffer, bufferLength, g_TeamNames[team]);
-  } else {
-    GetTeamString(team, buffer, bufferLength);
+    return;
   }
+
+  GetTeamString(team, buffer, bufferLength);
 }
 
 static void FormatTaggedTeamName(const Get5Side side, const char[] name, char[] taggedName, int taggedNameLength) {
@@ -2197,31 +2295,43 @@ static void ResetTeamConfigSlot(const int teamIndex) {
   char teamCvarName[MAX_CVAR_LENGTH];
   char textCvarName[MAX_CVAR_LENGTH];
   char scoreCvarName[MAX_CVAR_LENGTH];
+  char flagCvarName[MAX_CVAR_LENGTH];
+  char logoCvarName[MAX_CVAR_LENGTH];
   FormatTeamConfigCvarNames(teamIndex, teamCvarName, sizeof(teamCvarName), textCvarName, sizeof(textCvarName),
                             scoreCvarName, sizeof(scoreCvarName));
+  FormatTeamBrandingCvarNames(teamIndex, flagCvarName, sizeof(flagCvarName), logoCvarName, sizeof(logoCvarName));
 
   if (g_SetGameTeamNamesCvar.BoolValue) {
     SetConVarStringSafe(teamCvarName, "");
   }
 
+  SetConVarStringSafe(flagCvarName, "");
+  SetConVarStringSafe(logoCvarName, "");
   SetConVarStringSafe(textCvarName, "");
   SetConVarStringSafe(scoreCvarName, "");
 }
 
-void SetTeamInfo(const Get5Side side, const char[] name, const char[] matchstat, int series_score) {
+void SetTeamInfo(const Get5Side side, const char[] name, const char[] flag, const char[] logo, const char[] matchstat,
+                 int series_score) {
   int teamIndex = GetTeamConfigIndex(side);
 
   char teamCvarName[MAX_CVAR_LENGTH];
   char textCvarName[MAX_CVAR_LENGTH];
   char scoreCvarName[MAX_CVAR_LENGTH];
+  char flagCvarName[MAX_CVAR_LENGTH];
+  char logoCvarName[MAX_CVAR_LENGTH];
   FormatTeamConfigCvarNames(teamIndex, teamCvarName, sizeof(teamCvarName), textCvarName, sizeof(textCvarName),
                             scoreCvarName, sizeof(scoreCvarName));
+  FormatTeamBrandingCvarNames(teamIndex, flagCvarName, sizeof(flagCvarName), logoCvarName, sizeof(logoCvarName));
 
   if (g_SetGameTeamNamesCvar.BoolValue) {
     char taggedName[MAX_CVAR_LENGTH];
     FormatTaggedTeamName(side, name, taggedName, sizeof(taggedName));
     SetConVarStringSafe(teamCvarName, taggedName);
   }
+
+  SetConVarStringSafe(flagCvarName, flag);
+  SetConVarStringSafe(logoCvarName, logo);
   SetConVarStringSafe(textCvarName, matchstat);
 
   // We do this because IntValue = 0 does not consistently set an empty string, relevant for testing.
@@ -2296,20 +2406,72 @@ static Action Timer_ExecMatchConfig(Handle timer) {
   return Plugin_Handled;
 }
 
-void ResetHostname() {
-  SetConVarStringSafe("hostname", g_HostnamePreGet5);
-  g_HostnamePreGet5 = "";
-}
-
 void ResetTeamConfigs() {
   for (int teamIndex = 1; teamIndex <= 2; teamIndex++) {
     ResetTeamConfigSlot(teamIndex);
   }
+
+  g_TeamDisplayNames[Get5Team_1] = "";
+  g_TeamDisplayNames[Get5Team_2] = "";
+}
+
+static bool FormatHostnameString(char[] buffer, int bufferLength) {
+  g_SetHostnameCvar.GetString(buffer, bufferLength);
+  if (StrEqual(buffer, "")) {
+    return false;
+  }
+
+  char mapName[PLATFORM_MAX_PATH];
+  GetCleanMapName(mapName, sizeof(mapName));
+
+  char timeFormat[64];
+  char dateFormat[64];
+  g_TimeFormatCvar.GetString(timeFormat, sizeof(timeFormat));
+  g_DateFormatCvar.GetString(dateFormat, sizeof(dateFormat));
+  int timeStamp = GetTime();
+  char formattedTime[64];
+  char formattedDate[64];
+  FormatTime(formattedTime, sizeof(formattedTime), timeFormat, timeStamp);
+  FormatTime(formattedDate, sizeof(formattedDate), dateFormat, timeStamp);
+
+  char team1DisplayName[MAX_CVAR_LENGTH];
+  char team2DisplayName[MAX_CVAR_LENGTH];
+  GetTeamDisplayName(Get5Team_1, team1DisplayName, sizeof(team1DisplayName));
+  GetTeamDisplayName(Get5Team_2, team2DisplayName, sizeof(team2DisplayName));
+
+  char serverId[SERVER_ID_LENGTH];
+  g_ServerIdCvar.GetString(serverId, sizeof(serverId));
+
+  ReplaceString(buffer, bufferLength, "{MATCHTITLE}", g_MatchTitle);
+  ReplaceString(buffer, bufferLength, "{DATE}", formattedDate);
+  ReplaceStringWithInt(buffer, bufferLength, "{MAPNUMBER}", Get5_GetMapNumber() + 1);
+  ReplaceStringWithInt(buffer, bufferLength, "{MAXMAPS}", g_NumberOfMapsInSeries);
+  ReplaceString(buffer, bufferLength, "{MATCHID}", g_MatchID);
+  ReplaceString(buffer, bufferLength, "{MAPNAME}", mapName);
+  ReplaceString(buffer, bufferLength, "{SERVERID}", serverId);
+  ReplaceString(buffer, bufferLength, "{TIME}", formattedTime);
+  ReplaceString(buffer, bufferLength, "{TEAM1}", team1DisplayName);
+  ReplaceString(buffer, bufferLength, "{TEAM2}", team2DisplayName);
+
+  int team1Score = 0;
+  int team2Score = 0;
+  if (g_GameState == Get5State_Live) {
+    Get5Side team1Side = view_as<Get5Side>(Get5TeamToCSTeam(Get5Team_1));
+    Get5Side team2Side = view_as<Get5Side>(Get5TeamToCSTeam(Get5Team_2));
+    if (team1Side != Get5Side_None && team2Side != Get5Side_None) {
+      team1Score = CS_GetTeamScore(view_as<int>(team1Side));
+      team2Score = CS_GetTeamScore(view_as<int>(team2Side));
+    }
+  }
+  ReplaceStringWithInt(buffer, bufferLength, "{TEAM1_SCORE}", team1Score);
+  ReplaceStringWithInt(buffer, bufferLength, "{TEAM2_SCORE}", team2Score);
+
+  return true;
 }
 
 void UpdateHostname() {
   char formattedHostname[128];
-  if (FormatCvarString(g_SetHostnameCvar, formattedHostname, sizeof(formattedHostname), false)) {
+  if (FormatHostnameString(formattedHostname, sizeof(formattedHostname))) {
     SetConVarStringSafe("hostname", formattedHostname);
   }
 }

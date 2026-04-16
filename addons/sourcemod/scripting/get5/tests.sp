@@ -533,8 +533,8 @@ static void Team1StartTTest() {
   // We test that the mp_ cvars are correctly inverted when team 1 starts T.
   // Series score 1 in the loaded config puts them on the second map, where they start T.
   AssertConVarEquals("mp_teamname_2", "Team A Start T [NOT READY]");
-  AssertConVarEquals("mp_teamflag_2", "T2");
-  AssertConVarEquals("mp_teamlogo_2", "get5test_logo_2");
+  AssertConVarEquals("mp_teamflag_2", "US");
+  AssertConVarEquals("mp_teamlogo_2", "logofilename");
   AssertConVarEquals("mp_teammatchstat_2", "GG T WIN");
   AssertConVarEquals("mp_teamscore_2", "1");
 
@@ -730,14 +730,14 @@ static void ValidMatchConfigTest(const char[] matchConfig) {
   AssertEq("Game state", view_as<int>(g_GameState), view_as<int>(Get5State_Warmup));
 
   AssertConVarEquals("mp_teamname_1", "Team A Default [NOT READY]");
-  AssertConVarEquals("mp_teamflag_1", "T1");
-  AssertConVarEquals("mp_teamlogo_1", "get5test_logo_1");
+  AssertConVarEquals("mp_teamflag_1", "US");
+  AssertConVarEquals("mp_teamlogo_1", "logofilename");
   AssertConVarEquals("mp_teammatchstat_1", "Defending Champions");
   AssertConVarEquals("mp_teamscore_1", "");
 
   AssertConVarEquals("mp_teamname_2", "Team B Default [NOT READY]");
-  AssertConVarEquals("mp_teamflag_2", "T2");
-  AssertConVarEquals("mp_teamlogo_2", "get5test_logo_2");
+  AssertConVarEquals("mp_teamflag_2", "DE");
+  AssertConVarEquals("mp_teamlogo_2", "fromfile_team");
   AssertConVarEquals("mp_teammatchstat_2", "0");  // blank match text = use map series score
   AssertConVarEquals("mp_teamscore_2", "");
 
@@ -856,14 +856,14 @@ static void ValidScrimMatchConfigTest(const char[] matchConfig) {
   AssertStrEq("Spectator Team Name scrim", g_TeamNames[Get5Team_Spec], "Spectator Team Name");
 
   AssertConVarEquals("mp_teamname_1", "Team A Default [NOT READY]");
-  AssertConVarEquals("mp_teamflag_1", "T1");
-  AssertConVarEquals("mp_teamlogo_1", "get5test_logo_1");
+  AssertConVarEquals("mp_teamflag_1", "US");
+  AssertConVarEquals("mp_teamlogo_1", "logofilename");
   AssertConVarEquals("mp_teammatchstat_1", "Defending Champions");
   AssertConVarEquals("mp_teamscore_1", "");
 
   AssertConVarEquals("mp_teamname_2", "[NOT READY]");
-  AssertConVarEquals("mp_teamflag_2", "T2");
-  AssertConVarEquals("mp_teamlogo_2", "get5test_logo_2");
+  AssertConVarEquals("mp_teamflag_2", "DE");
+  AssertConVarEquals("mp_teamlogo_2", "fromfile_team");
   AssertConVarEquals("mp_teammatchstat_2", "0");
   AssertConVarEquals("mp_teamscore_2", "");
 
@@ -937,36 +937,90 @@ static void Utils_Test() {
   AssertStrEq("Check regular map name correctly formatted and colored", "{GREEN}Dust II{NORMAL}", formattedMapName);
 
   char teamDisplayName[MAX_CVAR_LENGTH];
+  g_SetGameTeamNamesCvar.BoolValue = false;
+  g_TeamDisplayNames[Get5Team_1] = "";
+  g_TeamDisplayNames[Get5Team_2] = "";
   g_TeamStartingSide[Get5Team_1] = CS_TEAM_CT;
   g_TeamStartingSide[Get5Team_2] = CS_TEAM_T;
   g_TeamSide[Get5Team_1] = CS_TEAM_CT;
   g_TeamSide[Get5Team_2] = CS_TEAM_T;
 
+  g_TeamFlags[Get5Team_1] = "US";
+  g_TeamFlags[Get5Team_2] = "DE";
+  g_TeamLogos[Get5Team_1] = "logofilename";
+  g_TeamLogos[Get5Team_2] = "fromfile_team";
+
   SetConVarStringSafe("mp_teamname_1", "Scoreboard Team A");
   SetConVarStringSafe("mp_teamname_2", "Scoreboard Team B");
   GetTeamDisplayName(Get5Team_1, teamDisplayName, sizeof(teamDisplayName));
-  AssertStrEq("Display team name uses scoreboard team 1", teamDisplayName, "Scoreboard Team A");
+  AssertStrEq("Display team name captures team 1 scoreboard name", teamDisplayName, "Scoreboard Team A");
   GetTeamDisplayName(Get5Team_2, teamDisplayName, sizeof(teamDisplayName));
-  AssertStrEq("Display team name uses scoreboard team 2", teamDisplayName, "Scoreboard Team B");
+  AssertStrEq("Display team name captures team 2 scoreboard name", teamDisplayName, "Scoreboard Team B");
 
+  SetMatchTeamCvars();
   g_TeamStartingSide[Get5Team_1] = CS_TEAM_T;
   g_TeamStartingSide[Get5Team_2] = CS_TEAM_CT;
-  GetTeamDisplayName(Get5Team_1, teamDisplayName, sizeof(teamDisplayName));
-  AssertStrEq("Display team name follows starting side mapping", teamDisplayName, "Scoreboard Team B");
+  SetMatchTeamCvars();
+  AssertConVarEquals("mp_teamname_1", "Scoreboard Team B");
+  AssertConVarEquals("mp_teamname_2", "Scoreboard Team A");
+  AssertConVarEquals("mp_teamflag_1", "DE");
+  AssertConVarEquals("mp_teamflag_2", "US");
+  AssertConVarEquals("mp_teamlogo_1", "fromfile_team");
+  AssertConVarEquals("mp_teamlogo_2", "logofilename");
 
+  GetTeamDisplayName(Get5Team_1, teamDisplayName, sizeof(teamDisplayName));
+  AssertStrEq("Display team name stays with match team 1 after swap", teamDisplayName, "Scoreboard Team A");
+  GetTeamDisplayName(Get5Team_2, teamDisplayName, sizeof(teamDisplayName));
+  AssertStrEq("Display team name stays with match team 2 after swap", teamDisplayName, "Scoreboard Team B");
+
+  g_SetHostnameCvar.SetString("Get5: {TEAM1} vs {TEAM2}", false, false);
+  UpdateHostname();
+  AssertConVarEquals("hostname", "Get5: Scoreboard Team A vs Scoreboard Team B");
+  g_SetHostnameCvar.SetString("", false, false);
+
+  g_TeamDisplayNames[Get5Team_1] = "";
   SetConVarStringSafe("mp_teamname_2", "");
   GetTeamDisplayName(Get5Team_1, teamDisplayName, sizeof(teamDisplayName));
-  AssertStrEq("Display team name falls back when scoreboard empty", teamDisplayName, "team1");
+  AssertStrEq("Display team name falls back to logical team name when scoreboard empty", teamDisplayName,
+              "Team A Default");
 
   char team1Color[32];
   char expectedFormattedTeamName[MAX_CVAR_LENGTH];
+  g_TeamDisplayNames[Get5Team_1] = "Scoreboard Team A";
   g_Team1NameColorCvar.GetString(team1Color, sizeof(team1Color));
-  g_TeamStartingSide[Get5Team_1] = CS_TEAM_CT;
-  SetConVarStringSafe("mp_teamname_1", "Scoreboard Team A");
   FormatTeamName(Get5Team_1);
   FormatEx(expectedFormattedTeamName, sizeof(expectedFormattedTeamName), "%sScoreboard Team A{NORMAL}", team1Color);
-  AssertStrEq("Formatted team name uses scoreboard team name", g_FormattedTeamNames[Get5Team_1],
+  AssertStrEq("Formatted team name uses stored display name", g_FormattedTeamNames[Get5Team_1],
               expectedFormattedTeamName);
+
+  g_TeamDisplayNames[Get5Team_1] = "";
+  g_TeamDisplayNames[Get5Team_2] = "";
+  g_TeamFlags[Get5Team_1] = "";
+  g_TeamFlags[Get5Team_2] = "";
+  g_TeamLogos[Get5Team_1] = "";
+  g_TeamLogos[Get5Team_2] = "";
+  g_TeamStartingSide[Get5Team_1] = CS_TEAM_CT;
+  g_TeamStartingSide[Get5Team_2] = CS_TEAM_T;
+  g_TeamSide[Get5Team_1] = CS_TEAM_CT;
+  g_TeamSide[Get5Team_2] = CS_TEAM_T;
+  SetConVarStringSafe("mp_teamflag_1", "KeepFlagA");
+  SetConVarStringSafe("mp_teamflag_2", "KeepFlagB");
+  SetConVarStringSafe("mp_teamlogo_1", "KeepLogoA");
+  SetConVarStringSafe("mp_teamlogo_2", "KeepLogoB");
+
+  SetMatchTeamCvars();
+  AssertConVarEquals("mp_teamflag_1", "KeepFlagA");
+  AssertConVarEquals("mp_teamflag_2", "KeepFlagB");
+  AssertConVarEquals("mp_teamlogo_1", "KeepLogoA");
+  AssertConVarEquals("mp_teamlogo_2", "KeepLogoB");
+
+  g_TeamStartingSide[Get5Team_1] = CS_TEAM_T;
+  g_TeamStartingSide[Get5Team_2] = CS_TEAM_CT;
+  SetMatchTeamCvars();
+  AssertConVarEquals("mp_teamflag_1", "KeepFlagB");
+  AssertConVarEquals("mp_teamflag_2", "KeepFlagA");
+  AssertConVarEquals("mp_teamlogo_1", "KeepLogoB");
+  AssertConVarEquals("mp_teamlogo_2", "KeepLogoA");
 }
 
 static void AssertConVarEquals(const char[] conVarName, const char[] expectedValue) {
