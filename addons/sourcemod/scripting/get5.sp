@@ -2034,10 +2034,10 @@ static Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
   }
 
   if (GetRoundsPlayed() == 0 && StrEqual(g_DemoFilePath, "")) {
-    // Start demo recording two seconds after the first live round_start instead of round_prestart.
+    // Start demo recording three seconds after the first live round_start instead of round_prestart.
     // This still starts during freeze time, but avoids catching stray kills during the post-knife
     // warmup / side-decision phase.
-    StartRecordingDelayed(2.0);
+    StartRecordingDelayed(3.0);
   }
 
   if (g_PendingSurrenderTeam != Get5Team_None) {
