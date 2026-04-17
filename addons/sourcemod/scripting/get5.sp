@@ -189,6 +189,7 @@ Handle g_KnifeCountdownTimer = INVALID_HANDLE;
 
 /** Pausing **/
 bool g_IsChangingPauseState = false;  // Used to prevent mp_pause_match and mp_unpause_match from being called directly.
+bool g_Get5OwnsPauseCommands = false;
 Get5Team g_PausingTeam = Get5Team_None;          // The team that last called for a pause.
 Get5PauseType g_PauseType = Get5PauseType_None;  // The type of pause last initiated.
 Handle g_PauseTimer = INVALID_HANDLE;
@@ -2362,6 +2363,10 @@ void ChangeState(Get5State state) {
   if (g_GameState == state) {
     LogDebug("Ignoring request to change game state. Already in state %d.", state);
     return;
+  }
+
+  if (state == Get5State_None) {
+    g_Get5OwnsPauseCommands = false;
   }
 
   g_GameStateCvar.IntValue = view_as<int>(state);

@@ -3,6 +3,10 @@ static bool PauseableGameState() {
           g_GameState == Get5State_Live || g_GameState == Get5State_GoingLive);
 }
 
+static bool ShouldGet5HandlePauseCommands() {
+  return g_Get5OwnsPauseCommands;
+}
+
 static bool IsUnpauseVoteParticipant(int client) {
   return OnActiveTeam(client);
 }
@@ -281,7 +285,8 @@ bool TriggerAutomaticTechPause(Get5Team team) {
 }
 
 Action Command_PauseOrUnpauseMatch(int client, const char[] command, int argc) {
-  if (g_GameState == Get5State_None || (g_IsChangingPauseState && client == 0)) {
+  if (!ShouldGet5HandlePauseCommands() || g_GameState == Get5State_None ||
+      (g_IsChangingPauseState && client == 0)) {
     return Plugin_Continue;
   }
   ReplyToCommand(client, "%t", "PauseCommandPrevented", command);
@@ -342,6 +347,10 @@ Action Command_TechPause(int client, int args) {
 }
 
 Action Command_Pause(int client, int args) {
+  if (!ShouldGet5HandlePauseCommands()) {
+    return Plugin_Continue;
+  }
+
   if (client == 0) {
     PauseGame(Get5Team_None, Get5PauseType_Admin);
     Get5_MessageToAll("%t", "AdminForcePauseInfoMessage");
@@ -405,6 +414,10 @@ Action Command_Pause(int client, int args) {
 }
 
 Action Command_Unpause(int client, int args) {
+  if (!ShouldGet5HandlePauseCommands()) {
+    return Plugin_Continue;
+  }
+
   if (!IsPaused()) {
     // Game is not paused; ignore command.
     return Plugin_Handled;

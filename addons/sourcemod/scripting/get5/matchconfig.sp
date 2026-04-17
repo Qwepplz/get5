@@ -185,6 +185,7 @@ bool LoadMatchConfig(const char[] config, char[] error, bool restoreBackup = fal
       CheckTeamsPostMatchConfigLoad();
     }
   }
+  g_Get5OwnsPauseCommands = true;
   strcopy(g_LoadedConfigFile, sizeof(g_LoadedConfigFile), config);
   return true;
 }
