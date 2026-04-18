@@ -44,6 +44,29 @@ void StartKnifeTimer() {
   }
 }
 
+void StartKnifeDecisionReminderTimer() {
+  if (g_KnifeDecisionReminderTimer != INVALID_HANDLE) {
+    delete g_KnifeDecisionReminderTimer;
+  }
+
+  g_KnifeDecisionReminderTimer =
+    CreateTimer(5.0, Timer_KnifeDecisionReminder, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+}
+
+static Action Timer_KnifeDecisionReminder(Handle timer) {
+  if (timer != g_KnifeDecisionReminderTimer) {
+    return Plugin_Stop;
+  }
+
+  if (g_GameState != Get5State_WaitingForKnifeRoundDecision || g_KnifeWinnerTeam == Get5Team_None) {
+    g_KnifeDecisionReminderTimer = INVALID_HANDLE;
+    return Plugin_Stop;
+  }
+
+  PromptForKnifeDecision();
+  return Plugin_Continue;
+}
+
 void PromptForKnifeDecision() {
   if (g_KnifeWinnerTeam == Get5Team_None) {
     // Handle waiting for knife decision. Also check g_KnifeWinnerTeam as there is a small delay between
@@ -59,10 +82,7 @@ void PromptForKnifeDecision() {
                g_KnifeWinnerTeam, botDecisionDelay);
       g_BotKnifeDecisionTimer = CreateTimer(botDecisionDelay, Timer_AutoKnifeDecision, _, TIMER_FLAG_NO_MAPCHANGE);
     }
-    return;
-  }
-
-  if (g_BotKnifeDecisionTimer != INVALID_HANDLE) {
+  } else if (g_BotKnifeDecisionTimer != INVALID_HANDLE) {
     LogDebug("Cancelling automatic knife decision because a human on team %d can now choose.",
              g_KnifeWinnerTeam);
     delete g_BotKnifeDecisionTimer;
@@ -132,6 +152,10 @@ static void EndKnifeRound(bool swap) {
   if (g_KnifeDecisionTimer != INVALID_HANDLE) {
     LogDebug("Stopped knife decision timer as a choice was made before it expired.");
     delete g_KnifeDecisionTimer;
+  }
+  if (g_KnifeDecisionReminderTimer != INVALID_HANDLE) {
+    LogDebug("Stopped knife decision reminder timer as a choice was made before it expired.");
+    delete g_KnifeDecisionReminderTimer;
   }
   if (g_BotKnifeDecisionTimer != INVALID_HANDLE) {
     LogDebug("Stopped automatic bot knife decision timer as a choice was made before it expired.");

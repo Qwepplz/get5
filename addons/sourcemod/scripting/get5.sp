@@ -184,6 +184,7 @@ bool g_HasKnifeRoundStarted = false;
 Get5Team g_KnifeWinnerTeam = Get5Team_None;
 Handle g_KnifeChangedCvars = INVALID_HANDLE;
 Handle g_KnifeDecisionTimer = INVALID_HANDLE;
+Handle g_KnifeDecisionReminderTimer = INVALID_HANDLE;
 Handle g_BotKnifeDecisionTimer = INVALID_HANDLE;
 Handle g_KnifeCountdownTimer = INVALID_HANDLE;
 
@@ -849,8 +850,6 @@ static Action Timer_InfoMessages(Handle timer) {
     }
   } else if (g_GameState == Get5State_Veto) {
     PrintVetoHelpMessage();
-  } else if (g_GameState == Get5State_WaitingForKnifeRoundDecision) {
-    PromptForKnifeDecision();
   } else if (g_GameState == Get5State_PostGame) {
     if (g_ResetCvarsTimer == INVALID_HANDLE && GetTvDelay() > 0) {
       // Only print this if the reset timer isn't running, which would mean it's the last map.
@@ -1753,6 +1752,11 @@ void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay
     delete g_KnifeDecisionTimer;
   }
 
+  if (g_KnifeDecisionReminderTimer != INVALID_HANDLE) {
+    LogDebug("Killing g_KnifeDecisionReminderTimer as match was ended.");
+    delete g_KnifeDecisionReminderTimer;
+  }
+
   if (g_BotKnifeDecisionTimer != INVALID_HANDLE) {
     LogDebug("Killing g_BotKnifeDecisionTimer as match was ended.");
     delete g_BotKnifeDecisionTimer;
@@ -1919,6 +1923,8 @@ void ResetMatchConfigVariables(bool backup = false) {
   g_ReadyTimeWaitingUsed = 0;
   g_HasKnifeRoundStarted = false;
   g_KnifeWinnerTeam = Get5Team_None;
+  g_KnifeDecisionTimer = INVALID_HANDLE;
+  g_KnifeDecisionReminderTimer = INVALID_HANDLE;
   g_BotKnifeDecisionTimer = INVALID_HANDLE;
   g_RoundStartedTime = 0.0;
   g_BombPlantedTime = 0.0;
@@ -2074,6 +2080,7 @@ static Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
       ChangeState(Get5State_WaitingForKnifeRoundDecision);
       PromptForKnifeDecision();
       if (g_GameState == Get5State_WaitingForKnifeRoundDecision) {
+        StartKnifeDecisionReminderTimer();
         StartKnifeTimer();
       }
       return Plugin_Continue;
