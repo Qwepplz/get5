@@ -1552,19 +1552,7 @@ static Action Event_MatchOver(Event event, const char[] name, bool dontBroadcast
     return Plugin_Continue;
   }
 
-  // Stop the recording 10 seconds after the match ends, but keep a further buffer before the map
-  // changes or postgame reset runs so GOTV has time to flush the demo to disk.
-  const float demoStopDelay = 10.0;
-  const float demoFlushBuffer = 10.0;
   float restartDelay = GetCurrentMatchRestartDelay();
-  float requiredDelay = demoStopDelay + demoFlushBuffer;
-  if (requiredDelay > restartDelay) {
-    LogDebug("Extended mp_match_restart_delay from %f to %f to ensure GOTV demo can flush to disk.", restartDelay,
-             requiredDelay);
-    SetCurrentMatchRestartDelay(requiredDelay);
-    restartDelay = requiredDelay;  // reassigned because we reuse the variable below.
-  }
-  StopRecording(demoStopDelay);
 
   if (g_GameState == Get5State_Live) {
     // If someone called for a pause in the last round; cancel it.
@@ -1648,7 +1636,7 @@ static Action Event_MatchOver(Event event, const char[] name, bool dontBroadcast
     g_MapsToPlay.GetString(Get5_GetMapNumber(), nextMap, sizeof(nextMap));
     if (IsMapWorkshop(nextMap)) {
       LogDebug("Added 20 seconds to mp_match_restart_delay to ensure workshop map can download in time.");
-      SetCurrentMatchRestartDelay(requiredDelay + 20);
+      SetCurrentMatchRestartDelay(restartDelay + 20);
     }
 
     char timeToMapChangeFormatted[8];
