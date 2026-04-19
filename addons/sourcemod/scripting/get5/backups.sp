@@ -83,6 +83,7 @@ Action Command_LoadBackupUrl(int client, int args) {
   }
   char error[PLATFORM_MAX_PATH];
   if (!LoadBackupFromUrl(url, _, _, headerNames, headerValues, error)) {
+    LocalizeLegacyTextForClient(client, error, sizeof(error));
     ReplyToCommand(client, "%t", "FailedInitiateRemoteBackupLoad", error);
   } else {
     ReplyToCommand(client, "%t", "LoadingBackupFromRemote");
@@ -102,7 +103,7 @@ Action Command_LoadBackup(int client, int args) {
   if (args >= 1 && GetCmdArg(1, path, sizeof(path))) {
     char error[PLATFORM_MAX_PATH];
     if (!RestoreFromBackup(path, error)) {
-      ReplyToCommand(client, error);
+      ReplyToCommandLocalized(client, error, sizeof(error));
     }
   } else {
     ReplyToCommand(client, "%t", "Get5LoadBackupUsage");
@@ -175,7 +176,7 @@ ArrayList GetBackups(const char[] matchID) {
   return backups;
 }
 
-bool GetRoundInfoFromBackupFile(const char[] path, char[] buffer, const int maxLength, bool includeMatchId) {
+bool GetRoundInfoFromBackupFile(const char[] path, int client, char[] buffer, const int maxLength, bool includeMatchId) {
   KeyValues kv = new KeyValues("Backup");
   if (!kv.ImportFromFile(path)) {
     LogError("Failed to find or read backup file \"%s\".", path);
@@ -186,16 +187,27 @@ bool GetRoundInfoFromBackupFile(const char[] path, char[] buffer, const int maxL
   if (includeMatchId) {
     kv.GetString("matchid", matchId, sizeof(matchId));
     if (strlen(matchId) == 0) {
-      matchId = "无 ID / No ID";
+      if (ShouldUseChineseText(client)) {
+        strcopy(matchId, sizeof(matchId), "无 ID");
+      } else {
+        strcopy(matchId, sizeof(matchId), "No ID");
+      }
     }
     Format(matchId, sizeof(matchId), "%s: ", matchId);
   }
   int mapNumber = kv.GetNum("mapnumber") + 1;
   if (kv.JumpToKey("valve_backup")) {
-    FormatEx(buffer, maxLength, "%s地图 %d，第 %d 回合 / Map %d, Round %d", matchId, mapNumber, kv.GetNum("round") + 1,
-             mapNumber, kv.GetNum("round") + 1);
+    if (ShouldUseChineseText(client)) {
+      FormatEx(buffer, maxLength, "%s地图 %d，第 %d 回合", matchId, mapNumber, kv.GetNum("round") + 1);
+    } else {
+      FormatEx(buffer, maxLength, "%sMap %d, Round %d", matchId, mapNumber, kv.GetNum("round") + 1);
+    }
   } else {
-    FormatEx(buffer, maxLength, "%s地图 %d，赛前 / Map %d, Pre-live", matchId, mapNumber, mapNumber);
+    if (ShouldUseChineseText(client)) {
+      FormatEx(buffer, maxLength, "%s地图 %d，赛前", matchId, mapNumber);
+    } else {
+      FormatEx(buffer, maxLength, "%sMap %d, Pre-live", matchId, mapNumber);
+    }
   }
   delete kv;
   return true;

@@ -919,3 +919,109 @@ stock JSON_Object LoadJSONIfFileExists(const char[] filepath, char[] error, int 
   }
   return json;
 }
+
+stock bool ShouldUseChineseText(int client) {
+  if (client <= 0 || client > MaxClients || !IsClientConnected(client)) {
+    return false;
+  }
+
+  int language = GetClientLanguage(client);
+  char code[16];
+  char name[64];
+  GetLanguageInfo(language, code, sizeof(code), name, sizeof(name));
+  return StrEqual(code, "chi", false) || StrEqual(code, "zho", false);
+}
+
+stock bool ShouldUseChineseGlobalText() {
+  bool hasHumanClient = false;
+  for (int i = 1; i <= MaxClients; i++) {
+    if (!IsClientConnected(i) || IsFakeClient(i)) {
+      continue;
+    }
+
+    hasHumanClient = true;
+    if (!ShouldUseChineseText(i)) {
+      return false;
+    }
+  }
+  return hasHumanClient;
+}
+
+stock void FormatGlobalReadyTag(bool ready, char[] tag, int tagLength) {
+  if (ShouldUseChineseGlobalText()) {
+    strcopy(tag, tagLength, ready ? "[准备]" : "[未准备]");
+  } else {
+    strcopy(tag, tagLength, ready ? "[READY]" : "[NOT READY]");
+  }
+}
+
+static int FindLastCharacter(const char[] text, char character) {
+  int length = strlen(text);
+  for (int i = length - 1; i >= 0; i--) {
+    if (text[i] == character) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+static bool HasNonAsciiBeforeIndex(const char[] text, int index) {
+  for (int i = 0; i < index; i++) {
+    if (text[i] & 0x80) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool ExtractLegacyChineseText(const char[] text, char[] output, int maxLength) {
+  int closeParen = FindLastCharacter(text, ')');
+  if (closeParen != strlen(text) - 1) {
+    return false;
+  }
+
+  int openParen = FindLastCharacter(text, '(');
+  if (openParen <= 0 || openParen >= closeParen || !HasNonAsciiBeforeIndex(text, openParen)) {
+    return false;
+  }
+
+  strcopy(output, maxLength, text);
+  output[openParen] = '\0';
+  TrimString(output);
+  return true;
+}
+
+static bool ExtractLegacyEnglishText(const char[] text, char[] output, int maxLength) {
+  int closeParen = FindLastCharacter(text, ')');
+  if (closeParen != strlen(text) - 1) {
+    return false;
+  }
+
+  int openParen = FindLastCharacter(text, '(');
+  if (openParen <= 0 || openParen >= closeParen || !HasNonAsciiBeforeIndex(text, openParen)) {
+    return false;
+  }
+
+  strcopy(output, maxLength, text[openParen + 1]);
+  output[closeParen - openParen - 1] = '\0';
+  return true;
+}
+
+stock void LocalizeLegacyTextForClient(int client, char[] text, int maxLength) {
+  char localized[1024];
+
+  if (ShouldUseChineseText(client)) {
+    if (ExtractLegacyChineseText(text, localized, sizeof(localized))) {
+      strcopy(text, maxLength, localized);
+    }
+  } else {
+    if (ExtractLegacyEnglishText(text, localized, sizeof(localized))) {
+      strcopy(text, maxLength, localized);
+    }
+  }
+}
+
+stock void ReplyToCommandLocalized(int client, char[] text, int maxLength) {
+  LocalizeLegacyTextForClient(client, text, maxLength);
+  ReplyToCommand(client, text);
+}

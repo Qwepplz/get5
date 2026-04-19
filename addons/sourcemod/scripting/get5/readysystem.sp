@@ -426,9 +426,8 @@ void UpdateClanTags() {
   char readyTag[32], notReadyTag[32];
   bool readyGameState = IsReadyGameState();
   if (readyGameState) {
-    // These are only used in ready state, no need to format them otherwise.
-    FormatEx(readyTag, sizeof(readyTag), "%T", "ReadyTag", LANG_SERVER);
-    FormatEx(notReadyTag, sizeof(notReadyTag), "%T", "NotReadyTag", LANG_SERVER);
+    FormatGlobalReadyTag(true, readyTag, sizeof(readyTag));
+    FormatGlobalReadyTag(false, notReadyTag, sizeof(notReadyTag));
   }
 
   int team;

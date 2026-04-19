@@ -1168,6 +1168,7 @@ bool CheckAutoLoadConfig() {
       if (loaded) {
         LogMessage("Match configuration was loaded via get5_autoload_config.");
       } else {
+        LocalizeLegacyTextForClient(0, error, sizeof(error));
         MatchConfigFail(error);
       }
       return loaded;
@@ -1251,6 +1252,7 @@ static Action Command_LoadMatch(int client, int args) {
   if (args >= 1 && GetCmdArg(1, arg, sizeof(arg))) {
     char error[PLATFORM_MAX_PATH];
     if (!LoadMatchConfig(arg, error)) {
+      LocalizeLegacyTextForClient(client, error, sizeof(error));
       MatchConfigFail(error);
       ReplyToCommand(client, error);
     }
@@ -1284,6 +1286,7 @@ static Action Command_LoadMatchUrl(int client, int args) {
   }
   char error[PLATFORM_MAX_PATH];
   if (!LoadMatchFromUrl(url, _, _, headerNames, headerValues, error)) {
+    LocalizeLegacyTextForClient(client, error, sizeof(error));
     ReplyToCommand(client, "%t", "FailedInitiateRemoteMatchConfig", error);
   } else {
     ReplyToCommand(client, "%t", "LoadingMatchConfiguration");
@@ -1437,7 +1440,7 @@ void RestoreLastRound(int client) {
   if (!StrEqual(lastBackup, "")) {
     char error[PLATFORM_MAX_PATH];
     if (!RestoreFromBackup(lastBackup, error)) {
-      ReplyToCommand(client, error);
+      ReplyToCommandLocalized(client, error, sizeof(error));
     }
   } else {
     ReplyToCommand(client, "%t", "NoBackupFileFromCurrentRound");
@@ -2641,14 +2644,3 @@ void CheckAndCreateFolderPath(const ConVar cvar, const char[][] varsToReplace, c
   Format(outputFolder, outputFolderSize, "%s", path);
 }
 
-static bool ShouldUseChineseText(int client) {
-  if (client <= 0) {
-    return false;
-  }
-
-  int language = GetClientLanguage(client);
-  char code[16];
-  char name[64];
-  GetLanguageInfo(language, code, sizeof(code), name, sizeof(name));
-  return StrEqual(code, "chi", false) || StrEqual(code, "zho", false);
-}

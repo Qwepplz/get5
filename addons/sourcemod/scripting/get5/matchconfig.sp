@@ -339,6 +339,7 @@ bool LoadTeamDataFromFile(const char[] fromFile, const Get5Team team, char[] err
 void MatchConfigFail(const char[] reason, any...) {
   char buffer[512];
   VFormat(buffer, sizeof(buffer), reason, 2);
+  LocalizeLegacyTextForClient(0, buffer, sizeof(buffer));
   LogError("Failed to load match configuration: %s", buffer);
 
   Get5LoadMatchConfigFailedEvent event = new Get5LoadMatchConfigFailedEvent(buffer);
@@ -1400,7 +1401,7 @@ Action Command_LoadTeam(int client, int args) {
       }
     }
   } else {
-    ReplyToCommand(client, error);
+    ReplyToCommandLocalized(client, error, sizeof(error));
   }
   return Plugin_Handled;
 }
@@ -1588,7 +1589,7 @@ Action Command_CreateMatch(int client, int args) {
     if (CheckIfStringIsParameter(parameter)) {
       if (strcmp(parameter, "--num_maps", false) == 0 || strcmp(parameter, "-nm", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         numMaps = StringToInt(value);
@@ -1598,7 +1599,7 @@ Action Command_CreateMatch(int client, int args) {
         }
       } else if (strcmp(parameter, "--min_spectators_to_ready", false) == 0 || strcmp(parameter, "-mstr", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         minSpectatorsToReady = StringToInt(value);
@@ -1608,7 +1609,7 @@ Action Command_CreateMatch(int client, int args) {
         }
       } else if (strcmp(parameter, "--min_players_to_ready", false) == 0 || strcmp(parameter, "-mptr", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         minPlayersToReady = StringToInt(value);
@@ -1618,7 +1619,7 @@ Action Command_CreateMatch(int client, int args) {
         }
       } else if (strcmp(parameter, "--players_per_team", false) == 0 || strcmp(parameter, "-ppt", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         playersPerTeam = StringToInt(value);
@@ -1628,7 +1629,7 @@ Action Command_CreateMatch(int client, int args) {
         }
       } else if (strcmp(parameter, "--coaches_per_team", false) == 0 || strcmp(parameter, "-cpt", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         coachesPerTeam = StringToInt(value);
@@ -1653,65 +1654,67 @@ Action Command_CreateMatch(int client, int args) {
         skipVeto = true;
       } else if (strcmp(parameter, "--matchid", false) == 0 || strcmp(parameter, "-id", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         strcopy(matchId, sizeof(matchId), value);
       } else if (strcmp(parameter, "--match_title", false) == 0 || strcmp(parameter, "-mt", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         strcopy(matchTitle, sizeof(matchTitle), value);
       } else if (strcmp(parameter, "--map_pool", false) == 0 || strcmp(parameter, "-mp", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         strcopy(mapPoolKey, sizeof(mapPoolKey), value);
       } else if (strcmp(parameter, "--cvars", false) == 0 || strcmp(parameter, "-cv", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         strcopy(cVarsKey, sizeof(cVarsKey), value);
       } else if (strcmp(parameter, "--veto_first", false) == 0 || strcmp(parameter, "-vf", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         Get5VetoFirst v = VetoFirstFromString(value, error);
         if (v == Get5VetoFirst_Invalid) {
+          LocalizeLegacyTextForClient(client, error, sizeof(error));
           ReplyToCommand(client, "%t", "CommandParameterError", parameter, error);
           return Plugin_Handled;
         }
         strcopy(vetoFirst, sizeof(vetoFirst), value);
       } else if (strcmp(parameter, "--side_type", false) == 0 || strcmp(parameter, "-st", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         MatchSideType t = MatchSideTypeFromString(value, error);
         if (t == MatchSideType_Invalid) {
+          LocalizeLegacyTextForClient(client, error, sizeof(error));
           ReplyToCommand(client, "%t", "CommandParameterError", parameter, error);
           return Plugin_Handled;
         }
         strcopy(sideType, sizeof(sideType), value);
       } else if (strcmp(parameter, "--team1", false) == 0 || strcmp(parameter, "-t1", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         strcopy(team1Id, sizeof(team1Id), value);
       } else if (strcmp(parameter, "--team2", false) == 0 || strcmp(parameter, "-t2", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         strcopy(team2Id, sizeof(team2Id), value);
       } else if (strcmp(parameter, "--maplist", false) == 0 || strcmp(parameter, "-ml", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         mapCount = ExplodeString(value, ",", maps, 16, PLATFORM_MAX_PATH, true);
@@ -1723,12 +1726,13 @@ Action Command_CreateMatch(int client, int args) {
         }
       } else if (strcmp(parameter, "--map_sides", false) == 0 || strcmp(parameter, "-ms", false) == 0) {
         if (!CheckParameterValue(i, parameter, value, sizeof(value), error)) {
-          ReplyToCommand(client, error);
+          ReplyToCommandLocalized(client, error, sizeof(error));
           return Plugin_Handled;
         }
         sidesCount = ExplodeString(value, ",", mapSides, 16, PLATFORM_MAX_PATH, true);
         for (int mi = 0; mi < sidesCount; mi++) {
           if (SideChoiceFromString(mapSides[mi], error) == SideChoice_Invalid) {
+            LocalizeLegacyTextForClient(client, error, sizeof(error));
             ReplyToCommand(client, "%t", "CommandParameterError", parameter, error);
             return Plugin_Handled;
           }
@@ -1798,6 +1802,7 @@ Action Command_CreateMatch(int client, int args) {
   } else {
     JSON_Object mapsObject = LoadMapsFile(error);
     if (mapsObject == null) {
+      LocalizeLegacyTextForClient(client, error, sizeof(error));
       ReplyToCommand(client, "%t", "FailedLoadMapsFile", error);
       return Plugin_Handled;
     }
@@ -1816,6 +1821,7 @@ Action Command_CreateMatch(int client, int args) {
   JSON_Object cvars = LoadCvarsFile(error, cVarsKey);
   if (cvars == null) {
     json_cleanup_and_delete(mapsArray);
+    LocalizeLegacyTextForClient(client, error, sizeof(error));
     ReplyToCommand(client, "%t", "CvarsArgumentError", error);
     return Plugin_Handled;
   }
@@ -1849,6 +1855,7 @@ Action Command_CreateMatch(int client, int args) {
   } else {
     JSON_Object teams = LoadTeamsFile(error);
     if (teams == null) {
+      LocalizeLegacyTextForClient(client, error, sizeof(error));
       ReplyToCommand(client, "%t", "FailedLoadTeamsError", error);
       json_cleanup_and_delete(matchConfig);
       return Plugin_Handled;
@@ -1907,7 +1914,7 @@ Action Command_CreateMatch(int client, int args) {
   json_cleanup_and_delete(matchConfig);
 
   if (!LoadMatchConfig(path, error)) {
-    ReplyToCommand(client, error);
+    ReplyToCommandLocalized(client, error, sizeof(error));
   } else {
     DeleteFileIfExists(path);
   }
@@ -2014,7 +2021,7 @@ Action Command_CreateScrim(int client, int args) {
   } else {
     char error[PLATFORM_MAX_PATH];
     if (!LoadMatchConfig(path, error)) {
-      ReplyToCommand(client, error);
+      ReplyToCommandLocalized(client, error, sizeof(error));
     }
   }
   delete kv;
@@ -2283,11 +2290,13 @@ static void FormatTaggedTeamName(const Get5Side side, const char[] name, char[] 
   }
 
   Get5Team matchTeam = CSTeamToGet5Team(view_as<int>(side));
+  char readyTag[32];
   if (IsTeamReady(matchTeam)) {
-    FormatEx(taggedName, taggedNameLength, "%s %T", name, "ReadyTag", LANG_SERVER);
+    FormatGlobalReadyTag(true, readyTag, sizeof(readyTag));
   } else {
-    FormatEx(taggedName, taggedNameLength, "%s %T", name, "NotReadyTag", LANG_SERVER);
+    FormatGlobalReadyTag(false, readyTag, sizeof(readyTag));
   }
+  FormatEx(taggedName, taggedNameLength, "%s %s", name, readyTag);
 
   TrimString(taggedName);
 }

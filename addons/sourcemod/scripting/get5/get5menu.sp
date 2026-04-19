@@ -506,6 +506,7 @@ static void ResetMapPool(int client, bool showReloadMessage = false) {
     g_SetupMenuSelectedMapPool = DEFAULT_CONFIG_KEY;
     g_SetupMenuMapPool.SetObject(g_SetupMenuSelectedMapPool, CreateDefaultMapPool());
     if (IsValidClient(client)) {
+      LocalizeLegacyTextForClient(client, error, sizeof(error));
       Get5_Message(client, "%t", "MenuFailedLoadMapsGeneratingDefault", error);
     }
   } else {
@@ -601,6 +602,7 @@ static void CreateMatch(int client) {
   char error[PLATFORM_MAX_PATH];
   JSON_Object cvars = LoadCvarsFile(error, DEFAULT_CONFIG_KEY);
   if (cvars == null) {
+    LocalizeLegacyTextForClient(client, error, sizeof(error));
     Get5_Message(client, "%t", "MenuErrorLoadingCvars", error);
     json_cleanup_and_delete(match);
     return;
@@ -615,6 +617,7 @@ static void CreateMatch(int client) {
     Get5_Message(client, "%t", "MenuFailedWriteMatchConfigFile", path);
   } else {
     if (!LoadMatchConfig(path, error)) {
+      LocalizeLegacyTextForClient(client, error, sizeof(error));
       Get5_Message(client, "%t", "MenuFailedStartMatch", error);
     } else {
       DeleteFileIfExists(path);
@@ -769,7 +772,7 @@ static void GiveBackupMenu(int client) {
     int length = backups.Length;
     for (int i = 0; i < length; i++) {
       backups.GetString(i, filename, sizeof(filename));
-      if (GetRoundInfoFromBackupFile(filename, backupInfo, sizeof(backupInfo), g_GameState == Get5State_None)) {
+      if (GetRoundInfoFromBackupFile(filename, client, backupInfo, sizeof(backupInfo), g_GameState == Get5State_None)) {
         menu.AddItem(filename, backupInfo);
       }
     }
@@ -785,6 +788,7 @@ static int ListBackupsMenuHandler(Menu menu, MenuAction action, int client, int 
     char error[PLATFORM_MAX_PATH];
     menu.GetItem(param2, backupFileString, sizeof(backupFileString));
     if (!RestoreFromBackup(backupFileString, error)) {
+      LocalizeLegacyTextForClient(client, error, sizeof(error));
       Get5_Message(client, "%t", "MenuFailedLoadBackup", error);
     }
   } else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack) {
