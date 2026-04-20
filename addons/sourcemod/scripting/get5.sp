@@ -187,6 +187,9 @@ Handle g_KnifeDecisionTimer = INVALID_HANDLE;
 Handle g_KnifeDecisionReminderTimer = INVALID_HANDLE;
 Handle g_BotKnifeDecisionTimer = INVALID_HANDLE;
 Handle g_KnifeCountdownTimer = INVALID_HANDLE;
+bool g_GoingLiveFreezeActive = false;
+bool g_GoingLiveFrozenClients[MAXPLAYERS + 1];
+Handle g_GoingLiveFreezeTimer = INVALID_HANDLE;
 
 /** Pausing **/
 bool g_IsChangingPauseState = false;  // Used to prevent mp_pause_match and mp_unpause_match from being called directly.
@@ -282,6 +285,9 @@ bool g_MapChangePending = false;
 bool g_PendingSideSwap = false;
 Handle g_PendingMapChangeTimer = INVALID_HANDLE;
 bool g_ClientPendingTeamCheck[MAXPLAYERS + 1];
+
+forward void FreezeClientForGoingLive(int client);
+forward void ClearGoingLiveFreeze();
 
 /** Setup menu state **/
 Menu g_ActiveSetupMenu = null;
@@ -885,6 +891,7 @@ public void OnClientPutInServer(int client) {
   LogDebug("OnClientPutInServer");
   Stats_HookDamageForClient(client);  // Also needed for bots!
   g_ClientReadyForUnpause[client] = false;
+  g_GoingLiveFrozenClients[client] = false;
   if (IsFakeClient(client)) {
     return;
   }
@@ -960,6 +967,7 @@ static Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBr
   int client = GetClientOfUserId(event.GetInt("userid"));
   g_ClientPendingTeamCheck[client] = false;
   g_ClientReadyForUnpause[client] = false;
+  g_GoingLiveFrozenClients[client] = false;
   if (g_GameState == Get5State_None || !IsPlayer(client)) {
     return Plugin_Continue;
   }
@@ -981,6 +989,9 @@ static Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBr
 // mentioned hibernate race conditions.
 public void OnMapStart() {
   LogDebug("OnMapStart");
+  if (g_GoingLiveFreezeActive) {
+    ClearGoingLiveFreeze();
+  }
   g_MapChangePending = false;
   g_DoingBackupRestoreNow = false;
   g_KnifeWinnerTeam = Get5Team_None;
@@ -1533,8 +1544,12 @@ Action Timer_DisconnectCheck(Handle timer, int disconnectingClient) {
 }
 
 static Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
+  int client = GetClientOfUserId(event.GetInt("userid"));
+  if (g_GoingLiveFreezeActive) {
+    FreezeClientForGoingLive(client);
+  }
+
   if (g_GameState != Get5State_None && g_GameState < Get5State_KnifeRound) {
-    int client = GetClientOfUserId(event.GetInt("userid"));
     CreateTimer(0.1, Timer_ReplenishMoney, client, TIMER_FLAG_NO_MAPCHANGE);
   }
   return Plugin_Continue;
@@ -2109,10 +2124,7 @@ static Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
   }
 
   if (GetRoundsPlayed() == 0 && StrEqual(g_DemoFilePath, "")) {
-    // Start demo recording three seconds after the first live round_start instead of round_prestart.
-    // This still starts during freeze time, but avoids catching stray kills during the post-knife
-    // warmup / side-decision phase.
-    StartRecordingDelayed(3.0);
+    StartRecording();
   }
 
   if (g_PendingSurrenderTeam != Get5Team_None) {
@@ -2361,6 +2373,10 @@ void ChangeState(Get5State state) {
   if (g_GameState == state) {
     LogDebug("Ignoring request to change game state. Already in state %d.", state);
     return;
+  }
+
+  if (state != Get5State_GoingLive && g_GoingLiveFreezeActive) {
+    ClearGoingLiveFreeze();
   }
 
   if (state == Get5State_None) {

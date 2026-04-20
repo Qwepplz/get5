@@ -1,3 +1,94 @@
+static bool IsGoingLiveFreezeTarget(int client) {
+  if (!IsValidClient(client) || !IsPlayerAlive(client)) {
+    return false;
+  }
+
+  int team = GetClientTeam(client);
+  return team == CS_TEAM_T || team == CS_TEAM_CT;
+}
+
+public void FreezeClientForGoingLive(int client) {
+  if (!IsGoingLiveFreezeTarget(client)) {
+    return;
+  }
+
+  int flags = GetEntityFlags(client);
+  if ((flags & FL_FROZEN) == 0) {
+    SetEntityFlags(client, flags | FL_FROZEN);
+  }
+
+  SetEntPropFloat(client, Prop_Send, "m_flLaggedMovementValue", 0.0);
+
+  if (GetEntityMoveType(client) != MOVETYPE_NONE) {
+    SetEntityMoveType(client, MOVETYPE_NONE);
+  }
+  g_GoingLiveFrozenClients[client] = true;
+}
+
+static void ApplyGoingLiveFreeze() {
+  if (!g_GoingLiveFreezeActive) {
+    LogDebug("Applying going-live freeze.");
+    g_GoingLiveFreezeActive = true;
+    LOOP_CLIENTS(i) {
+      FreezeClientForGoingLive(i);
+    }
+  }
+
+  if (g_GoingLiveFreezeTimer == INVALID_HANDLE) {
+    g_GoingLiveFreezeTimer =
+      CreateTimer(0.1, Timer_EnforceGoingLiveFreeze, _, TIMER_REPEAT | TIMER_FLAG_NO_MAPCHANGE);
+  }
+}
+
+public void ClearGoingLiveFreeze() {
+  if (g_GoingLiveFreezeTimer != INVALID_HANDLE) {
+    delete g_GoingLiveFreezeTimer;
+  }
+
+  bool wasActive = g_GoingLiveFreezeActive;
+  g_GoingLiveFreezeActive = false;
+
+  LOOP_CLIENTS(i) {
+    if (!g_GoingLiveFrozenClients[i]) {
+      continue;
+    }
+
+    if (IsValidClient(i)) {
+      int flags = GetEntityFlags(i);
+      if ((flags & FL_FROZEN) != 0) {
+        SetEntityFlags(i, flags & ~FL_FROZEN);
+      }
+      SetEntPropFloat(i, Prop_Send, "m_flLaggedMovementValue", 1.0);
+
+      if (IsPlayerAlive(i) && GetEntityMoveType(i) == MOVETYPE_NONE) {
+        SetEntityMoveType(i, MOVETYPE_WALK);
+      }
+    }
+    g_GoingLiveFrozenClients[i] = false;
+  }
+
+  if (wasActive) {
+    LogDebug("Cleared going-live freeze.");
+  }
+}
+
+static Action Timer_EnforceGoingLiveFreeze(Handle timer) {
+  if (timer != g_GoingLiveFreezeTimer) {
+    return Plugin_Stop;
+  }
+
+  if (!g_GoingLiveFreezeActive || g_GameState != Get5State_GoingLive) {
+    g_GoingLiveFreezeTimer = INVALID_HANDLE;
+    ClearGoingLiveFreeze();
+    return Plugin_Stop;
+  }
+
+  LOOP_CLIENTS(i) {
+    FreezeClientForGoingLive(i);
+  }
+  return Plugin_Continue;
+}
+
 void StartGoingLive() {
   LogDebug("StartGoingLive");
   ExecCfg(g_Wingman ? g_LiveWingmanCfgCvar : g_LiveCfgCvar);
@@ -27,6 +118,7 @@ static Action Timer_GoToLive(Handle timer) {
 
   // Change state as we're now counting down to live from warmup.
   ChangeState(Get5State_GoingLive);
+  ApplyGoingLiveFreeze();
 
   // Remove team ready tags if there was no knife-round to do it.
   // The ExecCfg for the live config finished before the game state changes

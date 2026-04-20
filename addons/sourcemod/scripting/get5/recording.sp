@@ -1,20 +1,3 @@
-static bool g_DemoStartRecordingPending = false;
-
-bool StartRecordingDelayed(float delay) {
-  if (delay < 0.1) {
-    return StartRecording();
-  }
-
-  if (g_DemoStartRecordingPending || !StrEqual(g_DemoFilePath, "")) {
-    return false;
-  }
-
-  g_DemoStartRecordingPending = true;
-  LogDebug("Starting timer that will start GOTV recording in %f seconds.", delay);
-  CreateTimer(delay, Timer_StartGoTVRecording, _, TIMER_FLAG_NO_MAPCHANGE);
-  return true;
-}
-
 bool StartRecording() {
   char demoFormat[PLATFORM_MAX_PATH];
   g_DemoNameFormatCvar.GetString(demoFormat, sizeof(demoFormat));
@@ -55,16 +38,6 @@ bool StartRecording() {
   LogMessage("Recording to %s", g_DemoFilePath);
   Stats_SetDemoName(g_DemoFilePath);
   return true;
-}
-
-static Action Timer_StartGoTVRecording(Handle timer) {
-  g_DemoStartRecordingPending = false;
-  if (g_GameState != Get5State_Live || !StrEqual(g_DemoFilePath, "")) {
-    return Plugin_Handled;
-  }
-
-  StartRecording();
-  return Plugin_Handled;
 }
 
 void StopRecording(float delay = 0.0) {
