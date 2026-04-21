@@ -540,6 +540,21 @@ static Action Timer_PauseTimeCheck(Handle timer) {
     EventLogger_LogAndDeleteEvent(event);
   }
   if (g_PauseType == Get5PauseType_Tactical) {
+    Action result = HandleTacticalPauseTick(team, teamString, pauseTeamName);
+    if (result == Plugin_Stop) {
+      return Plugin_Stop;
+    }
+  } else if (g_PauseType == Get5PauseType_Tech) {
+    HandleTechPauseTick(team, teamString, pauseTeamName);
+  } else if (g_PauseType == Get5PauseType_Admin) {
+    HandleAdminPauseTick();
+  } else if (g_PauseType == Get5PauseType_Backup) {
+    HandleBackupPauseTick();
+  }
+  return Plugin_Continue;
+}
+
+static Action HandleTacticalPauseTick(Get5Team team, const char[] teamString, const char[] pauseTeamName) {
     int maxTacticalPauseTime = g_MaxPauseTimeCvar.IntValue;
     int maxTacticalPauses = g_MaxTacticalPausesCvar.IntValue;
     int fixedPauseTime = g_FixedPauseTimeCvar.IntValue;
@@ -670,8 +685,10 @@ static Action Timer_PauseTimeCheck(Handle timer) {
         }
       }
     }
+    return Plugin_Continue;
+}
 
-  } else if (g_PauseType == Get5PauseType_Tech) {
+static void HandleTechPauseTick(Get5Team team, const char[] teamString, const char[] pauseTeamName) {
     if (g_LatestPauseDuration == 0) {
       // Increment pause used on first second.
       g_TechnicalPausesUsed[team]++;
@@ -733,20 +750,20 @@ static Action Timer_PauseTimeCheck(Handle timer) {
         }
       }
     }
+}
 
-  } else if (g_PauseType == Get5PauseType_Admin) {
+static void HandleAdminPauseTick() {
     LOOP_CLIENTS(i) {
       if (IsValidClient(i)) {
         PrintHintText(i, "%t", "PausedByAdministrator");
       }
     }
+}
 
-  } else if (g_PauseType == Get5PauseType_Backup) {
+static void HandleBackupPauseTick() {
     LOOP_CLIENTS(i) {
       if (IsValidClient(i)) {
         PrintHintText(i, "%t", "PausedForBackup");
       }
     }
-  }
-  return Plugin_Continue;
 }

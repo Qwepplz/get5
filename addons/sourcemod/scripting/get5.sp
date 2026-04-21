@@ -355,20 +355,6 @@ Handle g_OnSeriesInit = INVALID_HANDLE;
 Handle g_OnSeriesResult = INVALID_HANDLE;
 Handle g_OnSidePicked = INVALID_HANDLE;
 
-#include "get5/version.sp"
-// Space required, or clang will alphabetize this and put version.sp at the end which breaks compilation.
-#include "get5/backups.sp"
-#include "get5/chatcommands.sp"
-#include "get5/debug.sp"
-#include "get5/events.sp"
-#include "get5/get5menu.sp"
-#include "get5/goinglive.sp"
-#include "get5/http.sp"
-#include "get5/jsonhelpers.sp"
-#include "get5/kniferounds.sp"
-#include "get5/maps.sp"
-#include "get5/mapveto.sp"
-
 static void NormalizeLegacyDemoRecordingCvars() {
   NormalizeLegacyDemoRecordingCvar(g_DemoNameFormatCvar, "{TIME}_{MATCHID}_map{MAPNUMBER}_{MAPNAME}",
                                    "pug_{TIME}_{MAPNAME}");
@@ -454,6 +440,19 @@ static bool FormatCvarStringWithTeamNames(ConVar cvar, char[] buffer, int len, c
   return true;
 }
 
+#include "get5/version.sp"
+// Space required, or clang will alphabetize this and put version.sp at the end which breaks compilation.
+#include "get5/backups.sp"
+#include "get5/chatcommands.sp"
+#include "get5/debug.sp"
+#include "get5/events.sp"
+#include "get5/get5menu.sp"
+#include "get5/goinglive.sp"
+#include "get5/http.sp"
+#include "get5/jsonhelpers.sp"
+#include "get5/kniferounds.sp"
+#include "get5/maps.sp"
+#include "get5/mapveto.sp"
 #include "get5/matchconfig.sp"
 #include "get5/natives.sp"
 #include "get5/pausing.sp"
@@ -487,28 +486,8 @@ public void OnAllPluginsLoaded() {
   }
 }
 
-public void OnPluginStart() {
-  InitDebugLog(DEBUG_CVAR, "get5");
-  LogDebug("OnPluginStart version=%s", PLUGIN_VERSION);
-
-  // Make JSON payloads smaller by using 2 spaces instead of 4 to pretty print.
-  JSON_PP_INDENT = "  ";
-
-  // Because we use SDKHooks for damage, we need to re-hook clients that are already on the server
-  // in case the plugin is reloaded. This includes bots.
-  LOOP_CLIENTS(i) {
-    if (IsValidClient(i)) {
-      Stats_HookDamageForClient(i);
-    }
-  }
-
-  /** Translations **/
-  LoadTranslations("get5.phrases");
-  LoadTranslations("common.phrases");
-
-  /** ConVars **/
-  // clang-format off
-
+// clang-format off
+static void RegisterConVars() {
   // Pauses
   g_AllowPauseCancellationCvar          = CreateConVar("get5_allow_pause_cancellation", "1", "Whether requests for pauses can be canceled by the pausing team using !unpause before freezetime begins.");
   g_AllowTechPauseCvar                  = CreateConVar("get5_allow_technical_pause", "1", "Whether technical pauses are allowed by players.");
@@ -617,29 +596,9 @@ public void OnPluginStart() {
   g_ResetCvarsOnEndCvar                 = CreateConVar("get5_reset_cvars_on_end", "1", "Whether parameters from the \"cvars\" section of a match configuration and the Get5-determined hostname are restored to their original values when a series ends.");
 
   // clang-format on
-  /** Create and exec plugin's configuration file **/
-  AutoExecConfig(true, "get5");
-  NormalizeLegacyDemoRecordingCvars();
-  NormalizeLegacyHostnameCvar();
+}
 
-  g_GameStateCvar = CreateConVar("get5_game_state", "0", "Current game state (see get5.inc)", FCVAR_DONTRECORD);
-  g_LastGet5BackupCvar = CreateConVar("get5_last_backup_file", "", "Last get5 backup file written", FCVAR_DONTRECORD);
-  g_VersionCvar = CreateConVar("get5_version", PLUGIN_VERSION, "Current get5 version",
-                               FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
-  g_VersionCvar.SetString(PLUGIN_VERSION);
-
-  g_CoachingEnabledCvar = FindConVar("sv_coaching_enabled");
-  g_CoachingEnabledCvar.AddChangeHook(CoachingChangedHook);  // used to move people off coaching if it gets disabled.
-  g_BackupSystemEnabledCvar.AddChangeHook(BackupSystemEnabledChangedHook);
-  g_StopCommandEnabledCvar.AddChangeHook(StopCommandEnabledChangedHook);
-
-  ConVar valveBackupRoundAutoCvar = FindConVar("mp_backup_round_auto");
-  if (valveBackupRoundAutoCvar != null) {
-    valveBackupRoundAutoCvar.AddChangeHook(ValveBackupRoundAutoChangedHook);
-  }
-  ForceDisableBackupSupport();
-
-  /** Client commands **/
+static void RegisterChatCommands() {
   g_ChatAliases = new ArrayList(ByteCountToCells(ALIAS_LENGTH));
   g_ChatAliasesCommands = new ArrayList(ByteCountToCells(COMMAND_LENGTH));
   g_ChatCommands = new StringMap();
@@ -668,8 +627,9 @@ public void OnPluginStart() {
   MapChatCommand(Get5ChatCommand_Ban, "ban");
 
   LoadCustomChatAliases("addons/sourcemod/configs/get5/commands.cfg");
+}
 
-  /** Admin/server commands **/
+static void RegisterAdminCommands() {
   RegAdminCmd("get5_loadmatch", Command_LoadMatch, ADMFLAG_CHANGEMAP,
               "Loads a match config file (json or keyvalues) from a file relative to the csgo/ directory");
   RegAdminCmd("get5_loadmatch_url", Command_LoadMatchUrl, ADMFLAG_CHANGEMAP,
@@ -715,8 +675,9 @@ public void OnPluginStart() {
   RegServerCmd(
     "get5_test", Command_Test,
     "Runs get5 tests - should not be used on a live match server since it will reload a match config to test");
+}
 
-  /** Hooks **/
+static void HookGameEvents() {
   HookEvent("cs_win_panel_match", Event_MatchOver);
   HookEvent("cs_win_panel_round", Event_RoundWinPanel, EventHookMode_Pre);
   HookEvent("player_connect_full", Event_PlayerConnectFull);
@@ -738,8 +699,9 @@ public void OnPluginStart() {
 
   AddCommandListener(Command_BlockSuicide, "explode");
   AddCommandListener(Command_BlockSuicide, "kill");
+}
 
-  /** Setup data structures **/
+static void InitDataStructures() {
   g_MapPoolList = new ArrayList(PLATFORM_MAX_PATH);
   g_MapsLeftInVetoPool = new ArrayList(PLATFORM_MAX_PATH);
   g_MapsToPlay = new ArrayList(PLATFORM_MAX_PATH);
@@ -759,8 +721,9 @@ public void OnPluginStart() {
   g_FlashbangContainer = new StringMap();
   g_HEGrenadeContainer = new StringMap();
   g_MolotovContainer = new StringMap();
+}
 
-  /** Create forwards **/
+static void CreateForwards() {
   g_OnBackupRestore = CreateGlobalForward("Get5_OnBackupRestore", ET_Ignore, Param_Cell);
   g_OnDemoFinished = CreateGlobalForward("Get5_OnDemoFinished", ET_Ignore, Param_Cell);
   g_OnDemoUploadEnded = CreateGlobalForward("Get5_OnDemoUploadEnded", ET_Ignore, Param_Cell);
@@ -798,6 +761,53 @@ public void OnPluginStart() {
   g_OnMatchPaused = CreateGlobalForward("Get5_OnMatchPaused", ET_Ignore, Param_Cell);
   g_OnMatchUnpaused = CreateGlobalForward("Get5_OnMatchUnpaused", ET_Ignore, Param_Cell);
   g_OnPauseBegan = CreateGlobalForward("Get5_OnPauseBegan", ET_Ignore, Param_Cell);
+}
+
+public void OnPluginStart() {
+  InitDebugLog(DEBUG_CVAR, "get5");
+  LogDebug("OnPluginStart version=%s", PLUGIN_VERSION);
+
+  // Make JSON payloads smaller by using 2 spaces instead of 4 to pretty print.
+  JSON_PP_INDENT = "  ";
+
+  // Because we use SDKHooks for damage, we need to re-hook clients that are already on the server
+  // in case the plugin is reloaded. This includes bots.
+  LOOP_CLIENTS(i) {
+    if (IsValidClient(i)) {
+      Stats_HookDamageForClient(i);
+    }
+  }
+
+  LoadTranslations("get5.phrases");
+  LoadTranslations("common.phrases");
+
+  RegisterConVars();
+  AutoExecConfig(true, "get5");
+  NormalizeLegacyDemoRecordingCvars();
+  NormalizeLegacyHostnameCvar();
+
+  g_GameStateCvar = CreateConVar("get5_game_state", "0", "Current game state (see get5.inc)", FCVAR_DONTRECORD);
+  g_LastGet5BackupCvar = CreateConVar("get5_last_backup_file", "", "Last get5 backup file written", FCVAR_DONTRECORD);
+  g_VersionCvar = CreateConVar("get5_version", PLUGIN_VERSION, "Current get5 version",
+                               FCVAR_SPONLY | FCVAR_REPLICATED | FCVAR_NOTIFY | FCVAR_DONTRECORD);
+  g_VersionCvar.SetString(PLUGIN_VERSION);
+
+  g_CoachingEnabledCvar = FindConVar("sv_coaching_enabled");
+  g_CoachingEnabledCvar.AddChangeHook(CoachingChangedHook);
+  g_BackupSystemEnabledCvar.AddChangeHook(BackupSystemEnabledChangedHook);
+  g_StopCommandEnabledCvar.AddChangeHook(StopCommandEnabledChangedHook);
+
+  ConVar valveBackupRoundAutoCvar = FindConVar("mp_backup_round_auto");
+  if (valveBackupRoundAutoCvar != null) {
+    valveBackupRoundAutoCvar.AddChangeHook(ValveBackupRoundAutoChangedHook);
+  }
+  ForceDisableBackupSupport();
+
+  RegisterChatCommands();
+  RegisterAdminCommands();
+  HookGameEvents();
+  InitDataStructures();
+  CreateForwards();
 
   /** Start any repeating timers **/
   CreateTimer(CHECK_READY_TIMER_INTERVAL, Timer_CheckReady, _, TIMER_REPEAT);
@@ -1689,6 +1699,22 @@ Action Timer_NextMatchMap(Handle timer) {
   return Plugin_Handled;
 }
 
+static void KillTimerIfValid(Handle &timer, const char[] name) {
+  if (timer != INVALID_HANDLE) {
+    LogDebug("Killing %s as match was ended.", name);
+    delete timer;
+  }
+}
+
+static void CleanupMatchTimers() {
+  KillTimerIfValid(g_PendingMapChangeTimer, "g_PendingMapChangeTimer");
+  KillTimerIfValid(g_KnifeCountdownTimer, "g_KnifeCountdownTimer");
+  KillTimerIfValid(g_KnifeDecisionTimer, "g_KnifeDecisionTimer");
+  KillTimerIfValid(g_KnifeDecisionReminderTimer, "g_KnifeDecisionReminderTimer");
+  KillTimerIfValid(g_BotKnifeDecisionTimer, "g_BotKnifeDecisionTimer");
+  KillTimerIfValid(g_MatchConfigExecTimer, "g_MatchConfigExecTimer");
+}
+
 void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay, bool kickPlayers = true) {
   bool shutdownOnEnd = g_ShutdownOnEndCvar.BoolValue;
   if (shutdownOnEnd) {
@@ -1740,39 +1766,7 @@ void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay
     ChangeState(Get5State_PostGame);
   }
 
-  // If the match is ended during pending map change;
-  if (g_PendingMapChangeTimer != INVALID_HANDLE) {
-    LogDebug("Killing g_PendingMapChangeTimer as match was ended.");
-    delete g_PendingMapChangeTimer;
-  }
-
-  // If the match is ended during knife countdown;
-  if (g_KnifeCountdownTimer != INVALID_HANDLE) {
-    LogDebug("Killing g_KnifeCountdownTimer as match was ended.");
-    delete g_KnifeCountdownTimer;
-  }
-
-  // If the match is ended during knife decision countdown;
-  if (g_KnifeDecisionTimer != INVALID_HANDLE) {
-    LogDebug("Killing g_KnifeDecisionTimer as match was ended.");
-    delete g_KnifeDecisionTimer;
-  }
-
-  if (g_KnifeDecisionReminderTimer != INVALID_HANDLE) {
-    LogDebug("Killing g_KnifeDecisionReminderTimer as match was ended.");
-    delete g_KnifeDecisionReminderTimer;
-  }
-
-  if (g_BotKnifeDecisionTimer != INVALID_HANDLE) {
-    LogDebug("Killing g_BotKnifeDecisionTimer as match was ended.");
-    delete g_BotKnifeDecisionTimer;
-  }
-
-  // If a config exec callback is in progress, stop it;
-  if (g_MatchConfigExecTimer != INVALID_HANDLE) {
-    LogDebug("Killing g_MatchConfigExecTimer as match was ended.");
-    delete g_MatchConfigExecTimer;
-  }
+  CleanupMatchTimers();
 
   // If a forfeit by disconnect is counting down and the match ends, ensure that no timer is running so a new game
   // won't be forfeited if it is started before the timer runs out.
@@ -1878,6 +1872,29 @@ static Action Timer_ShutdownServer(Handle timer) {
   return Plugin_Stop;
 }
 
+static void ResetTeamMatchData(int i, bool backup) {
+  g_TeamIDs[i] = "";
+  g_TeamNames[i] = "";
+  if (!backup) {
+    g_TeamDisplayNames[i] = "";
+  }
+  g_TeamTags[i] = "";
+  g_FormattedTeamNames[i] = "";
+  g_TeamFlags[i] = "";
+  g_TeamLogos[i] = "";
+  g_TeamMatchTexts[i] = "";
+  g_TeamPlayers[i].Clear();
+  g_TeamCoaches[i].Clear();
+  g_TeamSeriesScores[i] = 0;
+  g_TeamReadyForUnpause[i] = false;
+  g_TeamGivenStopCommand[i] = false;
+  if (!backup) {
+    g_TacticalPauseTimeUsed[i] = 0;
+    g_TacticalPausesUsed[i] = 0;
+    g_TechnicalPausesUsed[i] = 0;
+  }
+}
+
 void ResetMatchConfigVariables(bool backup = false) {
   // Resets all match config variables and parameter used to track game state when Get5 is running.
   g_InScrimMode = false;
@@ -1897,26 +1914,7 @@ void ResetMatchConfigVariables(bool backup = false) {
   g_MapsLeftInVetoPool.Clear();
   g_TeamScoresPerMap.Clear();
   for (int i = 0; i < MATCHTEAM_COUNT; i++) {
-    g_TeamIDs[i] = "";
-    g_TeamNames[i] = "";
-    if (!backup) {
-      g_TeamDisplayNames[i] = "";
-    }
-    g_TeamTags[i] = "";
-    g_FormattedTeamNames[i] = "";
-    g_TeamFlags[i] = "";
-    g_TeamLogos[i] = "";
-    g_TeamMatchTexts[i] = "";
-    g_TeamPlayers[i].Clear();
-    g_TeamCoaches[i].Clear();
-    g_TeamSeriesScores[i] = 0;
-    g_TeamReadyForUnpause[i] = false;
-    g_TeamGivenStopCommand[i] = false;
-    if (!backup) {
-      g_TacticalPauseTimeUsed[i] = 0;
-      g_TacticalPausesUsed[i] = 0;
-      g_TechnicalPausesUsed[i] = 0;
-    }
+    ResetTeamMatchData(i, backup);
   }
   ResetUnpauseTracking();
   g_FavoredTeamPercentage = 0;
@@ -2467,7 +2465,7 @@ static void DispatchMapResultEvent(Get5Team winningTeam, Get5StatsTeam team1, Ge
 static Get5StatusTeam GetTeamInfo(Get5Team team) {
   Get5Side side = GetCurrentMatchTeamSide(team);
   return new Get5StatusTeam(g_TeamNames[team], g_TeamSeriesScores[team], GetCurrentMatchTeamScore(team),
-                            IsTeamReady(team), side, GetNumHumansOnTeam(view_as<int>(side)));
+                            IsTeamReady(team), side, CountHumanClientsOnCSTeam(view_as<int>(side)));
 }
 
 bool FormatCvarString(ConVar cvar, char[] buffer, int len, bool safeTeamNames = true) {

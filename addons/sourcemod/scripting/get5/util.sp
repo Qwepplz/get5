@@ -85,10 +85,6 @@ stock int CountHumanMatchTeamClients(const Get5Team team, bool includeCoaches = 
 /**
  * Returns the number of human clients on a team.
  */
-stock int GetNumHumansOnTeam(int team) {
-  return CountHumanClientsOnCSTeam(team);
-}
-
 stock int CountAlivePlayersOnTeam(const Get5Side side) {
   int count = 0;
   LOOP_CLIENTS(i) {

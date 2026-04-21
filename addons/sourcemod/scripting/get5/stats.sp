@@ -377,60 +377,38 @@ void Stats_SeriesEnd(Get5Team winner) {
   DumpToFile();
 }
 
-static void EndMolotovEvent(const char[] molotovKey) {
-  // Since a molotov can be active when the round is ending, we need to grab the information from it
-  // on both RoundStart
-  // **and** on its expire event.
-
-  Get5MolotovDetonatedEvent molotovObject;
-  if (g_MolotovContainer.GetValue(molotovKey, molotovObject)) {
+static void EndGrenadeEvent(StringMap container, const char[] key, Handle fwd, const char[] typeName,
+                            bool setEndTime = false) {
+  Get5Event eventObject;
+  if (container.GetValue(key, eventObject)) {
     if (g_GameState != Get5State_Live || IsDoingRestoreOrMapChange()) {
-      json_cleanup_and_delete(molotovObject);
-      LogDebug("Deleting molotov event with key %s as match is no longer live.", molotovKey);
+      json_cleanup_and_delete(eventObject);
+      LogDebug("Deleting %s event with key %s as match is no longer live.", typeName, key);
     } else {
-      molotovObject.EndTime = GetRoundTime();
-      LogDebug("Calling Get5_OnMolotovDetonated()");
-      Call_StartForward(g_OnMolotovDetonated);
-      Call_PushCell(molotovObject);
+      if (setEndTime) {
+        // Molotov needs EndTime set on expiration.
+        view_as<Get5MolotovDetonatedEvent>(eventObject).EndTime = GetRoundTime();
+      }
+      LogDebug("Calling Get5_On%sDetonated()", typeName);
+      Call_StartForward(fwd);
+      Call_PushCell(eventObject);
       Call_Finish();
-      EventLogger_LogAndDeleteEvent(molotovObject);
+      EventLogger_LogAndDeleteEvent(eventObject);
     }
-    g_MolotovContainer.Remove(molotovKey);
+    container.Remove(key);
   }
+}
+
+static void EndMolotovEvent(const char[] molotovKey) {
+  EndGrenadeEvent(g_MolotovContainer, molotovKey, g_OnMolotovDetonated, "Molotov", true);
 }
 
 static void EndHEEvent(const char[] grenadeKey) {
-  Get5HEDetonatedEvent heObject;
-  if (g_HEGrenadeContainer.GetValue(grenadeKey, heObject)) {
-    if (g_GameState != Get5State_Live || IsDoingRestoreOrMapChange()) {
-      json_cleanup_and_delete(heObject);
-      LogDebug("Deleting HE event with key %s as match is no longer live.", grenadeKey);
-    } else {
-      LogDebug("Calling Get5_OnHEGrenadeDetonated()");
-      Call_StartForward(g_OnHEGrenadeDetonated);
-      Call_PushCell(heObject);
-      Call_Finish();
-      EventLogger_LogAndDeleteEvent(heObject);
-    }
-    g_HEGrenadeContainer.Remove(grenadeKey);
-  }
+  EndGrenadeEvent(g_HEGrenadeContainer, grenadeKey, g_OnHEGrenadeDetonated, "HE");
 }
 
 static void EndFlashbangEvent(const char[] flashKey) {
-  Get5FlashbangDetonatedEvent flashEvent;
-  if (g_FlashbangContainer.GetValue(flashKey, flashEvent)) {
-    if (g_GameState != Get5State_Live || IsDoingRestoreOrMapChange()) {
-      json_cleanup_and_delete(flashEvent);
-      LogDebug("Deleting flash event with key %s as match is no longer live.", flashKey);
-    } else {
-      LogDebug("Calling Get5_OnFlashbangDetonated()");
-      Call_StartForward(g_OnFlashbangDetonated);
-      Call_PushCell(flashEvent);
-      Call_Finish();
-      EventLogger_LogAndDeleteEvent(flashEvent);
-    }
-    g_FlashbangContainer.Remove(flashKey);
-  }
+  EndGrenadeEvent(g_FlashbangContainer, flashKey, g_OnFlashbangDetonated, "Flashbang");
 }
 
 static Action Stats_DecoyStartedEvent(Event event, const char[] name, bool dontBroadcast) {
