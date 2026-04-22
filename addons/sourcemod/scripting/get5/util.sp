@@ -951,11 +951,20 @@ stock void FormatGlobalReadyTag(bool ready, char[] tag, int tagLength) {
   }
 }
 
-static int FindLastCharacter(const char[] text, char character) {
+static int FindMatchingOpenParen(const char[] text) {
   int length = strlen(text);
+  if (length == 0 || text[length - 1] != ')') {
+    return -1;
+  }
+  int depth = 0;
   for (int i = length - 1; i >= 0; i--) {
-    if (text[i] == character) {
-      return i;
+    if (text[i] == ')') {
+      depth++;
+    } else if (text[i] == '(') {
+      depth--;
+      if (depth == 0) {
+        return i;
+      }
     }
   }
   return -1;
@@ -971,13 +980,8 @@ static bool HasNonAsciiBeforeIndex(const char[] text, int index) {
 }
 
 static bool ExtractLegacyChineseText(const char[] text, char[] output, int maxLength) {
-  int closeParen = FindLastCharacter(text, ')');
-  if (closeParen != strlen(text) - 1) {
-    return false;
-  }
-
-  int openParen = FindLastCharacter(text, '(');
-  if (openParen <= 0 || openParen >= closeParen || !HasNonAsciiBeforeIndex(text, openParen)) {
+  int openParen = FindMatchingOpenParen(text);
+  if (openParen <= 0 || !HasNonAsciiBeforeIndex(text, openParen)) {
     return false;
   }
 
@@ -988,16 +992,12 @@ static bool ExtractLegacyChineseText(const char[] text, char[] output, int maxLe
 }
 
 static bool ExtractLegacyEnglishText(const char[] text, char[] output, int maxLength) {
-  int closeParen = FindLastCharacter(text, ')');
-  if (closeParen != strlen(text) - 1) {
+  int openParen = FindMatchingOpenParen(text);
+  if (openParen <= 0 || !HasNonAsciiBeforeIndex(text, openParen)) {
     return false;
   }
 
-  int openParen = FindLastCharacter(text, '(');
-  if (openParen <= 0 || openParen >= closeParen || !HasNonAsciiBeforeIndex(text, openParen)) {
-    return false;
-  }
-
+  int closeParen = strlen(text) - 1;
   strcopy(output, maxLength, text[openParen + 1]);
   output[closeParen - openParen - 1] = '\0';
   return true;
