@@ -492,7 +492,7 @@ static void RegisterConVars() {
   g_AllowPauseCancellationCvar          = CreateConVar("get5_allow_pause_cancellation", "1", "Whether requests for pauses can be canceled by the pausing team using !unpause before freezetime begins.");
   g_AllowTechPauseCvar                  = CreateConVar("get5_allow_technical_pause", "1", "Whether technical pauses are allowed by players.");
   g_AllowUnpausingFixedPausesCvar       = CreateConVar("get5_allow_unpausing_fixed_pauses", "1", "Whether fixed-length tactical pauses can be stopped early if both teams !unpause.");
-  g_AutoTechPauseMissingPlayersCvar     = CreateConVar("get5_auto_tech_pause_missing_players", "0", "The number of players that must leave a team to trigger an automatic technical pause. Set to 0 to disable.");
+  g_AutoTechPauseMissingPlayersCvar     = CreateConVar("get5_auto_tech_pause_missing_players", "1", "The number of players that must leave a team to trigger an automatic technical pause. Set to 0 to disable.");
   g_FixedPauseTimeCvar                  = CreateConVar("get5_fixed_pause_time", "60", "The fixed duration of tactical pauses in seconds. Cannot be set lower than 15 if non-zero.");
   g_MaxTacticalPausesCvar               = CreateConVar("get5_max_pauses", "0", "Number of tactical pauses a team can use. 0 = unlimited.");
   g_MaxPauseTimeCvar                    = CreateConVar("get5_max_pause_time", "0", "Maximum number of seconds a game can spend under tactical pause for each team. 0 = unlimited.");
