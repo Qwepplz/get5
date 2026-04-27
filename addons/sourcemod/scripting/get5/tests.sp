@@ -59,6 +59,8 @@ static void BotRoster_Test() {
   GetConVarStringSafe("bot_quota", originalBotQuota, sizeof(originalBotQuota));
   GetConVarStringSafe("bot_join_after_player", originalBotJoinAfterPlayer, sizeof(originalBotJoinAfterPlayer));
   Get5State originalGameState = g_GameState;
+  int originalTeam1Side = g_TeamSide[Get5Team_1];
+  int originalTeam2Side = g_TeamSide[Get5Team_2];
 
   g_FrozenBotQuota = 7;
   ApplyFrozenBotQuota();
@@ -90,6 +92,19 @@ static void BotRoster_Test() {
   g_GameState = Get5State_PostGame;
   AssertFalse("Test bot quota not managed in PostGame", ShouldEnforceFrozenBotQuota());
   g_GameState = originalGameState;
+
+  ResetBotRosterState();
+  g_TeamSide[Get5Team_1] = CS_TEAM_CT;
+  g_TeamSide[Get5Team_2] = CS_TEAM_T;
+  g_FrozenBotSnapshotCount = 2;
+  g_FrozenBotSides[0] = Get5Side_CT;
+  g_FrozenBotSides[1] = Get5Side_T;
+  AssertTrue("Test team 1 presence includes frozen bots", HasMatchTeamPlayerOrBot(Get5Team_1));
+  AssertTrue("Test team 2 presence includes frozen bots", HasMatchTeamPlayerOrBot(Get5Team_2));
+  ResetBotRosterState();
+  AssertFalse("Test team 1 presence clears with no humans or bots", HasMatchTeamPlayerOrBot(Get5Team_1));
+  g_TeamSide[Get5Team_1] = originalTeam1Side;
+  g_TeamSide[Get5Team_2] = originalTeam2Side;
 }
 
 // Helper used to generate map list array of any size.

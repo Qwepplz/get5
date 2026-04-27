@@ -1502,6 +1502,8 @@ Action Timer_DisconnectCheck(Handle timer, int disconnectingClient) {
 
   int team1Count = GetTeamPlayerCount(Get5Team_1);
   int team2Count = GetTeamPlayerCount(Get5Team_2);
+  bool team1Present = HasMatchTeamPlayerOrBot(Get5Team_1);
+  bool team2Present = HasMatchTeamPlayerOrBot(Get5Team_2);
 
   if (g_AutoTechPauseMissingPlayersCvar.BoolValue) {
     int playerCountTriggeringTechPause = g_PlayersPerTeam - g_AutoTechPauseMissingPlayersCvar.IntValue;
@@ -1515,7 +1517,7 @@ Action Timer_DisconnectCheck(Handle timer, int disconnectingClient) {
     }
   }
 
-  if (team1Count > 0 && team2Count > 0) {
+  if (team1Present && team2Present) {
     // If both teams still have at least one player; no forfeit.
     return Plugin_Handled;
   }

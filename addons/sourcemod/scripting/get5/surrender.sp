@@ -222,14 +222,14 @@ static Action Timer_ForfeitCountdownCheck(Handle timer) {
   // 4. Team 1 rejoins; team 2 now has no players and the timer is not stopped.
   // 5. Team 1 loses even though they were present.
   if (g_ForfeitingTeam != Get5Team_None) {
-    if (GetTeamPlayerCount(g_ForfeitingTeam) > 0) {
+    if (HasMatchTeamPlayerOrBot(g_ForfeitingTeam)) {
       LogDebug("Stopping forfeit timer for team %d.", g_ForfeitingTeam);
       AnnounceForfeitCanceled();  // must go before ResetForfeitTimer()
       g_ForfeitTimer = INVALID_HANDLE;
       ResetForfeitTimer();
       return Plugin_Stop;
     }
-  } else if (GetTeamPlayerCount(Get5Team_1) > 0 && GetTeamPlayerCount(Get5Team_2) > 0) {
+  } else if (HasMatchTeamPlayerOrBot(Get5Team_1) && HasMatchTeamPlayerOrBot(Get5Team_2)) {
     LogDebug("Stopping tie countdown timer as both teams now have players.");
     AnnounceForfeitCanceled();  // must go before ResetForfeitTimer()
     g_ForfeitTimer = INVALID_HANDLE;
