@@ -44,11 +44,21 @@ static void Get5_Test() {
   LoadTeamFromFileTest();
   Team1StartTTest();
   MissingPropertiesTest();
+  ForfeitCountdownDefault_Test();
 
   Utils_Test();
   BotRoster_Test();
+  PauseDisconnectLock_Test();
   MapVetoLogicTest();
   LogMessage("Tests complete!");
+}
+
+static void ForfeitCountdownDefault_Test() {
+  SetTestContext("ForfeitCountdownDefault_Test");
+
+  char defaultValue[16];
+  g_ForfeitCountdownTimeCvar.GetDefault(defaultValue, sizeof(defaultValue));
+  AssertStrEq("Forfeit countdown default value", defaultValue, "600");
 }
 
 static void BotRoster_Test() {
@@ -105,6 +115,62 @@ static void BotRoster_Test() {
   AssertFalse("Test team 1 presence clears with no humans or bots", HasMatchTeamPlayerOrBot(Get5Team_1));
   g_TeamSide[Get5Team_1] = originalTeam1Side;
   g_TeamSide[Get5Team_2] = originalTeam2Side;
+}
+
+static void PauseDisconnectLock_Test() {
+  SetTestContext("PauseDisconnectLock_Test");
+
+  Get5PauseType originalPauseType = g_PauseType;
+  bool originalTeam1Active = g_PauseDisconnectLockActive[Get5Team_1];
+  bool originalTeam2Active = g_PauseDisconnectLockActive[Get5Team_2];
+  int originalTeam1Required = g_PauseDisconnectRequiredHumans[Get5Team_1];
+  int originalTeam2Required = g_PauseDisconnectRequiredHumans[Get5Team_2];
+
+  ResetPauseDisconnectLocks();
+  AssertFalse("Disconnect locks start clear", PauseHasActiveDisconnectLocks());
+
+  g_PauseType = Get5PauseType_Tech;
+  ApplyPauseDisconnectLockFromCounts(Get5Team_1, 0, 0);
+  AssertFalse("Zero-human baseline does not arm a lock", g_PauseDisconnectLockActive[Get5Team_1]);
+
+  ApplyPauseDisconnectLockFromCounts(Get5Team_1, 2, 1);
+  AssertEq("Team 1 snapshot records the pre-disconnect baseline", 2,
+           g_PauseDisconnectRequiredHumans[Get5Team_1]);
+
+  ApplyPauseDisconnectLockFromCounts(Get5Team_1, 1, 0);
+  AssertEq("A later disconnect cannot lower the existing requirement", 2,
+           g_PauseDisconnectRequiredHumans[Get5Team_1]);
+
+  ApplyPauseDisconnectLockFromCounts(Get5Team_2, 3, 2);
+  AssertEq("Team 2 keeps an independent baseline", 3,
+           g_PauseDisconnectRequiredHumans[Get5Team_2]);
+
+  g_PauseType = Get5PauseType_Tactical;
+  ResetPauseDisconnectLocks();
+  ApplyPauseDisconnectLock(Get5Team_1, 2);
+  AssertFalse("Tactical pause stays blocked while team 1 is short",
+              CanPlayersResumePauseWithCounts(1, 0));
+  AssertTrue("Tactical pause unlocks when team 1 recovers",
+             CanPlayersResumePauseWithCounts(2, 0));
+
+  g_PauseType = Get5PauseType_Tech;
+  ResetPauseDisconnectLocks();
+  ApplyPauseDisconnectLock(Get5Team_1, 2);
+  ApplyPauseDisconnectLock(Get5Team_2, 1);
+  AssertFalse("Tech unpause vote stays blocked until both teams recover",
+              CanPlayersResumePauseWithCounts(2, 0));
+  AssertTrue("Tech unpause vote succeeds after both teams recover",
+             CanPlayersResumePauseWithCounts(2, 1));
+
+  g_PauseType = Get5PauseType_Admin;
+  AssertTrue("Admin pause ignores disconnect locks",
+             CanPlayersResumePauseWithCounts(0, 0));
+
+  g_PauseType = originalPauseType;
+  g_PauseDisconnectLockActive[Get5Team_1] = originalTeam1Active;
+  g_PauseDisconnectLockActive[Get5Team_2] = originalTeam2Active;
+  g_PauseDisconnectRequiredHumans[Get5Team_1] = originalTeam1Required;
+  g_PauseDisconnectRequiredHumans[Get5Team_2] = originalTeam2Required;
 }
 
 // Helper used to generate map list array of any size.

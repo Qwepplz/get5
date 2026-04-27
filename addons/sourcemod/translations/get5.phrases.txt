@@ -135,6 +135,10 @@
     {
         "en"            "Awaiting unpause"
     }
+    "AwaitingPlayerRecovery"
+    {
+        "en"            "Awaiting affected team recovery."
+    }
     "PausedByAdministrator"
     {
         "en"            "An administrator paused the match."
@@ -166,6 +170,10 @@
         "#format"       "{1:s}"
         "en"            "Maximum technical pause length has been reached. Anyone may {1} now."
     }
+    "TechPauseRunoutRecoveryPendingInfoMessage"
+    {
+        "en"            "Maximum technical pause length has been reached, but the pause is still locked until the affected team(s) recover their real players."
+    }
     "TechPauseNoTimeRemaining"
     {
         "#format"       "{1:s}"
@@ -190,6 +198,10 @@
     {
         "#format"       "{1:s},{2:s},{3:s}"
         "en"            "{1} wants to unpause, waiting for {2} to type {3}."
+    }
+    "WaitingForAffectedTeamsToRecoverBeforeUnpause"
+    {
+        "en"            "The match cannot be unpaused until every affected team has recovered its required real players."
     }
     "PrereleaseVersionWarning"
     {

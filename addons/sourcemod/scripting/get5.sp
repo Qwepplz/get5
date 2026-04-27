@@ -202,6 +202,8 @@ bool g_TeamReadyForUnpause[MATCHTEAM_COUNT];
 bool g_ClientReadyForUnpause[MAXPLAYERS + 1];
 Handle g_UnpauseReminderTimer = INVALID_HANDLE;
 int g_LastUnpauseRequesterUserId = 0;
+bool g_PauseDisconnectLockActive[MATCHTEAM_COUNT];
+int g_PauseDisconnectRequiredHumans[MATCHTEAM_COUNT];
 bool g_TeamGivenStopCommand[MATCHTEAM_COUNT];
 int g_TacticalPauseTimeUsed[MATCHTEAM_COUNT];
 int g_TacticalPausesUsed[MATCHTEAM_COUNT];
@@ -285,6 +287,12 @@ bool g_MapChangePending = false;
 bool g_PendingSideSwap = false;
 Handle g_PendingMapChangeTimer = INVALID_HANDLE;
 bool g_ClientPendingTeamCheck[MAXPLAYERS + 1];
+
+enum struct DisconnectCheckContext {
+  int client;
+  Get5Team team;
+  int humanCountBeforeDisconnect;
+}
 
 forward void FreezeClientForGoingLive(int client);
 forward void ClearGoingLiveFreeze();
@@ -524,7 +532,7 @@ static void RegisterConVars() {
   g_DemoUploadTimeoutCvar               = CreateConVar("get5_demo_upload_timeout", "180", "The timeout of the demo upload HTTP request, in seconds.");
 
   // Surrender/Forfeit
-  g_ForfeitCountdownTimeCvar            = CreateConVar("get5_forfeit_countdown", "180", "The grace-period (in seconds) for rejoining the server to avoid a loss by forfeit.", 0, true, 30.0);
+  g_ForfeitCountdownTimeCvar            = CreateConVar("get5_forfeit_countdown", "600", "The grace-period (in seconds) for rejoining the server to avoid a loss by forfeit.", 0, true, 30.0);
   g_ForfeitEnabledCvar                  = CreateConVar("get5_forfeit_enabled", "1", "Whether the forfeit feature is enabled.");
   g_SurrenderCooldownCvar               = CreateConVar("get5_surrender_cooldown", "60", "The number of seconds before a vote to surrender can be retried if it fails.");
   g_SurrenderEnabledCvar                = CreateConVar("get5_surrender_enabled", "0", "Whether the surrender command is enabled.");
@@ -990,10 +998,27 @@ static Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBr
   Call_Finish();
   EventLogger_LogAndDeleteEvent(disconnectEvent);
 
-  // Because the disconnect event fires before the user leaves the server, we have to put this on a short callback
-  // to get the right "number of players per team" in CheckForForfeitOnDisconnect().
-  CreateTimer(0.1, Timer_DisconnectCheck, client, TIMER_FLAG_NO_MAPCHANGE);
+  // Because the disconnect event fires before the user leaves the server, we have to defer follow-up handling
+  // so disconnect-based pause locks, auto tech pause, and forfeit checks all see updated team counts.
+  CreateTimer(0.1, Timer_DisconnectCheck, CreateDisconnectCheckData(client), TIMER_FLAG_NO_MAPCHANGE | TIMER_DATA_HNDL_CLOSE);
   return Plugin_Continue;
+}
+
+static void CaptureDisconnectCheckContext(int client, DisconnectCheckContext context) {
+  context.client = client;
+  context.team = GetClientMatchTeam(client);
+  context.humanCountBeforeDisconnect =
+      IsPlayerTeam(context.team) ? CountHumanMatchTeamClients(context.team) : 0;
+}
+
+static DataPack CreateDisconnectCheckData(int client) {
+  DisconnectCheckContext context;
+  CaptureDisconnectCheckContext(client, context);
+  DataPack pack = new DataPack();
+  pack.WriteCell(context.client);
+  pack.WriteCell(view_as<int>(context.team));
+  pack.WriteCell(context.humanCountBeforeDisconnect);
+  return pack;
 }
 
 // This runs before OnConfigsExecuted and should not contain anything that reads game state because of the above
@@ -1473,7 +1498,15 @@ void RestoreLastRound(int client) {
  * Game Events *not* related to the stats tracking system.
  */
 
-Action Timer_DisconnectCheck(Handle timer, int disconnectingClient) {
+Action Timer_DisconnectCheck(Handle timer, DataPack pack) {
+  pack.Reset();
+  int disconnectingClient = pack.ReadCell();
+  Get5Team disconnectingTeam = view_as<Get5Team>(pack.ReadCell());
+  int humanCountBeforeDisconnect = pack.ReadCell();
+
+  int disconnectingTeamHumans =
+      IsPlayerTeam(disconnectingTeam) ? CountHumanMatchTeamClients(disconnectingTeam) : 0;
+
   if (g_GameState == Get5State_Veto) {
     if (disconnectingClient == g_VetoCaptains[Get5Team_1]) {
       UnreadyTeam(Get5Team_1);
@@ -1486,7 +1519,7 @@ Action Timer_DisconnectCheck(Handle timer, int disconnectingClient) {
   }
 
   if (IsPaused()) {
-    HandleUnpauseVotesOnDisconnect();
+    ApplyPauseDisconnectLockFromCounts(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans);
   }
 
   if (g_GameState <= Get5State_Warmup || g_GameState > Get5State_Live || IsDoingRestoreOrMapChange()) {
@@ -1510,11 +1543,17 @@ Action Timer_DisconnectCheck(Handle timer, int disconnectingClient) {
     if (playerCountTriggeringTechPause < 0) {
       playerCountTriggeringTechPause = 0;
     }
-    if (team1Count > 0 && team2Count <= playerCountTriggeringTechPause) {
-      TriggerAutomaticTechPause(Get5Team_2);
-    } else if (team2Count > 0 && team1Count <= playerCountTriggeringTechPause) {
-      TriggerAutomaticTechPause(Get5Team_1);
+    if (disconnectingTeam == Get5Team_2 && team1Count > 0 && team2Count <= playerCountTriggeringTechPause &&
+        TriggerAutomaticTechPause(Get5Team_2)) {
+      ApplyPauseDisconnectLockFromCounts(Get5Team_2, humanCountBeforeDisconnect, disconnectingTeamHumans);
+    } else if (disconnectingTeam == Get5Team_1 && team2Count > 0 &&
+               team1Count <= playerCountTriggeringTechPause && TriggerAutomaticTechPause(Get5Team_1)) {
+      ApplyPauseDisconnectLockFromCounts(Get5Team_1, humanCountBeforeDisconnect, disconnectingTeamHumans);
     }
+  }
+
+  if (IsPaused()) {
+    HandleUnpauseVotesOnDisconnect();
   }
 
   if (team1Present && team2Present) {
@@ -1942,6 +1981,7 @@ void ResetMatchConfigVariables(bool backup = false) {
   g_PausingTeam = Get5Team_None;
   g_LatestPauseDuration = 0;
   g_PauseType = Get5PauseType_None;
+  ResetPauseDisconnectLocks();
   g_PlayerHasTakenDamage = false;
   if (!backup) {
     // All hell breaks loose if these are reset during a backup.
@@ -2018,6 +2058,7 @@ static Action Event_FreezeEnd(Event event, const char[] name, bool dontBroadcast
   g_LatestPauseDuration = -1;
   g_PauseType = Get5PauseType_None;
   g_PausingTeam = Get5Team_None;
+  ResetPauseDisconnectLocks();
   ResetUnpauseTracking();
 
   LOOP_TEAMS(t) {

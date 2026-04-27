@@ -11,6 +11,74 @@ static bool IsUnpauseVoteParticipant(int client) {
   return OnActiveTeam(client);
 }
 
+static bool CanPauseTypeUseDisconnectLocks(Get5PauseType type) {
+  return type == Get5PauseType_Tactical || type == Get5PauseType_Tech;
+}
+
+void ResetPauseDisconnectLocks() {
+  LOOP_TEAMS(team) {
+    g_PauseDisconnectLockActive[team] = false;
+    g_PauseDisconnectRequiredHumans[team] = 0;
+  }
+}
+
+bool PauseHasActiveDisconnectLocks() {
+  LOOP_TEAMS(team) {
+    if (g_PauseDisconnectLockActive[team]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void ApplyPauseDisconnectLock(Get5Team team, int requiredHumans) {
+  if (!IsPlayerTeam(team) || requiredHumans <= 0 || !CanPauseTypeUseDisconnectLocks(g_PauseType)) {
+    return;
+  }
+
+  g_PauseDisconnectLockActive[team] = true;
+  if (requiredHumans > g_PauseDisconnectRequiredHumans[team]) {
+    g_PauseDisconnectRequiredHumans[team] = requiredHumans;
+  }
+}
+
+void ApplyPauseDisconnectLockFromCounts(Get5Team team, int humanCountBeforeDisconnect,
+                                        int humanCountAfterDisconnect) {
+  if (humanCountBeforeDisconnect <= 0 || humanCountAfterDisconnect >= humanCountBeforeDisconnect) {
+    return;
+  }
+
+  ApplyPauseDisconnectLock(team, humanCountBeforeDisconnect);
+}
+
+static bool PauseTeamDisconnectLockSatisfied(Get5Team team, int currentHumans) {
+  return !g_PauseDisconnectLockActive[team] || currentHumans >= g_PauseDisconnectRequiredHumans[team];
+}
+
+bool CanPlayersResumePauseWithCounts(int team1Humans, int team2Humans) {
+  if (!CanPauseTypeUseDisconnectLocks(g_PauseType)) {
+    return true;
+  }
+
+  return PauseTeamDisconnectLockSatisfied(Get5Team_1, team1Humans) &&
+         PauseTeamDisconnectLockSatisfied(Get5Team_2, team2Humans);
+}
+
+bool CanPlayersResumeCurrentPause() {
+  return CanPlayersResumePauseWithCounts(CountHumanMatchTeamClients(Get5Team_1),
+                                         CountHumanMatchTeamClients(Get5Team_2));
+}
+
+static bool WaitingForPauseDisconnectRecovery() {
+  return PauseHasActiveDisconnectLocks() && !CanPlayersResumeCurrentPause();
+}
+
+static void NotifyPauseDisconnectRecoveryBlocked(int client) {
+  if (client != 0 && IsValidClient(client)) {
+    Get5_Message(client, "%t", "WaitingForAffectedTeamsToRecoverBeforeUnpause");
+  }
+}
+
 static void StopUnpauseReminderTimer() {
   if (g_UnpauseReminderTimer != INVALID_HANDLE) {
     delete g_UnpauseReminderTimer;
@@ -177,6 +245,17 @@ static bool TryCompleteUnpauseVote(int requester = 0) {
     requester = FindCurrentUnpauseRequester();
   }
 
+  if (WaitingForPauseDisconnectRecovery()) {
+    if (requester == 0) {
+      requester = FindCurrentUnpauseRequester();
+    }
+
+    if (IsUnpauseVoteParticipant(requester)) {
+      NotifyPauseDisconnectRecoveryBlocked(requester);
+    }
+    return false;
+  }
+
   bool announceRequester = IsUnpauseVoteParticipant(requester);
   char formattedRequesterName[MAX_NAME_LENGTH];
   if (announceRequester) {
@@ -217,6 +296,7 @@ void PauseGame(Get5Team team, Get5PauseType type) {
   }
 
   ResetUnpauseTracking();
+  ResetPauseDisconnectLocks();
 
   Get5MatchPausedEvent event = new Get5MatchPausedEvent(g_MatchID, g_MapNumber, team, type);
 
@@ -268,6 +348,7 @@ void UnpauseGame() {
   g_PauseType = Get5PauseType_None;
   g_PausingTeam = Get5Team_None;
   g_LatestPauseDuration = -1;
+  ResetPauseDisconnectLocks();
   ResetUnpauseTracking();
   g_IsChangingPauseState = true;
   ServerCommand("mp_unpause_match");
@@ -442,8 +523,12 @@ Action Command_Unpause(int client, int args) {
 
   if (team == g_PausingTeam && !InFreezeTime()) {
     if (g_AllowPauseCancellationCvar.BoolValue) {
-      Get5_MessageToAll("%t", "PauseRequestCanceled", g_FormattedTeamNames[g_PausingTeam]);
-      UnpauseGame();
+      if (!CanPlayersResumeCurrentPause()) {
+        NotifyPauseDisconnectRecoveryBlocked(client);
+      } else {
+        Get5_MessageToAll("%t", "PauseRequestCanceled", g_FormattedTeamNames[g_PausingTeam]);
+        UnpauseGame();
+      }
     } else {
       Get5_MessageToTeam(team, "%t", "PausingTeamCannotUnpauseUntilFreezeTime");
     }
@@ -457,6 +542,11 @@ Action Command_Unpause(int client, int args) {
 
     if ((maxTechPauseDuration > 0 && g_LatestPauseDuration >= maxTechPauseDuration) ||
         (maxTechPauses > 0 && techPausesUsed > maxTechPauses)) {
+      if (!CanPlayersResumeCurrentPause()) {
+        NotifyPauseDisconnectRecoveryBlocked(client);
+        return Plugin_Handled;
+      }
+
       UnpauseGame();
       if (IsPlayer(client)) {
         char formattedClientName[MAX_NAME_LENGTH];
@@ -474,7 +564,10 @@ Action Command_Unpause(int client, int args) {
   }
 
   UpdateClientUnpauseVote(client, true);
-  if (!TryCompleteUnpauseVote(client) && NotifyPendingUnpauseVoters() && g_UnpauseReminderTimer == INVALID_HANDLE) {
+  bool completed = TryCompleteUnpauseVote(client);
+  bool waitingForRecovery = WaitingForPauseDisconnectRecovery();
+  if (!completed && (NotifyPendingUnpauseVoters() || waitingForRecovery) &&
+      g_UnpauseReminderTimer == INVALID_HANDLE) {
     g_UnpauseReminderTimer = CreateTimer(10.0, Timer_UnpauseReminder, _, TIMER_REPEAT);
   }
 
@@ -492,7 +585,13 @@ static Action Timer_UnpauseReminder(Handle timer) {
   }
 
   RefreshUnpauseTeamReadyState();
-  if (GetUnpauseVoteCount() < 1 || HaveAllUnpauseParticipantsVoted() || !NotifyPendingUnpauseVoters()) {
+  bool waitingForRecovery = WaitingForPauseDisconnectRecovery();
+  if (GetUnpauseVoteCount() < 1 || (HaveAllUnpauseParticipantsVoted() && !waitingForRecovery)) {
+    g_UnpauseReminderTimer = INVALID_HANDLE;
+    return Plugin_Stop;
+  }
+
+  if (!NotifyPendingUnpauseVoters() && !waitingForRecovery) {
     g_UnpauseReminderTimer = INVALID_HANDLE;
     return Plugin_Stop;
   }
@@ -598,9 +697,13 @@ static Action HandleTacticalPauseTick(Get5Team team, const char[] teamString, co
         }
       }
       if (timeLeft <= 0) {
-        g_PauseTimer = INVALID_HANDLE;
-        UnpauseGame();
-        return Plugin_Stop;
+        if (CanPlayersResumeCurrentPause()) {
+          g_PauseTimer = INVALID_HANDLE;
+          UnpauseGame();
+          return Plugin_Stop;
+        }
+
+        timeLeft = 0;
       }
     } else if (maxTacticalPauses > 0 && tacticalPausesUsed > maxTacticalPauses) {
       // The game gets unpaused if the number of maximum pauses changes to below the number of used
@@ -620,10 +723,14 @@ static Action HandleTacticalPauseTick(Get5Team team, const char[] teamString, co
       if (maxTacticalPauseTime > 0) {
         timeLeft = maxTacticalPauseTime - g_TacticalPauseTimeUsed[team];
         if (timeLeft <= 0) {
-          Get5_MessageToAll("%t", "PauseRunoutInfoMessage", g_FormattedTeamNames[team]);
-          g_PauseTimer = INVALID_HANDLE;
-          UnpauseGame();
-          return Plugin_Stop;
+          if (CanPlayersResumeCurrentPause()) {
+            Get5_MessageToAll("%t", "PauseRunoutInfoMessage", g_FormattedTeamNames[team]);
+            g_PauseTimer = INVALID_HANDLE;
+            UnpauseGame();
+            return Plugin_Stop;
+          }
+
+          timeLeft = 0;
         }
       }
     }
@@ -707,13 +814,18 @@ static void HandleTechPauseTick(Get5Team team, const char[] teamString, const ch
       if (maxTechPauseDuration > 0) {
         timeLeft = maxTechPauseDuration - g_LatestPauseDuration;
         if (timeLeft == 0) {
-          // Only print to chat when hitting 0, but keep the timer going as tech pauses don't
-          // unpause on their own. The PrintHintText below will inform users that they can now
-          // unpause.
-          char formattedUnpauseCommand[64];
-          GetChatAliasForCommand(Get5ChatCommand_Unpause, formattedUnpauseCommand, sizeof(formattedUnpauseCommand),
-                                 true);
-          Get5_MessageToAll("%t", "TechPauseRunoutInfoMessage", formattedUnpauseCommand);
+          if (WaitingForPauseDisconnectRecovery()) {
+            Get5_MessageToAll("%t", "TechPauseRunoutRecoveryPendingInfoMessage");
+            timeLeft = -1;
+          } else {
+            // Only print to chat when hitting 0, but keep the timer going as tech pauses don't
+            // unpause on their own. The PrintHintText below will inform users that they can now
+            // unpause.
+            char formattedUnpauseCommand[64];
+            GetChatAliasForCommand(Get5ChatCommand_Unpause, formattedUnpauseCommand,
+                                   sizeof(formattedUnpauseCommand), true);
+            Get5_MessageToAll("%t", "TechPauseRunoutInfoMessage", formattedUnpauseCommand);
+          }
         }
       }
     }
@@ -738,14 +850,17 @@ static void HandleTechPauseTick(Get5Team team, const char[] teamString, const ch
                           "TimeRemainingBeforeAnyoneCanUnpausePrefix", timeLeftFormatted);
           }
         } else {
+          char waitingPhrase[64];
+          strcopy(waitingPhrase, sizeof(waitingPhrase),
+                  WaitingForPauseDisconnectRecovery() ? "AwaitingPlayerRecovery" : "AwaitingUnpause");
           if (maxTechPauses > 0) {
             // Team A (CT) technical pause (3/4). Awaiting unpause.
             PrintHintText(i, "%s (%s) %t (%d/%d).\n%t.", pauseTeamName, teamString, "TechnicalPauseMidSentence",
-                          techPausesUsed, maxTechPauses, "AwaitingUnpause");
+                          techPausesUsed, maxTechPauses, waitingPhrase);
           } else {
             // Team A (CT) technical pause. Awaiting unpause.
             PrintHintText(i, "%s (%s) %t.\n%t.", pauseTeamName, teamString, "TechnicalPauseMidSentence",
-                          "AwaitingUnpause");
+                          waitingPhrase);
           }
         }
       }
