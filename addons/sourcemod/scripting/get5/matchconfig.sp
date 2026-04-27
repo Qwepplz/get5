@@ -2411,6 +2411,7 @@ static Action Timer_ExecMatchConfig(Handle timer) {
   if (g_GameState != Get5State_None) {
     ExecuteMatchConfigCvars();
     SetMatchTeamCvars();
+    EnsureFrozenBotQuotaAfterMatchCfgExec();
   }
   g_MatchConfigExecTimer = INVALID_HANDLE;
   return Plugin_Handled;

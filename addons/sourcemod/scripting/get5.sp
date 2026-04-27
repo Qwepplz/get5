@@ -453,6 +453,7 @@ static bool FormatCvarStringWithTeamNames(ConVar cvar, char[] buffer, int len, c
 #include "get5/kniferounds.sp"
 #include "get5/maps.sp"
 #include "get5/mapveto.sp"
+#include "get5/botroster.sp"
 #include "get5/matchconfig.sp"
 #include "get5/natives.sp"
 #include "get5/pausing.sp"
@@ -1917,6 +1918,7 @@ void ResetMatchConfigVariables(bool backup = false) {
     ResetTeamMatchData(i, backup);
   }
   ResetUnpauseTracking();
+  ResetBotRosterState();
   g_FavoredTeamPercentage = 0;
   g_FavoredTeamText = "";
   g_PlayersPerTeam = 5;

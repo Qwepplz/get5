@@ -46,8 +46,50 @@ static void Get5_Test() {
   MissingPropertiesTest();
 
   Utils_Test();
+  BotRoster_Test();
   MapVetoLogicTest();
   LogMessage("Tests complete!");
+}
+
+static void BotRoster_Test() {
+  char originalBotQuotaMode[64];
+  char originalBotQuota[64];
+  char originalBotJoinAfterPlayer[64];
+  GetConVarStringSafe("bot_quota_mode", originalBotQuotaMode, sizeof(originalBotQuotaMode));
+  GetConVarStringSafe("bot_quota", originalBotQuota, sizeof(originalBotQuota));
+  GetConVarStringSafe("bot_join_after_player", originalBotJoinAfterPlayer, sizeof(originalBotJoinAfterPlayer));
+  Get5State originalGameState = g_GameState;
+
+  g_FrozenBotQuota = 7;
+  ApplyFrozenBotQuota();
+
+  char expectedQuota[16];
+  IntToString(g_FrozenBotQuota, expectedQuota, sizeof(expectedQuota));
+  AssertConVarEquals("bot_quota_mode", "normal");
+  AssertConVarEquals("bot_quota", expectedQuota);
+
+  SetConVarStringSafe("bot_quota_mode", originalBotQuotaMode);
+  SetConVarStringSafe("bot_quota", originalBotQuota);
+  SetConVarStringSafe("bot_join_after_player", originalBotJoinAfterPlayer);
+
+  g_BotRosterFrozen = true;
+  g_FrozenBotQuota = 12;
+  g_FrozenBotSnapshotCount = 3;
+  ResetBotRosterState();
+
+  AssertTrue("Test bot roster frozen flag reset", !g_BotRosterFrozen);
+  AssertTrue("Test bot roster quota reset", g_FrozenBotQuota == 0);
+  AssertTrue("Test bot roster snapshot count reset", g_FrozenBotSnapshotCount == 0);
+
+  g_GameState = Get5State_None;
+  AssertFalse("Test bot quota not managed in None state", ShouldEnforceFrozenBotQuota());
+  g_GameState = Get5State_Warmup;
+  AssertTrue("Test bot quota managed in Warmup", ShouldEnforceFrozenBotQuota());
+  g_GameState = Get5State_Live;
+  AssertTrue("Test bot quota managed in Live", ShouldEnforceFrozenBotQuota());
+  g_GameState = Get5State_PostGame;
+  AssertFalse("Test bot quota not managed in PostGame", ShouldEnforceFrozenBotQuota());
+  g_GameState = originalGameState;
 }
 
 // Helper used to generate map list array of any size.
