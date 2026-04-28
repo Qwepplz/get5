@@ -19,7 +19,7 @@ bool ShouldEnforceFrozenBotQuota() {
   return g_GameState != Get5State_None && g_GameState != Get5State_PostGame;
 }
 
-static int CountFrozenBotsOnMatchTeam(Get5Team team) {
+stock int CountFrozenBotsOnMatchTeam(Get5Team team) {
   int csTeam = Get5TeamToCSTeam(team);
   if (csTeam != CS_TEAM_CT && csTeam != CS_TEAM_T) {
     return 0;

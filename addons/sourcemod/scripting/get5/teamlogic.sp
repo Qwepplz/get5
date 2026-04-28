@@ -70,6 +70,7 @@ void CheckClientTeam(int client) {
   // max.
   if (CountPlayersOnTeam(correctTeam, client) < g_PlayersPerTeam) {
     SwitchPlayerTeam(client, correctSide);
+    ClearPauseDisconnectLockForReturnedPlayer(client, correctTeam);
     return;
   }
 

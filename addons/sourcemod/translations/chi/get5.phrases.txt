@@ -1102,6 +1102,18 @@
     {
         "chi"            "未找到玩家"
     }
+    "AwaitingPlayerRecovery"
+    {
+        "chi"            "等待受影响队伍真人恢复"
+    }
+    "TechPauseRunoutRecoveryPendingInfoMessage"
+    {
+        "chi"            "技术暂停时间已到，但受影响队伍真人恢复前仍会保持暂停。"
+    }
+    "WaitingForAffectedTeamsToRecoverBeforeUnpause"
+    {
+        "chi"            "受影响队伍的真人全部恢复前，比赛不能解除暂停。"
+    }
     "SmRingerUsage"
     {
         "chi"            "用法：sm_ringer <player>"

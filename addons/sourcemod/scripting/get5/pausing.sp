@@ -15,58 +15,196 @@ static bool CanPauseTypeUseDisconnectLocks(Get5PauseType type) {
   return type == Get5PauseType_Tactical || type == Get5PauseType_Tech;
 }
 
+static ArrayList GetPauseDisconnectMissingPlayers(Get5Team team) {
+  return g_PauseDisconnectMissingPlayerAuths[team];
+}
+
+static bool IsAuthPresentOnCurrentMatchTeamSide(Get5Team team, const char[] auth) {
+  if (!IsPlayerTeam(team) || auth[0] == '\0') {
+    return false;
+  }
+
+  int teamSide = Get5TeamToCSTeam(team);
+  LOOP_CLIENTS(i) {
+    if (!IsPlayer(i) || GetClientTeam(i) != teamSide) {
+      continue;
+    }
+
+    char clientAuth[AUTH_LENGTH];
+    if (GetAuth(i, clientAuth, sizeof(clientAuth)) && StrEqual(auth, clientAuth)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 void ResetPauseDisconnectLocks() {
   LOOP_TEAMS(team) {
-    g_PauseDisconnectLockActive[team] = false;
-    g_PauseDisconnectRequiredHumans[team] = 0;
+    GetPauseDisconnectMissingPlayers(team).Clear();
+    g_PauseDisconnectUnknownAuthRequiredHumans[team] = 0;
   }
 }
 
 bool PauseHasActiveDisconnectLocks() {
   LOOP_TEAMS(team) {
-    if (g_PauseDisconnectLockActive[team]) {
+    if (g_PauseDisconnectUnknownAuthRequiredHumans[team] > 0 ||
+        GetPauseDisconnectMissingPlayers(team).Length > 0) {
       return true;
     }
   }
   return false;
 }
 
-void ApplyPauseDisconnectLock(Get5Team team, int requiredHumans) {
-  if (!IsPlayerTeam(team) || requiredHumans <= 0 || !CanPauseTypeUseDisconnectLocks(g_PauseType)) {
+void ApplyPauseDisconnectLockForPlayer(Get5Team team, bool authResolved, const char[] auth) {
+  if (!IsPlayerTeam(team) || !CanPauseTypeUseDisconnectLocks(g_PauseType)) {
     return;
   }
 
-  g_PauseDisconnectLockActive[team] = true;
-  if (requiredHumans > g_PauseDisconnectRequiredHumans[team]) {
-    g_PauseDisconnectRequiredHumans[team] = requiredHumans;
+  if (!authResolved || auth[0] == '\0') {
+    int requiredHumans = CountHumanMatchTeamClients(team, true, false, true) + 1;
+    if (requiredHumans > g_PauseDisconnectUnknownAuthRequiredHumans[team]) {
+      g_PauseDisconnectUnknownAuthRequiredHumans[team] = requiredHumans;
+    }
+    return;
+  }
+
+  ArrayList missingPlayers = GetPauseDisconnectMissingPlayers(team);
+  if (missingPlayers.FindString(auth) < 0) {
+    missingPlayers.PushString(auth);
+  }
+}
+
+void ApplyPauseDisconnectLockFromDisconnectContext(Get5Team team, int humanCountBeforeDisconnect,
+                                                   int humanCountAfterDisconnect, bool authResolved,
+                                                   const char[] auth) {
+  if (!IsPlayerTeam(team) || !CanPauseTypeUseDisconnectLocks(g_PauseType) || humanCountBeforeDisconnect <= 0) {
+    return;
+  }
+
+  if (authResolved && auth[0] != '\0') {
+    if (IsAuthPresentOnCurrentMatchTeamSide(team, auth)) {
+      return;
+    }
+
+    ApplyPauseDisconnectLockForPlayer(team, true, auth);
+    return;
+  }
+
+  if (humanCountAfterDisconnect >= humanCountBeforeDisconnect) {
+    return;
+  }
+
+  if (humanCountBeforeDisconnect > g_PauseDisconnectUnknownAuthRequiredHumans[team]) {
+    g_PauseDisconnectUnknownAuthRequiredHumans[team] = humanCountBeforeDisconnect;
   }
 }
 
 void ApplyPauseDisconnectLockFromCounts(Get5Team team, int humanCountBeforeDisconnect,
                                         int humanCountAfterDisconnect) {
-  if (humanCountBeforeDisconnect <= 0 || humanCountAfterDisconnect >= humanCountBeforeDisconnect) {
-    return;
+  ApplyPauseDisconnectLockFromDisconnectContext(team, humanCountBeforeDisconnect, humanCountAfterDisconnect, false,
+                                                "");
+}
+
+bool ClearPauseDisconnectLockForPlayerAuth(Get5Team team, const char[] auth) {
+  if (!IsPlayerTeam(team) || auth[0] == '\0') {
+    return false;
   }
 
-  ApplyPauseDisconnectLock(team, humanCountBeforeDisconnect);
+  ArrayList missingPlayers = GetPauseDisconnectMissingPlayers(team);
+  int index = missingPlayers.FindString(auth);
+  if (index < 0) {
+    return false;
+  }
+
+  missingPlayers.Erase(index);
+  return true;
 }
 
-static bool PauseTeamDisconnectLockSatisfied(Get5Team team, int currentHumans) {
-  return !g_PauseDisconnectLockActive[team] || currentHumans >= g_PauseDisconnectRequiredHumans[team];
+bool RefreshPauseDisconnectUnknownLockForTeamHumans(Get5Team team, int currentHumans) {
+  if (!IsPlayerTeam(team)) {
+    return false;
+  }
+
+  int requiredHumans = g_PauseDisconnectUnknownAuthRequiredHumans[team];
+  if (requiredHumans <= 0 || currentHumans < requiredHumans) {
+    return false;
+  }
+
+  g_PauseDisconnectUnknownAuthRequiredHumans[team] = 0;
+  return true;
 }
 
-bool CanPlayersResumePauseWithCounts(int team1Humans, int team2Humans) {
+bool PauseTeamDisconnectLockSatisfiedWithHumans(Get5Team team, int currentHumans) {
+  if (GetPauseDisconnectMissingPlayers(team).Length > 0) {
+    return false;
+  }
+
+  RefreshPauseDisconnectUnknownLockForTeamHumans(team, currentHumans);
+  return g_PauseDisconnectUnknownAuthRequiredHumans[team] == 0;
+}
+
+static bool RefreshPauseDisconnectUnknownLock(Get5Team team) {
+  return RefreshPauseDisconnectUnknownLockForTeamHumans(team,
+                                                        CountHumanMatchTeamClients(team, true, false, true));
+}
+
+bool ClearPauseDisconnectLockForReturnedTeamAuth(Get5Team team, const char[] auth) {
+  bool clearedKnownAuth = ClearPauseDisconnectLockForPlayerAuth(team, auth);
+  bool clearedUnknownBaseline = RefreshPauseDisconnectUnknownLock(team);
+  if (!clearedKnownAuth && !clearedUnknownBaseline) {
+    return false;
+  }
+
+  if (IsPaused()) {
+    HandleUnpauseVotesOnDisconnect();
+  }
+
+  return true;
+}
+
+bool ClearPauseDisconnectLockForReturnedPlayer(int client, Get5Team expectedTeam = Get5Team_None) {
+  if (!IsPlayer(client)) {
+    return false;
+  }
+
+  Get5Team currentTeam = CSTeamToGet5Team(GetClientTeam(client));
+  if (!IsPlayerTeam(currentTeam)) {
+    return false;
+  }
+
+  if (expectedTeam != Get5Team_None && currentTeam != expectedTeam) {
+    return false;
+  }
+
+  bool clearedUnknownBaseline = RefreshPauseDisconnectUnknownLock(currentTeam);
+  bool clearedKnownAuth = false;
+
+  char auth[AUTH_LENGTH];
+  if (GetAuth(client, auth, sizeof(auth))) {
+    clearedKnownAuth = ClearPauseDisconnectLockForPlayerAuth(currentTeam, auth);
+  }
+
+  if ((clearedUnknownBaseline || clearedKnownAuth) && IsPaused()) {
+    HandleUnpauseVotesOnDisconnect();
+  }
+
+  return clearedUnknownBaseline || clearedKnownAuth;
+}
+
+static bool PauseTeamDisconnectLockSatisfied(Get5Team team) {
+  // This predicate also refreshes and may clear the unknown-auth fallback once current-side humans recover.
+  return PauseTeamDisconnectLockSatisfiedWithHumans(team,
+                                                    CountHumanMatchTeamClients(team, true, false, true));
+}
+
+bool CanPlayersResumeCurrentPause() {
   if (!CanPauseTypeUseDisconnectLocks(g_PauseType)) {
     return true;
   }
 
-  return PauseTeamDisconnectLockSatisfied(Get5Team_1, team1Humans) &&
-         PauseTeamDisconnectLockSatisfied(Get5Team_2, team2Humans);
-}
-
-bool CanPlayersResumeCurrentPause() {
-  return CanPlayersResumePauseWithCounts(CountHumanMatchTeamClients(Get5Team_1),
-                                         CountHumanMatchTeamClients(Get5Team_2));
+  return PauseTeamDisconnectLockSatisfied(Get5Team_1) &&
+         PauseTeamDisconnectLockSatisfied(Get5Team_2);
 }
 
 static bool WaitingForPauseDisconnectRecovery() {
@@ -710,9 +848,13 @@ static Action HandleTacticalPauseTick(Get5Team team, const char[] teamString, co
       // pauses while a pause is active. Kind of a weird edge-case, but it should be handled
       // gracefully.
       Get5_MessageToAll("%t", "MaxPausesUsedInfoMessage", maxTacticalPauses, g_FormattedTeamNames[g_PausingTeam]);
-      g_PauseTimer = INVALID_HANDLE;
-      UnpauseGame();
-      return Plugin_Stop;
+      if (CanPlayersResumeCurrentPause()) {
+        g_PauseTimer = INVALID_HANDLE;
+        UnpauseGame();
+        return Plugin_Stop;
+      }
+
+      timeLeft = 0;
     } else if (!g_TeamReadyForUnpause[team]) {
       // If the team that called the pause has indicated they are ready, no more time should be
       // subtracted from their maximum pause time, but the timer must keep running as they could go

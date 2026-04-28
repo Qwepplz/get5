@@ -121,56 +121,84 @@ static void PauseDisconnectLock_Test() {
   SetTestContext("PauseDisconnectLock_Test");
 
   Get5PauseType originalPauseType = g_PauseType;
-  bool originalTeam1Active = g_PauseDisconnectLockActive[Get5Team_1];
-  bool originalTeam2Active = g_PauseDisconnectLockActive[Get5Team_2];
-  int originalTeam1Required = g_PauseDisconnectRequiredHumans[Get5Team_1];
-  int originalTeam2Required = g_PauseDisconnectRequiredHumans[Get5Team_2];
 
   ResetPauseDisconnectLocks();
   AssertFalse("Disconnect locks start clear", PauseHasActiveDisconnectLocks());
 
   g_PauseType = Get5PauseType_Tech;
-  ApplyPauseDisconnectLockFromCounts(Get5Team_1, 0, 0);
-  AssertFalse("Zero-human baseline does not arm a lock", g_PauseDisconnectLockActive[Get5Team_1]);
+  ApplyPauseDisconnectLockForPlayer(Get5Team_1, true, "76561198000000001");
+  AssertEq("Team 1 tracks one missing auth", 1, g_PauseDisconnectMissingPlayerAuths[Get5Team_1].Length);
 
-  ApplyPauseDisconnectLockFromCounts(Get5Team_1, 2, 1);
-  AssertEq("Team 1 snapshot records the pre-disconnect baseline", 2,
-           g_PauseDisconnectRequiredHumans[Get5Team_1]);
+  ApplyPauseDisconnectLockForPlayer(Get5Team_1, true, "76561198000000001");
+  AssertEq("Duplicate disconnect auth is not tracked twice", 1,
+           g_PauseDisconnectMissingPlayerAuths[Get5Team_1].Length);
+  AssertFalse("Tracked auth keeps tech pause locked", CanPlayersResumeCurrentPause());
 
-  ApplyPauseDisconnectLockFromCounts(Get5Team_1, 1, 0);
-  AssertEq("A later disconnect cannot lower the existing requirement", 2,
-           g_PauseDisconnectRequiredHumans[Get5Team_1]);
+  ClearPauseDisconnectLockForPlayerAuth(Get5Team_2, "76561198000000001");
+  AssertFalse("Wrong team does not clear a tracked auth", CanPlayersResumeCurrentPause());
 
-  ApplyPauseDisconnectLockFromCounts(Get5Team_2, 3, 2);
-  AssertEq("Team 2 keeps an independent baseline", 3,
-           g_PauseDisconnectRequiredHumans[Get5Team_2]);
+  AssertTrue("Returned-team auth helper clears the tracked auth",
+             ClearPauseDisconnectLockForReturnedTeamAuth(Get5Team_1, "76561198000000001"));
+  AssertTrue("Removing the tracked auth clears the lock", CanPlayersResumeCurrentPause());
 
   g_PauseType = Get5PauseType_Tactical;
-  ResetPauseDisconnectLocks();
-  ApplyPauseDisconnectLock(Get5Team_1, 2);
-  AssertFalse("Tactical pause stays blocked while team 1 is short",
-              CanPlayersResumePauseWithCounts(1, 0));
-  AssertTrue("Tactical pause unlocks when team 1 recovers",
-             CanPlayersResumePauseWithCounts(2, 0));
+  ApplyPauseDisconnectLockForPlayer(Get5Team_1, true, "76561198000000004");
+  AssertFalse("Active lock blocks tactical auto-resume conditions", CanPlayersResumeCurrentPause());
+  AssertTrue("Returned-team auth helper clears tracked tactical auth",
+             ClearPauseDisconnectLockForReturnedTeamAuth(Get5Team_1, "76561198000000004"));
+  AssertTrue("Removing the tracked tactical auth clears the lock", CanPlayersResumeCurrentPause());
 
   g_PauseType = Get5PauseType_Tech;
-  ResetPauseDisconnectLocks();
-  ApplyPauseDisconnectLock(Get5Team_1, 2);
-  ApplyPauseDisconnectLock(Get5Team_2, 1);
-  AssertFalse("Tech unpause vote stays blocked until both teams recover",
-              CanPlayersResumePauseWithCounts(2, 0));
-  AssertTrue("Tech unpause vote succeeds after both teams recover",
-             CanPlayersResumePauseWithCounts(2, 1));
 
+  ApplyPauseDisconnectLockFromDisconnectContext(Get5Team_1, 1, 0, true, "76561198000000002");
+  AssertEq("Known disconnect auth does not mark an unknown baseline", 0,
+           g_PauseDisconnectUnknownAuthRequiredHumans[Get5Team_1]);
+  AssertEq("Known disconnect auth is tracked for auto tech pause path even without enemy real-player checks", 1,
+           g_PauseDisconnectMissingPlayerAuths[Get5Team_1].Length);
+  AssertTrue("Returned-team auth helper clears tracked auto-pause auth",
+             ClearPauseDisconnectLockForReturnedTeamAuth(Get5Team_1, "76561198000000002"));
+  AssertEq("Auto tech pause auth tracking is removed after return", 0,
+           g_PauseDisconnectMissingPlayerAuths[Get5Team_1].Length);
+
+  ApplyPauseDisconnectLockFromDisconnectContext(Get5Team_1, 1, 1, true, "76561198000000005");
+  AssertEq("Known disconnect auth still builds a lock when player counts already recovered", 1,
+           g_PauseDisconnectMissingPlayerAuths[Get5Team_1].Length);
+  AssertTrue("Returned-team auth helper clears tracked recovered-count auth",
+             ClearPauseDisconnectLockForReturnedTeamAuth(Get5Team_1, "76561198000000005"));
+  AssertEq("Recovered-count known auth tracking is removed after return", 0,
+           g_PauseDisconnectMissingPlayerAuths[Get5Team_1].Length);
+
+  ApplyPauseDisconnectLockFromDisconnectContext(Get5Team_2, 0, 0, true, "76561198000000003");
+  AssertEq("Zero-real disconnect baseline does not create a lock target", 0,
+           g_PauseDisconnectMissingPlayerAuths[Get5Team_2].Length);
+  AssertEq("Zero-real disconnect baseline does not mark an unknown baseline", 0,
+           g_PauseDisconnectUnknownAuthRequiredHumans[Get5Team_2]);
+
+  ApplyPauseDisconnectLockFromDisconnectContext(Get5Team_2, 2, 2, false, "");
+  AssertEq("Unknown-auth disconnect does not build a baseline once counts already recovered", 0,
+           g_PauseDisconnectUnknownAuthRequiredHumans[Get5Team_2]);
+
+  ApplyPauseDisconnectLockFromCounts(Get5Team_2, 2, 1);
+  AssertEq("Unknown-auth disconnect records the required real-player baseline", 2,
+           g_PauseDisconnectUnknownAuthRequiredHumans[Get5Team_2]);
+  AssertFalse("Unknown-auth lock stays unsatisfied below the required real-player baseline",
+              PauseTeamDisconnectLockSatisfiedWithHumans(Get5Team_2, 1));
+  AssertFalse("Unknown-auth baseline does not clear below the required real-player count",
+              RefreshPauseDisconnectUnknownLockForTeamHumans(Get5Team_2, 1));
+  AssertFalse("Unknown-auth baseline still blocks the team after a short recovery",
+              PauseTeamDisconnectLockSatisfiedWithHumans(Get5Team_2, 1));
+  AssertTrue("Unknown-auth baseline clears once the real-player count recovers",
+             RefreshPauseDisconnectUnknownLockForTeamHumans(Get5Team_2, 2));
+  AssertTrue("Recovered unknown-auth lock satisfies the team after a full recovery",
+             PauseTeamDisconnectLockSatisfiedWithHumans(Get5Team_2, 2));
+
+  ApplyPauseDisconnectLockFromCounts(Get5Team_1, 2, 1);
+  AssertTrue("Admin-pause check starts with an active unknown lock", PauseHasActiveDisconnectLocks());
   g_PauseType = Get5PauseType_Admin;
-  AssertTrue("Admin pause ignores disconnect locks",
-             CanPlayersResumePauseWithCounts(0, 0));
+  AssertTrue("Admin pause ignores tracked disconnect locks", CanPlayersResumeCurrentPause());
 
+  ResetPauseDisconnectLocks();
   g_PauseType = originalPauseType;
-  g_PauseDisconnectLockActive[Get5Team_1] = originalTeam1Active;
-  g_PauseDisconnectLockActive[Get5Team_2] = originalTeam2Active;
-  g_PauseDisconnectRequiredHumans[Get5Team_1] = originalTeam1Required;
-  g_PauseDisconnectRequiredHumans[Get5Team_2] = originalTeam2Required;
 }
 
 // Helper used to generate map list array of any size.
