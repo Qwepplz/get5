@@ -907,6 +907,10 @@
     {
         "en"        "Usage: get5_endmatch <team1|team2> (omit team for tie)"
     }
+    "Get5EndMatchServerOnly"
+    {
+        "en"        "get5_endmatch can only be used from the server console."
+    }
     "CannotLoadMatchAlreadyLoaded"
     {
         "en"        "Cannot load a match config when another is already loaded."

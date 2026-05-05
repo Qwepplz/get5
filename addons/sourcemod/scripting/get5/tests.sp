@@ -49,6 +49,8 @@ static void Get5_Test() {
   Utils_Test();
   BotRoster_Test();
   PauseDisconnectLock_Test();
+  DisconnectAutoTechPause_Test();
+  SetupMenuLockDefaults_Test();
   MapVetoLogicTest();
   LogMessage("Tests complete!");
 }
@@ -199,6 +201,45 @@ static void PauseDisconnectLock_Test() {
 
   ResetPauseDisconnectLocks();
   g_PauseType = originalPauseType;
+}
+
+static void DisconnectAutoTechPause_Test() {
+  SetTestContext("DisconnectAutoTechPause_Test");
+
+  AssertTrue("One-human current-side drop triggers auto tech pause eligibility",
+             ShouldAutoTechPauseForDisconnect(Get5Team_1, 1, 0));
+  AssertTrue("Normal current-side human drop triggers auto tech pause eligibility",
+             ShouldAutoTechPauseForDisconnect(Get5Team_1, 5, 4));
+  AssertFalse("Recovered current-side human count does not trigger auto tech pause eligibility",
+              ShouldAutoTechPauseForDisconnect(Get5Team_1, 1, 1));
+  AssertFalse("Spectator disconnect does not trigger auto tech pause eligibility",
+              ShouldAutoTechPauseForDisconnect(Get5Team_Spec, 1, 0));
+}
+
+static void SetupMenuLockDefaults_Test() {
+  SetTestContext("SetupMenuLockDefaults_Test");
+
+  bool originalFriendlyFire = g_SetupMenuFriendlyFire;
+  bool originalClinch = g_SetupMenuClinch;
+  bool originalOvertime = g_SetupMenuOvertime;
+  MatchSideType originalSideType = g_SetupMenuSideType;
+
+  g_SetupMenuFriendlyFire = true;
+  g_SetupMenuClinch = false;
+  g_SetupMenuOvertime = false;
+  g_SetupMenuSideType = MatchSideType_NeverKnife;
+
+  NormalizeLockedSetupMenuValues();
+
+  AssertFalse("Setup menu locks friendly fire off", g_SetupMenuFriendlyFire);
+  AssertTrue("Setup menu locks play-all-rounds off through clinch", g_SetupMenuClinch);
+  AssertEq("Setup menu locks knife round on", view_as<int>(MatchSideType_AlwaysKnife),
+           view_as<int>(g_SetupMenuSideType));
+
+  g_SetupMenuFriendlyFire = originalFriendlyFire;
+  g_SetupMenuClinch = originalClinch;
+  g_SetupMenuOvertime = originalOvertime;
+  g_SetupMenuSideType = originalSideType;
 }
 
 // Helper used to generate map list array of any size.

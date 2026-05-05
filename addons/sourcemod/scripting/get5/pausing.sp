@@ -503,6 +503,15 @@ bool TriggerAutomaticTechPause(Get5Team team) {
   return false;
 }
 
+bool ShouldAutoTechPauseForDisconnect(Get5Team disconnectingTeam, int humanCountBeforeDisconnect,
+                                      int disconnectingTeamHumans) {
+  if (!IsPlayerTeam(disconnectingTeam)) {
+    return false;
+  }
+
+  return humanCountBeforeDisconnect > disconnectingTeamHumans;
+}
+
 Action Command_PauseOrUnpauseMatch(int client, const char[] command, int argc) {
   if (!ShouldGet5HandlePauseCommands() || g_GameState == Get5State_None ||
       (g_IsChangingPauseState && client == 0)) {

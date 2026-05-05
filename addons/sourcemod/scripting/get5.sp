@@ -303,12 +303,12 @@ forward void ClearGoingLiveFreeze();
 Menu g_ActiveSetupMenu = null;
 bool g_SetupMenuWingman = false;
 int g_SetupMenuPlayersPerTeam = 5;
-bool g_SetupMenuFriendlyFire = true;
+bool g_SetupMenuFriendlyFire = false;
 bool g_SetupMenuClinch = true;
 bool g_SetupMenuOvertime = true;
 Get5SetupMenu_MapSelectionMode g_SetupMenuMapSelection = Get5SetupMenu_MapSelectionMode_PickBan;
 Get5SetupMenu_TeamSelectionMode g_SetupMenuTeamSelection = Get5SetupMenu_TeamSelectionMode_Current;
-MatchSideType g_SetupMenuSideType = MatchSideType_Standard;
+MatchSideType g_SetupMenuSideType = MatchSideType_AlwaysKnife;
 int g_SetupMenuSeriesLength = 1;
 ArrayList g_SetupMenuSelectedMaps;
 JSON_Object g_SetupMenuMapPool;
@@ -1039,17 +1039,6 @@ static DataPack CreateDisconnectCheckData(int client) {
   return pack;
 }
 
-static bool ShouldAutoTechPauseForDisconnect(Get5Team disconnectingTeam, int humanCountBeforeDisconnect,
-                                             int disconnectingTeamHumans,
-                                             int playerCountTriggeringTechPause) {
-  if (!IsPlayerTeam(disconnectingTeam)) {
-    return false;
-  }
-
-  return humanCountBeforeDisconnect > disconnectingTeamHumans &&
-         disconnectingTeamHumans <= playerCountTriggeringTechPause;
-}
-
 static bool HasCurrentSideHumanOrFrozenBotPresence(Get5Team team) {
   return CountHumanMatchTeamClients(team, true, false, true) > 0 || CountFrozenBotsOnMatchTeam(team) > 0;
 }
@@ -1270,6 +1259,11 @@ bool CheckAutoLoadConfig() {
  */
 
 static Action Command_EndMatch(int client, int args) {
+  if (client != 0) {
+    ReplyToCommand(client, "%t", "Get5EndMatchServerOnly");
+    return Plugin_Handled;
+  }
+
   if (g_GameState == Get5State_None) {
     ReplyToCommand(client, "%t", "NoMatchConfiguredNothingToEnd");
     return Plugin_Handled;
@@ -1584,17 +1578,11 @@ Action Timer_DisconnectCheck(Handle timer, DataPack pack) {
   bool team1Present = HasCurrentSideHumanOrFrozenBotPresence(Get5Team_1);
   bool team2Present = HasCurrentSideHumanOrFrozenBotPresence(Get5Team_2);
 
-  if (g_AutoTechPauseMissingPlayersCvar.BoolValue) {
-    int playerCountTriggeringTechPause = g_PlayersPerTeam - g_AutoTechPauseMissingPlayersCvar.IntValue;
-    if (playerCountTriggeringTechPause < 0) {
-      playerCountTriggeringTechPause = 0;
-    }
-    if (ShouldAutoTechPauseForDisconnect(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans,
-                                         playerCountTriggeringTechPause) &&
-        TriggerAutomaticTechPause(disconnectingTeam)) {
-      ApplyPauseDisconnectLockFromDisconnectContext(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans,
-                                                   authResolved, disconnectAuth);
-    }
+  if (g_AutoTechPauseMissingPlayersCvar.BoolValue &&
+      ShouldAutoTechPauseForDisconnect(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans) &&
+      TriggerAutomaticTechPause(disconnectingTeam)) {
+    ApplyPauseDisconnectLockFromDisconnectContext(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans,
+                                                 authResolved, disconnectAuth);
   }
 
   if (IsPaused()) {

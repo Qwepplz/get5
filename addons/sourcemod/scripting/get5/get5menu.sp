@@ -2,11 +2,8 @@
 // TODO: Add admin top menu integration.
 #define SETUP_MENU_CREATE_MATCH            "SETUP_MENU_CREATE_MATCH"
 #define SETUP_MENU_FORCE_READY             "SETUP_MENU_FORCE_READY"
-#define SETUP_MENU_END_MATCH               "SETUP_MENU_END_MATCH"
-#define SETUP_MENU_CONFIRM_END_MATCH_DRAW  "SETUP_MENU_CONFIRM_END_MATCH_DRAW"
-#define SETUP_MENU_CONFIRM_END_MATCH_TEAM1 "SETUP_MENU_CONFIRM_END_MATCH_TEAM1"
-#define SETUP_MENU_CONFIRM_END_MATCH_TEAM2 "SETUP_MENU_CONFIRM_END_MATCH_TEAM2"
-#define SETUP_MENU_LIST_BACKUPS            "SETUP_MENU_LIST_BACKUPS"
+#define SETUP_MENU_END_MATCH    "SETUP_MENU_END_MATCH"
+#define SETUP_MENU_LIST_BACKUPS "SETUP_MENU_LIST_BACKUPS"
 #define SETUP_MENU_RINGER                  "SETUP_MENU_RINGER"
 
 #define SETUP_MENU_SELECTION_MATCH_TYPE       "SETUP_MENU_SELECTION_MATCH_TYPE"
@@ -55,12 +52,14 @@ static bool IsGet5MenuAdmin(int client) {
   return IsPlayer(client) && CheckCommandAccess(client, "sm_get5", ADMFLAG_CHANGEMAP);
 }
 
-static void NormalizeLockedSetupMenuValues() {
+void NormalizeLockedSetupMenuValues() {
   g_SetupMenuWingman = false;
   g_SetupMenuSeriesLength = 1;
   g_SetupMenuMapSelection = Get5SetupMenu_MapSelectionMode_Current;
   g_SetupMenuPlayersPerTeam = 5;
   g_SetupMenuTeamSelection = Get5SetupMenu_TeamSelectionMode_Current;
+  g_SetupMenuFriendlyFire = false;
+  g_SetupMenuClinch = true;
   g_SetupMenuSideType = MatchSideType_AlwaysKnife;
   g_SetupMenuTeam1Captain = -1;
   g_SetupMenuTeam2Captain = -1;
@@ -136,7 +135,6 @@ static void ShowSetupMenu(int client, int displayAt = 0) {
   }
   NormalizeLockedSetupMenuValues();
   NormalizeSetupMenuRoundOptions();
-  bool isAdmin = IsGet5MenuAdmin(client);
 
   Menu menu = new Menu(SetupMenuHandler);
   menu.SetTitle("%T", "SetupMenuTitle", client);
@@ -226,7 +224,7 @@ static void ShowSetupMenu(int client, int displayAt = 0) {
   char toggleText[16];
   GetLocalizedOnOffText(g_SetupMenuFriendlyFire, client, toggleText, sizeof(toggleText));
   FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuFriendlyFireItem", client, toggleText);
-  menu.AddItem(SETUP_MENU_FRIENDLY_FIRE, buffer);
+  menu.AddItem(SETUP_MENU_FRIENDLY_FIRE, buffer, EnabledIf(false));
 
   if (g_SetupMenuClinch) {
     GetLocalizedOnOffText(g_SetupMenuOvertime, client, toggleText, sizeof(toggleText));
@@ -239,7 +237,7 @@ static void ShowSetupMenu(int client, int displayAt = 0) {
 
   GetLocalizedYesNoText(!g_SetupMenuClinch, client, toggleText, sizeof(toggleText));
   FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuPlayAllRoundsItem", client, toggleText);
-  menu.AddItem(SETUP_MENU_CLINCH, buffer, EnabledIf(isAdmin));
+  menu.AddItem(SETUP_MENU_CLINCH, buffer, EnabledIf(false));
 
   if (menu.ItemCount % 6 != 0) {
     menu.AddItem("", "", ITEMDRAW_SPACER);
@@ -268,13 +266,9 @@ static int SetupMenuHandler(Menu menu, MenuAction action, int client, int param2
         StrEqual(infoString, SETUP_MENU_MAP_SELECTION, true) ||
         StrEqual(infoString, SETUP_MENU_SELECTED_MAPS, true)) {
       NormalizeLockedSetupMenuValues();
-    } else if (StrEqual(infoString, SETUP_MENU_FRIENDLY_FIRE, true)) {
-      g_SetupMenuFriendlyFire = !g_SetupMenuFriendlyFire;
-    } else if (StrEqual(infoString, SETUP_MENU_CLINCH, true)) {
-      if (isAdmin) {
-        g_SetupMenuClinch = !g_SetupMenuClinch;
-        NormalizeSetupMenuRoundOptions();
-      }
+    } else if (StrEqual(infoString, SETUP_MENU_FRIENDLY_FIRE, true) ||
+               StrEqual(infoString, SETUP_MENU_CLINCH, true)) {
+      NormalizeLockedSetupMenuValues();
     } else if (StrEqual(infoString, SETUP_MENU_OVERTIME, true)) {
       if (g_SetupMenuClinch) {
         g_SetupMenuOvertime = !g_SetupMenuOvertime;
@@ -648,7 +642,7 @@ static void GiveAdminMenu(int client) {
                EnabledIf(isAdmin && (g_GameState == Get5State_Warmup || g_GameState == Get5State_PreVeto ||
                                      g_GameState == Get5State_PendingRestore)));
   FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuEndMatch", client);
-  menu.AddItem(SETUP_MENU_END_MATCH, buffer, EnabledIf(isAdmin && g_GameState != Get5State_None));
+  menu.AddItem(SETUP_MENU_END_MATCH, buffer, EnabledIf(false));
   FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuAddScrimRinger", client);
   menu.AddItem(SETUP_MENU_RINGER, buffer, EnabledIf(isAdmin && g_InScrimMode && g_GameState != Get5State_None));
   FormatEx(buffer, sizeof(buffer), "%T", "AdminMenuLoadBackup", client);
@@ -678,8 +672,8 @@ static int AdminMenuHandler(Menu menu, MenuAction action, int client, int param2
       }
     } else if (isAdmin && StrEqual(infoString, SETUP_MENU_FORCE_READY)) {
       FakeClientCommand(client, "get5_forceready");
-    } else if (isAdmin && StrEqual(infoString, SETUP_MENU_END_MATCH)) {
-      GiveConfirmEndMatchMenu(client);
+    } else if (StrEqual(infoString, SETUP_MENU_END_MATCH)) {
+      return 0;
     } else if (isAdmin && IsBackupSystemEnabled() && StrEqual(infoString, SETUP_MENU_LIST_BACKUPS)) {
       GiveBackupMenu(client);
     } else if (isAdmin && StrEqual(infoString, SETUP_MENU_RINGER)) {
@@ -689,55 +683,6 @@ static int AdminMenuHandler(Menu menu, MenuAction action, int client, int param2
     menu.Cancel();
   } else if (action == MenuAction_End) {
     LogDebug("Ended GiveAdminMenu");
-    delete menu;
-  }
-  return 0;
-}
-
-static void GiveConfirmEndMatchMenu(int client) {
-  Menu menu = new Menu(ConfirmEndMatchMenuHandler);
-  menu.SetTitle("%T", "AdminMenuSelectOutcome", client);
-  char teamName[64];
-  GetTeamDisplayName(Get5Team_1, teamName, sizeof(teamName));
-  if (strlen(teamName) > 0) {
-    Format(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWinsNamed", client, 1, teamName);
-  } else {
-    FormatEx(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWins", client, 1);
-  }
-  menu.AddItem(SETUP_MENU_CONFIRM_END_MATCH_TEAM1, teamName);
-
-  GetTeamDisplayName(Get5Team_2, teamName, sizeof(teamName));
-  if (strlen(teamName) > 0) {
-    Format(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWinsNamed", client, 2, teamName);
-  } else {
-    FormatEx(teamName, sizeof(teamName), "%T", "AdminMenuOutcomeTeamWins", client, 2);
-  }
-  menu.AddItem(SETUP_MENU_CONFIRM_END_MATCH_TEAM2, teamName);
-
-  FormatEx(teamName, sizeof(teamName), "%T", "CommonDraw", client);
-  menu.AddItem(SETUP_MENU_CONFIRM_END_MATCH_DRAW, teamName);
-  menu.ExitButton = false;
-  menu.ExitBackButton = true;
-  menu.Display(client, MENU_TIME_FOREVER);
-}
-
-static int ConfirmEndMatchMenuHandler(Menu menu, MenuAction action, int client, int param2) {
-  if (action == MenuAction_Select) {
-    char infoString[64];
-    menu.GetItem(param2, infoString, sizeof(infoString));
-    if (StrEqual(infoString, SETUP_MENU_CONFIRM_END_MATCH_DRAW)) {
-      FakeClientCommand(client, "get5_endmatch");
-    } else if (StrEqual(infoString, SETUP_MENU_CONFIRM_END_MATCH_TEAM1)) {
-      FakeClientCommand(client, "get5_endmatch team1");
-    } else if (StrEqual(infoString, SETUP_MENU_CONFIRM_END_MATCH_TEAM2)) {
-      FakeClientCommand(client, "get5_endmatch team2");
-    }
-  } else if (action == MenuAction_Cancel && param2 == MenuCancel_ExitBack) {
-    GiveAdminMenu(client);
-  } else if (action == MenuAction_Cancel && (param2 == MenuCancel_Disconnected || param2 == MenuCancel_Interrupted)) {
-    menu.Cancel();
-  } else if (action == MenuAction_End) {
-    LogDebug("Ended GiveConfirmEndMatchMenu");
     delete menu;
   }
   return 0;

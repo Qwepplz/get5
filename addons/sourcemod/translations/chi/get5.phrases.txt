@@ -818,6 +818,10 @@
     {
         "chi"            "用法：get5_endmatch <team1|team2>（不填队伍则判为平局）"
     }
+    "Get5EndMatchServerOnly"
+    {
+        "chi"            "get5_endmatch 只能从服务器控制台使用。"
+    }
     "CannotLoadMatchAlreadyLoaded"
     {
         "chi"            "已有比赛加载中，无法再加载新的比赛配置。"
