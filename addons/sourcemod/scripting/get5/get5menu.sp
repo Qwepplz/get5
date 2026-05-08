@@ -60,6 +60,7 @@ void NormalizeLockedSetupMenuValues() {
   g_SetupMenuTeamSelection = Get5SetupMenu_TeamSelectionMode_Current;
   g_SetupMenuFriendlyFire = false;
   g_SetupMenuClinch = true;
+  g_SetupMenuOvertime = true;
   g_SetupMenuSideType = MatchSideType_AlwaysKnife;
   g_SetupMenuTeam1Captain = -1;
   g_SetupMenuTeam2Captain = -1;
@@ -233,7 +234,7 @@ static void ShowSetupMenu(int client, int displayAt = 0) {
     GetLocalizedText("CommonOff", client, toggleText, sizeof(toggleText));
     FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuOvertimeItem", client, toggleText);
   }
-  menu.AddItem(SETUP_MENU_OVERTIME, buffer, EnabledIf(g_SetupMenuClinch));
+  menu.AddItem(SETUP_MENU_OVERTIME, buffer, EnabledIf(false));
 
   GetLocalizedYesNoText(!g_SetupMenuClinch, client, toggleText, sizeof(toggleText));
   FormatEx(buffer, sizeof(buffer), "%T", "SetupMenuPlayAllRoundsItem", client, toggleText);
@@ -267,12 +268,9 @@ static int SetupMenuHandler(Menu menu, MenuAction action, int client, int param2
         StrEqual(infoString, SETUP_MENU_SELECTED_MAPS, true)) {
       NormalizeLockedSetupMenuValues();
     } else if (StrEqual(infoString, SETUP_MENU_FRIENDLY_FIRE, true) ||
-               StrEqual(infoString, SETUP_MENU_CLINCH, true)) {
+               StrEqual(infoString, SETUP_MENU_CLINCH, true) ||
+               StrEqual(infoString, SETUP_MENU_OVERTIME, true)) {
       NormalizeLockedSetupMenuValues();
-    } else if (StrEqual(infoString, SETUP_MENU_OVERTIME, true)) {
-      if (g_SetupMenuClinch) {
-        g_SetupMenuOvertime = !g_SetupMenuOvertime;
-      }
     } else if (StrEqual(infoString, SETUP_MENU_CAPTAINS, true)) {
       if (isAdmin) {
         ShowCaptainsMenu(client);

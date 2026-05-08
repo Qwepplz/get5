@@ -233,6 +233,7 @@ static void SetupMenuLockDefaults_Test() {
 
   AssertFalse("Setup menu locks friendly fire off", g_SetupMenuFriendlyFire);
   AssertTrue("Setup menu locks play-all-rounds off through clinch", g_SetupMenuClinch);
+  AssertTrue("Setup menu locks overtime on", g_SetupMenuOvertime);
   AssertEq("Setup menu locks knife round on", view_as<int>(MatchSideType_AlwaysKnife),
            view_as<int>(g_SetupMenuSideType));
 
