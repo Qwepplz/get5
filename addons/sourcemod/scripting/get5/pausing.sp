@@ -44,6 +44,23 @@ void ResetPauseDisconnectLocks() {
     GetPauseDisconnectMissingPlayers(team).Clear();
     g_PauseDisconnectUnknownAuthRequiredHumans[team] = 0;
   }
+  if (g_DisconnectLockExpiryTimer != INVALID_HANDLE) {
+    delete g_DisconnectLockExpiryTimer;
+    g_DisconnectLockExpiryTimer = INVALID_HANDLE;
+  }
+}
+
+static void StartDisconnectLockExpiryTimer() {
+  if (g_DisconnectLockExpiryTimer == INVALID_HANDLE) {
+    g_DisconnectLockExpiryTimer = CreateTimer(300.0, Timer_DisconnectLockExpiry);
+  }
+}
+
+static Action Timer_DisconnectLockExpiry(Handle timer) {
+  g_DisconnectLockExpiryTimer = INVALID_HANDLE;
+  ResetPauseDisconnectLocks();
+  Get5_MessageToAll("%t", "DisconnectLockExpired");
+  return Plugin_Handled;
 }
 
 bool PauseHasActiveDisconnectLocks() {
@@ -88,6 +105,7 @@ void ApplyPauseDisconnectLockFromDisconnectContext(Get5Team team, int humanCount
     }
 
     ApplyPauseDisconnectLockForPlayer(team, true, auth);
+    StartDisconnectLockExpiryTimer();
     return;
   }
 
@@ -98,6 +116,7 @@ void ApplyPauseDisconnectLockFromDisconnectContext(Get5Team team, int humanCount
   if (humanCountBeforeDisconnect > g_PauseDisconnectUnknownAuthRequiredHumans[team]) {
     g_PauseDisconnectUnknownAuthRequiredHumans[team] = humanCountBeforeDisconnect;
   }
+  StartDisconnectLockExpiryTimer();
 }
 
 void ApplyPauseDisconnectLockFromCounts(Get5Team team, int humanCountBeforeDisconnect,
@@ -187,6 +206,13 @@ bool ClearPauseDisconnectLockForReturnedPlayer(int client, Get5Team expectedTeam
 
   if ((clearedUnknownBaseline || clearedKnownAuth) && IsPaused()) {
     HandleUnpauseVotesOnDisconnect();
+  }
+
+  if ((clearedUnknownBaseline || clearedKnownAuth) && !PauseHasActiveDisconnectLocks()) {
+    if (g_DisconnectLockExpiryTimer != INVALID_HANDLE) {
+      delete g_DisconnectLockExpiryTimer;
+      g_DisconnectLockExpiryTimer = INVALID_HANDLE;
+    }
   }
 
   return clearedUnknownBaseline || clearedKnownAuth;

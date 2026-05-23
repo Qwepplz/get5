@@ -44,7 +44,6 @@ static void Get5_Test() {
   LoadTeamFromFileTest();
   Team1StartTTest();
   MissingPropertiesTest();
-  ForfeitCountdownDefault_Test();
 
   Utils_Test();
   BotRoster_Test();
@@ -53,14 +52,6 @@ static void Get5_Test() {
   SetupMenuLockDefaults_Test();
   MapVetoLogicTest();
   LogMessage("Tests complete!");
-}
-
-static void ForfeitCountdownDefault_Test() {
-  SetTestContext("ForfeitCountdownDefault_Test");
-
-  char defaultValue[16];
-  g_ForfeitCountdownTimeCvar.GetDefault(defaultValue, sizeof(defaultValue));
-  AssertStrEq("Forfeit countdown default value", defaultValue, "600");
 }
 
 static void BotRoster_Test() {

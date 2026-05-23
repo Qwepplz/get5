@@ -25,7 +25,7 @@ void MapChatCommand(const Get5ChatCommand command, const char[] alias) {
       AddAliasedCommand(alias, Command_NotReady, "Marks the client as not ready.");
     }
     case Get5ChatCommand_ForceReady: {
-      AddAliasedCommand(alias, Command_ForceReadyClient, "Marks the client's entire team as ready.");
+      return;
     }
     case Get5ChatCommand_Tech: {
       AddAliasedCommand(alias, Command_TechPause, "Calls for a technical pause.");
@@ -37,7 +37,7 @@ void MapChatCommand(const Get5ChatCommand command, const char[] alias) {
       AddAliasedCommand(alias, Command_Unpause, "Unpauses the game.");
     }
     case Get5ChatCommand_Coach: {
-      AddAliasedCommand(alias, Command_SmCoach, "Requests to become a coach.");
+      return;
     }
     case Get5ChatCommand_Stay: {
       AddAliasedCommand(alias, Command_Stay, "Elects to stay on the current side after winning a knife round.");
@@ -52,22 +52,22 @@ void MapChatCommand(const Get5ChatCommand command, const char[] alias) {
       AddAliasedCommand(alias, Command_Ct, "Elects to start on CT side after winning a knife round.");
     }
     case Get5ChatCommand_Stop: {
-      AddAliasedCommand(alias, Command_Stop, "Elects to stop the game to reload a backup file for the current round.");
+      return;
     }
     case Get5ChatCommand_Surrender: {
-      AddAliasedCommand(alias, Command_Surrender, "Starts a vote for surrendering for your team.");
+      return;
     }
     case Get5ChatCommand_FFW: {
-      AddAliasedCommand(alias, Command_FFW, "Starts a countdown to win if a full team disconnects from the server.");
+      return;
     }
     case Get5ChatCommand_CancelFFW: {
-      AddAliasedCommand(alias, Command_CancelFFW, "Cancels a pending request to win by forfeit.");
+      return;
     }
     case Get5ChatCommand_Pick: {
-      AddAliasedCommand(alias, Command_Pick, "Picks a map to play from the map pool.");
+      return;
     }
     case Get5ChatCommand_Ban: {
-      AddAliasedCommand(alias, Command_Ban, "Bans a map from the map pool.");
+      return;
     }
     default: {
       LogError("Failed to map Get5ChatCommand with value %d to a command. It is missing from MapChatCommand.", command);

@@ -100,8 +100,6 @@ ConVar g_SetClientClanTagCvar;
 ConVar g_SetHostnameCvar;
 ConVar g_StatsPathFormatCvar;
 ConVar g_StopCommandEnabledCvar;
-ConVar g_StopCommandNoDamageCvar;
-ConVar g_StopCommandTimeLimitCvar;
 ConVar g_TeamTimeToKnifeDecisionCvar;
 ConVar g_TimeToStartCvar;
 ConVar g_TimeToStartVetoCvar;
@@ -113,13 +111,6 @@ ConVar g_PhaseAnnouncementCountCvar;
 ConVar g_Team1NameColorCvar;
 ConVar g_Team2NameColorCvar;
 ConVar g_SpecNameColorCvar;
-ConVar g_SurrenderEnabledCvar;
-ConVar g_MinimumRoundDeficitForSurrenderCvar;
-ConVar g_VotesRequiredForSurrenderCvar;
-ConVar g_SurrenderVoteTimeLimitCvar;
-ConVar g_SurrenderCooldownCvar;
-ConVar g_ForfeitEnabledCvar;
-ConVar g_ForfeitCountdownTimeCvar;
 ConVar g_DemoUploadURLCvar;
 ConVar g_DemoUploadUsePUTCvar;
 ConVar g_DemoUploadTimeoutCvar;
@@ -204,6 +195,7 @@ Handle g_UnpauseReminderTimer = INVALID_HANDLE;
 int g_LastUnpauseRequesterUserId = 0;
 ArrayList g_PauseDisconnectMissingPlayerAuths[MATCHTEAM_COUNT];
 int g_PauseDisconnectUnknownAuthRequiredHumans[MATCHTEAM_COUNT];
+Handle g_DisconnectLockExpiryTimer = INVALID_HANDLE;
 bool g_TeamGivenStopCommand[MATCHTEAM_COUNT];
 int g_TacticalPauseTimeUsed[MATCHTEAM_COUNT];
 int g_TacticalPausesUsed[MATCHTEAM_COUNT];
@@ -215,9 +207,6 @@ float g_SurrenderFailedAt[MATCHTEAM_COUNT];
 bool g_SurrenderedPlayers[MAXPLAYERS + 1];
 Handle g_SurrenderTimers[MATCHTEAM_COUNT];
 Get5Team g_PendingSurrenderTeam = Get5Team_None;
-Handle g_ForfeitTimer = INVALID_HANDLE;
-int g_ForfeitSecondsPassed = 0;
-Get5Team g_ForfeitingTeam = Get5Team_None;
 
 /** Other state **/
 Get5State g_GameState = Get5State_None;
@@ -259,7 +248,6 @@ bool g_DamageDoneAssist[MAXPLAYERS + 1][MAXPLAYERS + 1];
 bool g_DamageDoneFlashAssist[MAXPLAYERS + 1][MAXPLAYERS + 1];
 bool g_PlayerRoundKillOrAssistOrTradedDeath[MAXPLAYERS + 1];
 bool g_PlayerSurvived[MAXPLAYERS + 1];
-bool g_PlayerHasTakenDamage = false;
 KeyValues g_StatsKv;
 
 ArrayList g_TeamScoresPerMap = null;
@@ -345,7 +333,6 @@ Handle g_OnGrenadeThrown = INVALID_HANDLE;
 Handle g_OnLoadMatchConfigFailed = INVALID_HANDLE;
 Handle g_OnMapPicked = INVALID_HANDLE;
 Handle g_OnMapResult = INVALID_HANDLE;
-Handle g_OnMapVetoed = INVALID_HANDLE;
 Handle g_OnTeamReadyStatusChanged = INVALID_HANDLE;
 Handle g_OnKnifeRoundStarted = INVALID_HANDLE;
 Handle g_OnKnifeRoundWon = INVALID_HANDLE;
@@ -517,8 +504,6 @@ static void RegisterConVars() {
   g_BackupSystemEnabledCvar             = CreateConVar("get5_backup_system_enabled", "0", "Whether the Get5 backup system is enabled.");
   g_MaxBackupAgeCvar                    = CreateConVar("get5_max_backup_age", "172800", "Number of seconds before a backup file is automatically deleted. Set to 0 to disable. Default is 2 days.");
   g_StopCommandEnabledCvar              = CreateConVar("get5_stop_command_enabled", "0", "Whether clients can use the !stop command to restore to the beginning of the current round.");
-  g_StopCommandNoDamageCvar             = CreateConVar("get5_stop_command_no_damage", "0", "Whether the stop command becomes unavailable if a player damages a player from the opposing team.");
-  g_StopCommandTimeLimitCvar            = CreateConVar("get5_stop_command_time_limit", "0", "The number of seconds into a round after which a team can no longer request/confirm to stop and restart the round.");
   g_RemoteBackupURLCvar                 = CreateConVar("get5_remote_backup_url", "", "A URL to send backup files to over HTTP. Leave empty to disable.", FCVAR_PROTECTED);
   g_RemoteBackupURLHeaderKeyCvar        = CreateConVar("get5_remote_backup_header_key", "Authorization", "If defined, a custom HTTP header with this name is added to the backup HTTP request.", FCVAR_PROTECTED);
   g_RemoteBackupURLHeaderValueCvar      = CreateConVar("get5_remote_backup_header_value", "", "If defined, the value of the custom header added to the backup HTTP request.", FCVAR_PROTECTED);
@@ -532,15 +517,6 @@ static void RegisterConVars() {
   g_DemoUploadURLCvar                   = CreateConVar("get5_demo_upload_url", "", "If defined, recorded demos will be uploaded to this URL over HTTP. If no protocol is provided, 'http://' is prepended to this value.", FCVAR_PROTECTED);
   g_DemoUploadUsePUTCvar                = CreateConVar("get5_demo_upload_use_put", "0", "If enabled, the demo upload HTTP request will use PUT instead of POST.");
   g_DemoUploadTimeoutCvar               = CreateConVar("get5_demo_upload_timeout", "180", "The timeout of the demo upload HTTP request, in seconds.");
-
-  // Surrender/Forfeit
-  g_ForfeitCountdownTimeCvar            = CreateConVar("get5_forfeit_countdown", "600", "The grace-period (in seconds) for rejoining the server to avoid a loss by forfeit.", 0, true, 30.0);
-  g_ForfeitEnabledCvar                  = CreateConVar("get5_forfeit_enabled", "1", "Whether the forfeit feature is enabled.");
-  g_SurrenderCooldownCvar               = CreateConVar("get5_surrender_cooldown", "60", "The number of seconds before a vote to surrender can be retried if it fails.");
-  g_SurrenderEnabledCvar                = CreateConVar("get5_surrender_enabled", "0", "Whether the surrender command is enabled.");
-  g_MinimumRoundDeficitForSurrenderCvar = CreateConVar("get5_surrender_minimum_round_deficit", "8", "The minimum number of rounds a team must be behind in order to surrender.", 0, true, 0.0);
-  g_VotesRequiredForSurrenderCvar       = CreateConVar("get5_surrender_required_votes", "3", "The number of votes required for a team to surrender.", 0, true, 1.0);
-  g_SurrenderVoteTimeLimitCvar          = CreateConVar("get5_surrender_time_limit", "15", "The number of seconds before a vote to surrender fails.", 0, true, 10.0);
 
   // Events
   g_EventLogFormatCvar                  = CreateConVar("get5_event_log_format", "", "Path to use when writing match event logs to disk. Use \"\" to disable.");
@@ -762,7 +738,6 @@ static void CreateForwards() {
   g_OnRoundEnd = CreateGlobalForward("Get5_OnRoundEnd", ET_Ignore, Param_Cell);
   g_OnLoadMatchConfigFailed = CreateGlobalForward("Get5_OnLoadMatchConfigFailed", ET_Ignore, Param_Cell);
   g_OnMapPicked = CreateGlobalForward("Get5_OnMapPicked", ET_Ignore, Param_Cell);
-  g_OnMapVetoed = CreateGlobalForward("Get5_OnMapVetoed", ET_Ignore, Param_Cell);
   g_OnSidePicked = CreateGlobalForward("Get5_OnSidePicked", ET_Ignore, Param_Cell);
   g_OnTeamReadyStatusChanged = CreateGlobalForward("Get5_OnTeamReadyStatusChanged", ET_Ignore, Param_Cell);
   g_OnKnifeRoundStarted = CreateGlobalForward("Get5_OnKnifeRoundStarted", ET_Ignore, Param_Cell);
@@ -1039,10 +1014,6 @@ static DataPack CreateDisconnectCheckData(int client) {
   return pack;
 }
 
-static bool HasCurrentSideHumanOrFrozenBotPresence(Get5Team team) {
-  return CountHumanMatchTeamClients(team, true, false, true) > 0 || CountFrozenBotsOnMatchTeam(team) > 0;
-}
-
 static Action Timer_CheckPauseDisconnectLockForReturnedPlayer(Handle timer, int userId) {
   int client = GetClientOfUserId(userId);
   if (IsPlayer(client)) {
@@ -1105,19 +1076,6 @@ static Action Timer_ConfigsExecutedCallback(Handle timer) {
 
   // This is a defensive solution that ensures we don't have lingering forfeit-timers. If everyone leaves and a player
   // then joins the server again, the server may change the map, which triggers this. If this happens, we cannot
-  // recover the game state and must force the series to end if the game has progressed past warmup. If we trigger the
-  // timer during warmup, it might abruptly end the series when the first player connects to the server due to reloading
-  // of the map because of "force client reconnect" from the server.
-  if (g_ForfeitTimer != INVALID_HANDLE) {
-    if (g_GameState > Get5State_Warmup && g_GameState < Get5State_PendingRestore && !g_MapChangePending) {
-      LogDebug("Triggering forfeit timer immediately as map was changed post-warmup.");
-      TriggerTimer(g_ForfeitTimer);
-    } else {
-      LogDebug("Stopped forfeit timer as the map was changed in non-live state.");
-      ResetForfeitTimer();
-    }
-  }
-
   // Recording is always automatically stopped on map change, and
   // since there are no hooks to detect tv_stoprecord, we reset
   // our recording var if a map change is performed unexpectedly.
@@ -1434,76 +1392,6 @@ Action Command_T(int client, int args) {
   return Plugin_Handled;
 }
 
-Action Command_Stop(int client, int args) {
-  if (!IsBackupSystemEnabled() || !g_StopCommandEnabledCvar.BoolValue) {
-    Get5_MessageToAll("%t", "StopCommandNotEnabled");
-    return Plugin_Handled;
-  }
-
-  // Because a live restore to the same match does not change get5 state to warmup, we have to make sure
-  // that successive calls to !stop (spammed by players) does not reload multiple backups.
-  // Don't allow it after the round has ended either.
-  if (g_GameState != Get5State_Live || InHalftimePhase() || g_DoingBackupRestoreNow ||
-      GetRoundsPlayed() != g_RoundNumber) {
-    return Plugin_Handled;
-  }
-
-  // Let the server/rcon always force restore.
-  if (client == 0) {
-    RestoreLastRound(client);
-    return Plugin_Handled;
-  }
-
-  if (g_PauseType == Get5PauseType_Admin) {
-    // Don't let teams restore backups while an admin has paused the game.
-    return Plugin_Handled;
-  }
-
-  Get5Team team = GetClientMatchTeam(client);
-  if (!IsPlayerTeam(team)) {
-    return Plugin_Handled;
-  }
-
-  if (g_PlayerHasTakenDamage && g_StopCommandNoDamageCvar.BoolValue) {
-    Get5_MessageToAll("%t", "StopCommandRequiresNoDamage");
-    return Plugin_Handled;
-  }
-
-  if (!InFreezeTime()) {
-    int stopCommandGrace = g_StopCommandTimeLimitCvar.IntValue;
-    if (stopCommandGrace > 0 && GetRoundTime() / 1000 > stopCommandGrace) {
-      char formattedGracePeriod[32];
-      ConvertSecondsToMinutesAndSeconds(stopCommandGrace, formattedGracePeriod, sizeof(formattedGracePeriod));
-      FormatTimeString(formattedGracePeriod, sizeof(formattedGracePeriod), formattedGracePeriod);
-      Get5_MessageToAll("%t", "StopCommandTimeLimitExceeded", formattedGracePeriod);
-      return Plugin_Handled;
-    }
-  } else if (g_PauseType != Get5PauseType_Backup) {
-    // If in freezetime and the game is not paused for restore, don't allow !stop until the round has started.
-    // A tech pause should instead be used in this case. We allow additional calls to !stop if the game is paused post
-    // restore, so a disconnecting player can be part of another restore process and have their inventory/cash restored
-    // after reconnecting.
-    Get5_MessageToAll("%t", "StopCommandOnlyAfterRoundStart");
-    return Plugin_Handled;
-  }
-
-  g_TeamGivenStopCommand[team] = true;
-
-  char stopCommandFormatted[64];
-  GetChatAliasForCommand(Get5ChatCommand_Stop, stopCommandFormatted, sizeof(stopCommandFormatted), true);
-  if (g_TeamGivenStopCommand[Get5Team_1] && !g_TeamGivenStopCommand[Get5Team_2]) {
-    Get5_MessageToAll("%t", "TeamWantsToReloadCurrentRound", g_FormattedTeamNames[Get5Team_1],
-                      g_FormattedTeamNames[Get5Team_2], stopCommandFormatted);
-  } else if (!g_TeamGivenStopCommand[Get5Team_1] && g_TeamGivenStopCommand[Get5Team_2]) {
-    Get5_MessageToAll("%t", "TeamWantsToReloadCurrentRound", g_FormattedTeamNames[Get5Team_2],
-                      g_FormattedTeamNames[Get5Team_1], stopCommandFormatted);
-  } else if (g_TeamGivenStopCommand[Get5Team_1] && g_TeamGivenStopCommand[Get5Team_2]) {
-    RestoreLastRound(client);
-  }
-
-  return Plugin_Handled;
-}
-
 static Action Command_BlockSuicide(int client, const char[] command, int argc) {
   if (g_GameState == Get5State_None) {
     return Plugin_Continue;
@@ -1512,22 +1400,6 @@ static Action Command_BlockSuicide(int client, const char[] command, int argc) {
   return Plugin_Stop;
 }
 
-void RestoreLastRound(int client) {
-  LOOP_TEAMS(x) {
-    g_TeamGivenStopCommand[x] = false;
-  }
-
-  char lastBackup[PLATFORM_MAX_PATH];
-  g_LastGet5BackupCvar.GetString(lastBackup, sizeof(lastBackup));
-  if (!StrEqual(lastBackup, "")) {
-    char error[PLATFORM_MAX_PATH];
-    if (!RestoreFromBackup(lastBackup, error)) {
-      ReplyToCommandLocalized(client, error, sizeof(error));
-    }
-  } else {
-    ReplyToCommand(client, "%t", "NoBackupFileFromCurrentRound");
-  }
-}
 
 /**
  * Game Events *not* related to the stats tracking system.
@@ -1568,16 +1440,6 @@ Action Timer_DisconnectCheck(Handle timer, DataPack pack) {
     return Plugin_Handled;
   }
 
-  if (g_ForfeitTimer != INVALID_HANDLE) {
-    LogDebug("Forfeit timer already started on player disconnect, ignoring.");
-    return Plugin_Handled;
-  }
-
-  int team1Count = CountHumanMatchTeamClients(Get5Team_1, true, false, true);
-  int team2Count = CountHumanMatchTeamClients(Get5Team_2, true, false, true);
-  bool team1Present = HasCurrentSideHumanOrFrozenBotPresence(Get5Team_1);
-  bool team2Present = HasCurrentSideHumanOrFrozenBotPresence(Get5Team_2);
-
   if (g_AutoTechPauseMissingPlayersCvar.BoolValue &&
       ShouldAutoTechPauseForDisconnect(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans) &&
       TriggerAutomaticTechPause(disconnectingTeam)) {
@@ -1589,42 +1451,6 @@ Action Timer_DisconnectCheck(Handle timer, DataPack pack) {
     HandleUnpauseVotesOnDisconnect();
   }
 
-  if (team1Present && team2Present) {
-    // If both teams still have at least one player; no forfeit.
-    return Plugin_Handled;
-  }
-
-  // The rest of the forfeit system can be disabled!
-  if (!g_ForfeitEnabledCvar.BoolValue) {
-    return Plugin_Handled;
-  }
-
-  Get5Team forfeitingTeam = Get5Team_None;
-  if (team1Count == g_PlayersPerTeam) {
-    // team2 has no players, team1 is full
-    forfeitingTeam = Get5Team_2;
-  } else if (team2Count == g_PlayersPerTeam) {
-    // team1 has no players, team2 is full
-    forfeitingTeam = Get5Team_1;
-  }
-
-  if (forfeitingTeam == Get5Team_None) {
-    // End here if no players are left or one team is partially full.
-    AnnounceRemainingForfeitTime(GetForfeitGracePeriod(), Get5Team_None);
-    StartForfeitTimer(Get5Team_None);
-    return Plugin_Handled;
-  }
-
-  if (g_GameState != Get5State_Live) {
-    // !ffw can only be used in live, not in knife.
-    return Plugin_Handled;
-  }
-
-  // One team is full, the other team left; announce that they can request to !ffw
-  char winCommandFormatted[64];
-  GetChatAliasForCommand(Get5ChatCommand_FFW, winCommandFormatted, sizeof(winCommandFormatted), true);
-  Get5_MessageToAll("%t", "WinByForfeitAvailable", g_FormattedTeamNames[forfeitingTeam],
-                    g_FormattedTeamNames[OtherMatchTeam(forfeitingTeam)], winCommandFormatted);
   return Plugin_Handled;
 }
 
@@ -1732,7 +1558,6 @@ static Action Event_MatchOver(Event event, const char[] name, bool dontBroadcast
     }
 
     EndSurrenderTimers();
-    ResetForfeitTimer();
 
     char nextMap[PLATFORM_MAX_PATH];
     g_MapsToPlay.GetString(Get5_GetMapNumber(), nextMap, sizeof(nextMap));
@@ -1844,9 +1669,7 @@ void EndSeries(Get5Team winningTeam, bool printWinnerMessage, float restoreDelay
   CleanupMatchTimers();
 
   // If a forfeit by disconnect is counting down and the match ends, ensure that no timer is running so a new game
-  // won't be forfeited if it is started before the timer runs out.
   // Also end vote-to-surrender timers.
-  ResetForfeitTimer();
   EndSurrenderTimers();
   if (IsPaused()) {
     UnpauseGame();
@@ -2015,7 +1838,6 @@ void ResetMatchConfigVariables(bool backup = false) {
   g_LatestPauseDuration = 0;
   g_PauseType = Get5PauseType_None;
   ResetPauseDisconnectLocks();
-  g_PlayerHasTakenDamage = false;
   if (!backup) {
     // All hell breaks loose if these are reset during a backup.
     g_DoingBackupRestoreNow = false;
@@ -2125,7 +1947,6 @@ static Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
   g_RoundStartedTime = 0.0;
   g_BombPlantedTime = 0.0;
   g_BombSiteLastPlanted = Get5BombSite_Unknown;
-  g_PlayerHasTakenDamage = false;
   RestartInfoTimer();
   if (g_PauseType != Get5PauseType_None && g_LatestPauseDuration == -1) {
     // Make sure the pause timer starts at 0.00 if the match is paused, as the timer can be offset by up to 1 second.

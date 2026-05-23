@@ -178,17 +178,6 @@ void CoachingChangedHook(ConVar convar, const char[] oldValue, const char[] newV
   }
 }
 
-Action Command_SmCoach(int client, int args) {
-  if (g_GameState == Get5State_None || !IsPlayer(client)) {
-    return Plugin_Handled;
-  }
-
-  char formattedCoachingCvar[64];
-  FormatCvarName(formattedCoachingCvar, sizeof(formattedCoachingCvar), "sv_coaching_enabled");
-  Get5_Message(client, "%t", "CoachingNotEnabled", formattedCoachingCvar);
-  return Plugin_Handled;
-}
-
 static void MovePlayerToCoachInConfig(const int client, const Get5Team team) {
   char auth[AUTH_LENGTH];
   GetAuth(client, auth, sizeof(auth));

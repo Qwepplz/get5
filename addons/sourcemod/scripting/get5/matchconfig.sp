@@ -26,7 +26,6 @@ bool LoadMatchConfig(const char[] config, char[] error, bool restoreBackup = fal
   }
 
   EndSurrenderTimers();
-  ResetForfeitTimer();
   ResetMatchConfigVariables(restoreBackup);
   ResetReadyStatus();
 

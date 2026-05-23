@@ -125,70 +125,6 @@ static void FinishVeto() {
 
 // Main Veto Controller
 
-Action Command_Pick(int client, int args) {
-  if (g_GameState != Get5State_Veto || !IsPlayer(client) || SidePickPending()) {
-    return Plugin_Handled;
-  }
-  Get5Team playerTeam = GetClientMatchTeam(client);
-  Get5Team currentTeamToPick;
-  switch (GetCurrentMapSelectionOption()) {
-    case Get5MapSelectionOption_Team1Pick:
-      currentTeamToPick = Get5Team_1;
-    case Get5MapSelectionOption_Team2Pick:
-      currentTeamToPick = Get5Team_2;
-    case Get5MapSelectionOption_Invalid, Get5MapSelectionOption_Team1Ban, Get5MapSelectionOption_Team2Ban:
-      return Plugin_Handled;
-  }
-
-  if (client != g_VetoCaptains[currentTeamToPick]) {
-    return Plugin_Handled;
-  }
-
-  char mapArg[PLATFORM_MAX_PATH];
-  if (args < 1 || !GetCmdArg(1, mapArg, sizeof(mapArg))) {
-    return Plugin_Handled;
-  }
-
-  if (!PickMap(mapArg, playerTeam)) {
-    Get5_Message(client, "%t", "MapSelectionInvalidMap", mapArg);
-  } else {
-    HandleVetoStep();
-  }
-  return Plugin_Handled;
-}
-
-Action Command_Ban(int client, int args) {
-  if (g_GameState != Get5State_Veto || !IsPlayer(client) || SidePickPending()) {
-    return Plugin_Handled;
-  }
-
-  Get5Team currentTeamToBan;
-  switch (GetCurrentMapSelectionOption()) {
-    case Get5MapSelectionOption_Team1Ban:
-      currentTeamToBan = Get5Team_1;
-    case Get5MapSelectionOption_Team2Ban:
-      currentTeamToBan = Get5Team_2;
-    case Get5MapSelectionOption_Invalid, Get5MapSelectionOption_Team1Pick, Get5MapSelectionOption_Team2Pick:
-      return Plugin_Handled;
-  }
-
-  if (client != g_VetoCaptains[currentTeamToBan]) {
-    return Plugin_Handled;
-  }
-
-  char mapArg[PLATFORM_MAX_PATH];
-  if (args < 1 || !GetCmdArg(1, mapArg, sizeof(mapArg))) {
-    return Plugin_Handled;
-  }
-
-  if (!BanMap(mapArg, currentTeamToBan)) {
-    Get5_Message(client, "%t", "MapSelectionInvalidMap", mapArg);
-  } else {
-    HandleVetoStep();
-  }
-  return Plugin_Handled;
-}
-
 void HandleSideChoice(const Get5Side side, int client) {
   if (!SidePickPending()) {
     // No side selection is done by players in this case.
@@ -338,32 +274,6 @@ void ImplodeMapArrayToString(const ArrayList mapPool, char[] buffer, const int b
     SortStrings(mapsArray, mapPool.Length, Sort_Ascending);
   }
   ImplodeStrings(mapsArray, mapPool.Length, ", ", buffer, bufferSize);
-}
-
-// Map Vetos
-
-static bool BanMap(const char[] mapName, const Get5Team team) {
-  char mapNameFromArray[PLATFORM_MAX_PATH];  // RemoveMapFromMapPool returns correct map name into this, mapName is user
-                                             // input.
-  if (!RemoveMapFromMapPool(g_MapsLeftInVetoPool, mapName, mapNameFromArray, sizeof(mapNameFromArray))) {
-    return false;
-  }
-  char mapNameFormatted[PLATFORM_MAX_PATH];
-  FormatMapName(mapNameFromArray, mapNameFormatted, sizeof(mapNameFormatted), g_FormatMapNamesCvar.BoolValue, false);
-  // Add color here as FormatMapName would make the color green.
-  Format(mapNameFormatted, sizeof(mapNameFormatted), "{LIGHT_RED}%s{NORMAL}", mapNameFormatted);
-  Get5_MessageToAll("%t", "TeamBannedMap", g_FormattedTeamNames[team], mapNameFormatted);
-
-  Get5MapVetoedEvent event = new Get5MapVetoedEvent(g_MatchID, team, mapNameFromArray);
-  LogDebug("Calling Get5_OnMapVetoed()");
-  Call_StartForward(g_OnMapVetoed);
-  Call_PushCell(event);
-  Call_Finish();
-  EventLogger_LogAndDeleteEvent(event);
-
-  g_LastVetoTeam = team;
-
-  return true;
 }
 
 // Map Picks

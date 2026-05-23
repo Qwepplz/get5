@@ -323,46 +323,6 @@ Action Command_AddReadyTime(int client, int args) {
   return Plugin_Handled;
 }
 
-Action Command_ForceReadyClient(int client, int args) {
-  if (!IsReadyGameState() || client == 0) {
-    return Plugin_Handled;
-  }
-  Get5Team team = GetClientMatchTeam(client);
-  if (team == Get5Team_None || IsTeamReady(team)) {
-    return Plugin_Handled;
-  }
-
-  if (!g_AllowForceReadyCvar.BoolValue) {
-    char cVarName[MAX_CVAR_LENGTH];
-    g_AllowForceReadyCvar.GetName(cVarName, sizeof(cVarName));
-    FormatCvarName(cVarName, sizeof(cVarName), cVarName);
-    char forceReadyCommand[64];
-    GetChatAliasForCommand(Get5ChatCommand_ForceReady, forceReadyCommand, sizeof(forceReadyCommand), true);
-    Get5_Message(client, "%t", "ForceReadyDisabled", forceReadyCommand, cVarName);
-    return Plugin_Handled;
-  }
-
-  int minReady = GetTeamMinReady(team);
-  int playerCount = GetTeamPlayerCount(team, g_CoachesMustReady);
-
-  if (playerCount < minReady) {
-    Get5_Message(client, "%t", "TeamFailToReadyMinPlayerCheck", minReady);
-    return Plugin_Handled;
-  }
-  char formattedClientName[MAX_NAME_LENGTH];
-  FormatPlayerName(formattedClientName, sizeof(formattedClientName), client, team);
-  LOOP_CLIENTS(i) {
-    if (IsPlayer(i) && GetClientMatchTeam(i) == team) {
-      SetClientReady(i, true);
-      Get5_Message(i, "%t", "TeammateForceReadied", formattedClientName);
-    }
-  }
-  SetTeamForcedReady(team, true);
-  SetMatchTeamCvars();
-  HandleReadyMessage(team);
-  return Plugin_Handled;
-}
-
 // Messages
 
 static void HandleReadyMessage(Get5Team team) {
