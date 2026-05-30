@@ -119,12 +119,6 @@ void ApplyPauseDisconnectLockFromDisconnectContext(Get5Team team, int humanCount
   StartDisconnectLockExpiryTimer();
 }
 
-void ApplyPauseDisconnectLockFromCounts(Get5Team team, int humanCountBeforeDisconnect,
-                                        int humanCountAfterDisconnect) {
-  ApplyPauseDisconnectLockFromDisconnectContext(team, humanCountBeforeDisconnect, humanCountAfterDisconnect, false,
-                                                "");
-}
-
 bool ClearPauseDisconnectLockForPlayerAuth(Get5Team team, const char[] auth) {
   if (!IsPlayerTeam(team) || auth[0] == '\0') {
     return false;
@@ -166,20 +160,6 @@ bool PauseTeamDisconnectLockSatisfiedWithHumans(Get5Team team, int currentHumans
 static bool RefreshPauseDisconnectUnknownLock(Get5Team team) {
   return RefreshPauseDisconnectUnknownLockForTeamHumans(team,
                                                         CountHumanMatchTeamClients(team, true, false, true));
-}
-
-bool ClearPauseDisconnectLockForReturnedTeamAuth(Get5Team team, const char[] auth) {
-  bool clearedKnownAuth = ClearPauseDisconnectLockForPlayerAuth(team, auth);
-  bool clearedUnknownBaseline = RefreshPauseDisconnectUnknownLock(team);
-  if (!clearedKnownAuth && !clearedUnknownBaseline) {
-    return false;
-  }
-
-  if (IsPaused()) {
-    HandleUnpauseVotesOnDisconnect();
-  }
-
-  return true;
 }
 
 bool ClearPauseDisconnectLockForReturnedPlayer(int client, Get5Team expectedTeam = Get5Team_None) {

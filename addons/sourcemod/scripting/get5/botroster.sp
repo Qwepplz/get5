@@ -19,26 +19,6 @@ bool ShouldEnforceFrozenBotQuota() {
   return g_GameState != Get5State_None && g_GameState != Get5State_PostGame;
 }
 
-stock int CountFrozenBotsOnMatchTeam(Get5Team team) {
-  int csTeam = Get5TeamToCSTeam(team);
-  if (csTeam != CS_TEAM_CT && csTeam != CS_TEAM_T) {
-    return 0;
-  }
-
-  int count = 0;
-  Get5Side side = view_as<Get5Side>(csTeam);
-  for (int i = 0; i < g_FrozenBotSnapshotCount; i++) {
-    if (g_FrozenBotSides[i] == side) {
-      count++;
-    }
-  }
-  return count;
-}
-
-bool HasMatchTeamPlayerOrBot(Get5Team team) {
-  return GetTeamPlayerCount(team) > 0 || CountFrozenBotsOnMatchTeam(team) > 0;
-}
-
 static void CaptureFrozenBotRoster() {
   ResetBotRosterState();
 

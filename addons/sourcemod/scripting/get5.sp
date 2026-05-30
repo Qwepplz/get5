@@ -27,7 +27,6 @@
 #include <sdkhooks>
 #include <sdktools>
 #include <sourcemod>
-#include <testing>
 
 #undef REQUIRE_EXTENSIONS
 #include <SteamWorks>
@@ -97,7 +96,6 @@ ConVar g_ServerIdCvar;
 ConVar g_ResetCvarsOnEndCvar;
 ConVar g_SetGameTeamNamesCvar;
 ConVar g_SetClientClanTagCvar;
-ConVar g_SetHostnameCvar;
 ConVar g_StatsPathFormatCvar;
 ConVar g_StopCommandEnabledCvar;
 ConVar g_TeamTimeToKnifeDecisionCvar;
@@ -359,10 +357,6 @@ static void NormalizeLegacyDemoRecordingCvars() {
   NormalizeLegacyDemoRecordingCvar(g_TimeFormatCvar, "%Y-%m-%d_%H-%M-%S", "%Y-%m-%d_%H%M");
 }
 
-static void NormalizeLegacyHostnameCvar() {
-  NormalizeLegacyDemoRecordingCvar(g_SetHostnameCvar, "Get5: {TEAM1} vs {TEAM2}", "");
-}
-
 static void NormalizeLegacyDemoRecordingCvar(ConVar cvar, const char[] legacyValue, const char[] desiredValue) {
   char currentValue[PLATFORM_MAX_PATH];
   cvar.GetString(currentValue, sizeof(currentValue));
@@ -459,7 +453,6 @@ static bool FormatCvarStringWithTeamNames(ConVar cvar, char[] buffer, int len, c
 #include "get5/stats.sp"
 #include "get5/surrender.sp"
 #include "get5/teamlogic.sp"
-#include "get5/tests.sp"
 
 // clang-format off
 public Plugin myinfo = {
@@ -563,7 +556,6 @@ static void RegisterConVars() {
   // Server config
   g_AutoLoadConfigCvar                  = CreateConVar("get5_autoload_config", "", "The path/name of a match config file to automatically load when the server loads or when the first player joins.");
   g_CheckAuthsCvar                      = CreateConVar("get5_check_auths", "1", "Whether players are forced onto the correct teams based on their Steam IDs.");
-  g_SetHostnameCvar                     = CreateConVar("get5_hostname_format", "", "The server hostname to use when a match is loaded. Set to \"\" to disable/use existing.");
   g_KickClientImmunityCvar              = CreateConVar("get5_kick_immunity", "1", "Whether admins with the 'changemap' flag will be immune to kicks from \"get5_kick_when_no_match_loaded\".");
   g_KickClientsWithNoMatchCvar          = CreateConVar("get5_kick_when_no_match_loaded", "0", "Whether the plugin kicks players when no match is loaded and when a match ends.");
   g_KickOnForceEndCvar                  = CreateConVar("get5_kick_on_force_end", "0", "Whether players are kicked from the server when a match is forcefully ended. Requires get5_kick_when_no_match_loaded to be enabled also.");
@@ -580,7 +572,7 @@ static void RegisterConVars() {
   g_ServerIdCvar                        = CreateConVar("get5_server_id", "0", "A string that identifies your server. This is used in temporary files to prevent collisions and added as an HTTP header for network requests made by Get5.");
   g_StatsPathFormatCvar                 = CreateConVar("get5_stats_path_format", "get5_matchstats_{MATCHID}.cfg", "Where match stats are saved (updated each map end). Set to \"\" to disable.");
   g_WarmupCfgCvar                       = CreateConVar("get5_warmup_cfg", "get5/warmup.cfg", "Config file to execute during warmup periods.");
-  g_ResetCvarsOnEndCvar                 = CreateConVar("get5_reset_cvars_on_end", "1", "Whether parameters from the \"cvars\" section of a match configuration and the Get5-determined hostname are restored to their original values when a series ends.");
+  g_ResetCvarsOnEndCvar                 = CreateConVar("get5_reset_cvars_on_end", "1", "Whether parameters from the \"cvars\" section of a match configuration are restored to their original values when a series ends.");
 
   // clang-format on
 }
@@ -659,9 +651,6 @@ static void RegisterAdminCommands() {
 
   /** Other commands **/
   RegConsoleCmd("get5_status", Command_Status, "Prints JSON formatted match state info");
-  RegServerCmd(
-    "get5_test", Command_Test,
-    "Runs get5 tests - should not be used on a live match server since it will reload a match config to test");
 }
 
 static void HookGameEvents() {
@@ -772,7 +761,6 @@ public void OnPluginStart() {
   RegisterConVars();
   AutoExecConfig(true, "get5");
   NormalizeLegacyDemoRecordingCvars();
-  NormalizeLegacyHostnameCvar();
 
   g_GameStateCvar = CreateConVar("get5_game_state", "0", "Current game state (see get5.inc)", FCVAR_DONTRECORD);
   g_LastGet5BackupCvar = CreateConVar("get5_last_backup_file", "", "Last get5 backup file written", FCVAR_DONTRECORD);
@@ -1958,9 +1946,6 @@ static Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
     // Get5_OnRoundStart() is fired from within the backup event when loading the valve backup.
     return Plugin_Continue;
   }
-
-  // Update server hostname as it may contain team score variables.
-  UpdateHostname();
 
   // We cannot do this during warmup, as sending users into warmup post-knife triggers a round start
   // event.
