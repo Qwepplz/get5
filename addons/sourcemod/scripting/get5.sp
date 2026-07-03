@@ -48,7 +48,6 @@ ConVar g_AllowPauseCancellationCvar;
 ConVar g_AllowTechPauseCvar;
 ConVar g_MaxTechPauseDurationCvar;
 ConVar g_MaxTechPausesCvar;
-ConVar g_AutoTechPauseMissingPlayersCvar;
 ConVar g_AutoLoadConfigCvar;
 ConVar g_AutoReadyActivePlayersCvar;
 ConVar g_BackupSystemEnabledCvar;
@@ -475,7 +474,6 @@ static void RegisterConVars() {
   g_AllowPauseCancellationCvar          = CreateConVar("get5_allow_pause_cancellation", "1", "Whether requests for pauses can be canceled by the pausing team using !unpause before freezetime begins.");
   g_AllowTechPauseCvar                  = CreateConVar("get5_allow_technical_pause", "1", "Whether technical pauses are allowed by players.");
   g_AllowUnpausingFixedPausesCvar       = CreateConVar("get5_allow_unpausing_fixed_pauses", "1", "Whether fixed-length tactical pauses can be stopped early if both teams !unpause.");
-  g_AutoTechPauseMissingPlayersCvar     = CreateConVar("get5_auto_tech_pause_missing_players", "1", "The number of players that must leave a team to trigger an automatic technical pause. Set to 0 to disable.");
   g_FixedPauseTimeCvar                  = CreateConVar("get5_fixed_pause_time", "60", "The fixed duration of tactical pauses in seconds. Cannot be set lower than 15 if non-zero.");
   g_MaxTacticalPausesCvar               = CreateConVar("get5_max_pauses", "0", "Number of tactical pauses a team can use. 0 = unlimited.");
   g_MaxPauseTimeCvar                    = CreateConVar("get5_max_pause_time", "0", "Maximum number of seconds a game can spend under tactical pause for each team. 0 = unlimited.");
@@ -880,6 +878,15 @@ public void OnClientPutInServer(int client) {
   SetServerStateOnStartup(false);
 }
 
+public void OnClientDisconnect(int client) {
+  g_ClientPendingTeamCheck[client] = false;
+  g_ClientReadyForUnpause[client] = false;
+  g_GoingLiveFrozenClients[client] = false;
+  if (g_GameState != Get5State_None) {
+    CreateTimer(0.1, Timer_DisconnectCheck, client, TIMER_FLAG_NO_MAPCHANGE);
+  }
+}
+
 public void OnClientPostAdminCheck(int client) {
   if (IsPlayer(client)) {
     if (g_GameState == Get5State_None && g_KickClientsWithNoMatchCvar.BoolValue) {
@@ -942,11 +949,6 @@ static Action Event_PlayerConnectFull(Event event, const char[] name, bool dontB
 
 static Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast) {
   int client = GetClientOfUserId(event.GetInt("userid"));
-  if (client > 0) {
-    g_ClientPendingTeamCheck[client] = false;
-    g_ClientReadyForUnpause[client] = false;
-    g_GoingLiveFrozenClients[client] = false;
-  }
   if (g_GameState == Get5State_None) {
     return Plugin_Continue;
   }
@@ -961,8 +963,6 @@ static Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBr
     EventLogger_LogAndDeleteEvent(disconnectEvent);
   }
 
-  // Defer so active CT/T client counts reflect the disconnect whether this event fired before or after removal.
-  CreateTimer(0.1, Timer_DisconnectCheck, client, TIMER_FLAG_NO_MAPCHANGE);
   return Plugin_Continue;
 }
 
@@ -1396,29 +1396,37 @@ Action Timer_DisconnectCheck(Handle timer, int disconnectingClient) {
 
 static void HandleMissingPlayerPauseCheck(int previousActiveMatchClients, int activeMatchClients,
                                           int exclude = -1) {
+  if (g_GameState != Get5State_Live || IsDoingRestoreOrMapChange()) {
+    return;
+  }
+
   bool missingPlayerDecrement = ShouldAutoTechPauseForMissingPlayers(previousActiveMatchClients,
                                                                      activeMatchClients);
   if (activeMatchClients >= REQUIRED_ACTIVE_MATCH_CLIENTS) {
     ApplyPauseDisconnectLockForMissingPlayers(activeMatchClients);
-  } else if (missingPlayerDecrement && IsPaused()) {
-    ApplyPauseDisconnectLockForMissingPlayers(activeMatchClients);
+    if (IsPaused()) {
+      HandleUnpauseVotesOnDisconnect();
+    }
+    return;
   }
 
-  if (g_GameState <= Get5State_Warmup || g_GameState > Get5State_Live || IsDoingRestoreOrMapChange()) {
-    // Warmup uses ready-state checks; postgame/restore should not trigger live-match pause handling.
+  if (!missingPlayerDecrement) {
+    if (IsPaused()) {
+      HandleUnpauseVotesOnDisconnect();
+    }
+    return;
+  }
+
+  if (IsPaused()) {
+    ApplyPauseDisconnectLockForMissingPlayers(activeMatchClients);
+    HandleUnpauseVotesOnDisconnect();
     return;
   }
 
   Get5Team pauseTeam = GetPauseTeamForActiveClientShortage(exclude);
-  if (g_AutoTechPauseMissingPlayersCvar.BoolValue &&
-      missingPlayerDecrement &&
-      TriggerAutomaticTechPause(pauseTeam)) {
-    ApplyPauseDisconnectLockForMissingPlayers(activeMatchClients);
-  }
-
-  if (IsPaused()) {
-    HandleUnpauseVotesOnDisconnect();
-  }
+  PauseGame(pauseTeam, Get5PauseType_Tech);
+  Get5_MessageToAll("%t", "TechPauseAutomaticallyStarted", g_FormattedTeamNames[pauseTeam]);
+  ApplyPauseDisconnectLockForMissingPlayers(activeMatchClients);
 }
 
 static Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
