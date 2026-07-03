@@ -1403,8 +1403,10 @@ Action Timer_DisconnectCheck(Handle timer, DataPack pack) {
   pack.ReadString(disconnectAuth, sizeof(disconnectAuth));
   bool isMatchPlayer = IsPlayerTeam(disconnectingTeam);
 
-  int disconnectingTeamHumans =
-      IsPlayerTeam(disconnectingTeam) ? CountHumanMatchTeamClients(disconnectingTeam, true, false, true) : 0;
+  int disconnectingTeamHumans = IsPlayerTeam(disconnectingTeam)
+                                    ? CountHumanMatchTeamClients(disconnectingTeam, true, false, true,
+                                                                 disconnectingClient)
+                                    : 0;
 
   if (g_GameState == Get5State_Veto) {
     if (disconnectingClient == g_VetoCaptains[Get5Team_1]) {
@@ -1418,8 +1420,9 @@ Action Timer_DisconnectCheck(Handle timer, DataPack pack) {
   }
 
   if (IsPaused() && isMatchPlayer) {
-    ApplyPauseDisconnectLockFromDisconnectContext(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans,
-                                                 authResolved, disconnectAuth);
+    ApplyPauseDisconnectLockFromDisconnectContext(disconnectingTeam, humanCountBeforeDisconnect,
+                                                 disconnectingTeamHumans, authResolved, disconnectAuth,
+                                                 disconnectingClient);
   }
 
   if (g_GameState <= Get5State_Warmup || g_GameState > Get5State_Live || IsDoingRestoreOrMapChange()) {
@@ -1431,8 +1434,9 @@ Action Timer_DisconnectCheck(Handle timer, DataPack pack) {
   if (g_AutoTechPauseMissingPlayersCvar.BoolValue &&
       ShouldAutoTechPauseForDisconnect(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans) &&
       TriggerAutomaticTechPause(disconnectingTeam)) {
-    ApplyPauseDisconnectLockFromDisconnectContext(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans,
-                                                 authResolved, disconnectAuth);
+    ApplyPauseDisconnectLockFromDisconnectContext(disconnectingTeam, humanCountBeforeDisconnect,
+                                                 disconnectingTeamHumans, authResolved, disconnectAuth,
+                                                 disconnectingClient);
   }
 
   if (IsPaused()) {

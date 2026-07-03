@@ -19,14 +19,14 @@ static ArrayList GetPauseDisconnectMissingPlayers(Get5Team team) {
   return g_PauseDisconnectMissingPlayerAuths[team];
 }
 
-static bool IsAuthPresentOnCurrentMatchTeamSide(Get5Team team, const char[] auth) {
+static bool IsAuthPresentOnCurrentMatchTeamSide(Get5Team team, const char[] auth, int exclude = -1) {
   if (!IsPlayerTeam(team) || auth[0] == '\0') {
     return false;
   }
 
   int teamSide = Get5TeamToCSTeam(team);
   LOOP_CLIENTS(i) {
-    if (!IsPlayer(i) || GetClientTeam(i) != teamSide) {
+    if (i == exclude || !IsPlayer(i) || GetClientTeam(i) != teamSide) {
       continue;
     }
 
@@ -94,13 +94,13 @@ void ApplyPauseDisconnectLockForPlayer(Get5Team team, bool authResolved, const c
 
 void ApplyPauseDisconnectLockFromDisconnectContext(Get5Team team, int humanCountBeforeDisconnect,
                                                    int humanCountAfterDisconnect, bool authResolved,
-                                                   const char[] auth) {
+                                                   const char[] auth, int exclude = -1) {
   if (!IsPlayerTeam(team) || !CanPauseTypeUseDisconnectLocks(g_PauseType) || humanCountBeforeDisconnect <= 0) {
     return;
   }
 
   if (authResolved && auth[0] != '\0') {
-    if (IsAuthPresentOnCurrentMatchTeamSide(team, auth)) {
+    if (IsAuthPresentOnCurrentMatchTeamSide(team, auth, exclude)) {
       return;
     }
 
