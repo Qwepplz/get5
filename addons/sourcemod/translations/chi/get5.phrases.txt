@@ -1108,19 +1108,19 @@
     }
     "AwaitingPlayerRecovery"
     {
-        "chi"            "等待受影响队伍真人恢复"
+        "chi"            "等待场上人数恢复到 10 人"
     }
     "TechPauseRunoutRecoveryPendingInfoMessage"
     {
-        "chi"            "技术暂停时间已到，但受影响队伍真人恢复前仍会保持暂停。"
+        "chi"            "技术暂停时间已到，但场上人数恢复到 10 人前仍会保持暂停。"
     }
     "DisconnectLockExpired"
     {
-        "chi"            "断线恢复锁已过期，现在可以取消暂停。"
+        "chi"            "缺人锁已过期，现在可以取消暂停。"
     }
     "WaitingForAffectedTeamsToRecoverBeforeUnpause"
     {
-        "chi"            "受影响队伍的真人全部恢复前，比赛不能解除暂停。"
+        "chi"            "场上人数恢复到 10 人前，比赛不能解除暂停。"
     }
     "SmRingerUsage"
     {

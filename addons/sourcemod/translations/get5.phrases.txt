@@ -137,7 +137,7 @@
     }
     "AwaitingPlayerRecovery"
     {
-        "en"            "Awaiting affected team recovery."
+        "en"            "Awaiting 10 active players."
     }
     "PausedByAdministrator"
     {
@@ -172,11 +172,11 @@
     }
     "TechPauseRunoutRecoveryPendingInfoMessage"
     {
-        "en"            "Maximum technical pause length has been reached, but the pause is still locked until the affected team(s) recover their real players."
+        "en"            "Maximum technical pause length has been reached, but the pause is still locked until the match has 10 active players."
     }
     "DisconnectLockExpired"
     {
-        "en"            "Disconnect recovery lock has expired. Players may now unpause."
+        "en"            "Missing-player lock has expired. Players may now unpause."
     }
     "TechPauseNoTimeRemaining"
     {
@@ -205,7 +205,7 @@
     }
     "WaitingForAffectedTeamsToRecoverBeforeUnpause"
     {
-        "en"            "The match cannot be unpaused until every affected team has recovered its required real players."
+        "en"            "The match cannot be unpaused until it has 10 active players."
     }
     "PrereleaseVersionWarning"
     {

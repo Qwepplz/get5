@@ -15,193 +15,135 @@ static bool CanPauseTypeUseDisconnectLocks(Get5PauseType type) {
   return type == Get5PauseType_Tactical || type == Get5PauseType_Tech;
 }
 
-static ArrayList GetPauseDisconnectMissingPlayers(Get5Team team) {
-  return g_PauseDisconnectMissingPlayerAuths[team];
-}
+#define REQUIRED_ACTIVE_MATCH_CLIENTS 10
+#define DISCONNECT_LOCK_EXPIRY_SECONDS 300.0
 
-static bool IsAuthPresentOnCurrentMatchTeamSide(Get5Team team, const char[] auth, int exclude = -1) {
-  if (!IsPlayerTeam(team) || auth[0] == '\0') {
+bool IsActiveMatchClient(int client) {
+  if (!IsValidClient(client)) {
     return false;
   }
 
-  int teamSide = Get5TeamToCSTeam(team);
-  LOOP_CLIENTS(i) {
-    if (i == exclude || !IsPlayer(i) || GetClientTeam(i) != teamSide) {
-      continue;
-    }
-
-    char clientAuth[AUTH_LENGTH];
-    if (GetAuth(i, clientAuth, sizeof(clientAuth)) && StrEqual(auth, clientAuth)) {
-      return true;
-    }
-  }
-
-  return false;
+  int team = GetClientTeam(client);
+  return team == CS_TEAM_T || team == CS_TEAM_CT;
 }
 
-void ResetPauseDisconnectLocks() {
-  LOOP_TEAMS(team) {
-    GetPauseDisconnectMissingPlayers(team).Clear();
-    g_PauseDisconnectUnknownAuthRequiredHumans[team] = 0;
+int CountActiveMatchClients(int exclude = -1) {
+  int count = 0;
+  LOOP_CLIENTS(i) {
+    if (i != exclude && IsActiveMatchClient(i)) {
+      count++;
+    }
   }
+  return count;
+}
+
+int UpdateActiveMatchClientCount(int activeMatchClients = -1) {
+  if (activeMatchClients < 0) {
+    activeMatchClients = CountActiveMatchClients();
+  }
+
+  int previousActiveMatchClients = g_LastActiveMatchClientCount;
+  g_LastActiveMatchClientCount = activeMatchClients;
+  if (activeMatchClients >= REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    g_MissingPlayerLockExpired = false;
+  }
+  return previousActiveMatchClients;
+}
+
+static int CountActiveCSTeamClients(int csTeam, int exclude = -1) {
+  int count = 0;
+  LOOP_CLIENTS(i) {
+    if (i != exclude && IsValidClient(i) && GetClientTeam(i) == csTeam) {
+      count++;
+    }
+  }
+  return count;
+}
+
+Get5Team GetPauseTeamForActiveClientShortage(int exclude = -1) {
+  int ctCount = CountActiveCSTeamClients(CS_TEAM_CT, exclude);
+  int tCount = CountActiveCSTeamClients(CS_TEAM_T, exclude);
+  int shortSide = ctCount <= tCount ? CS_TEAM_CT : CS_TEAM_T;
+  Get5Team team = CSTeamToGet5Team(shortSide);
+  return IsPlayerTeam(team) ? team : Get5Team_1;
+}
+
+void ResetPauseDisconnectLocks(bool clearExpired = false) {
   if (g_DisconnectLockExpiryTimer != INVALID_HANDLE) {
     delete g_DisconnectLockExpiryTimer;
     g_DisconnectLockExpiryTimer = INVALID_HANDLE;
   }
+  if (clearExpired) {
+    g_MissingPlayerLockExpired = false;
+  }
 }
 
-static void StartDisconnectLockExpiryTimer() {
+static void StartDisconnectLockExpiryTimer(bool restart = false) {
+  if (restart && g_DisconnectLockExpiryTimer != INVALID_HANDLE) {
+    delete g_DisconnectLockExpiryTimer;
+    g_DisconnectLockExpiryTimer = INVALID_HANDLE;
+  }
   if (g_DisconnectLockExpiryTimer == INVALID_HANDLE) {
-    g_DisconnectLockExpiryTimer = CreateTimer(300.0, Timer_DisconnectLockExpiry);
+    g_DisconnectLockExpiryTimer = CreateTimer(DISCONNECT_LOCK_EXPIRY_SECONDS, Timer_DisconnectLockExpiry);
   }
 }
 
 static Action Timer_DisconnectLockExpiry(Handle timer) {
   g_DisconnectLockExpiryTimer = INVALID_HANDLE;
-  ResetPauseDisconnectLocks();
+  g_MissingPlayerLockExpired = true;
   Get5_MessageToAll("%t", "DisconnectLockExpired");
   return Plugin_Handled;
 }
 
 bool PauseHasActiveDisconnectLocks() {
-  LOOP_TEAMS(team) {
-    if (g_PauseDisconnectUnknownAuthRequiredHumans[team] > 0 ||
-        GetPauseDisconnectMissingPlayers(team).Length > 0) {
-      return true;
-    }
+  return g_DisconnectLockExpiryTimer != INVALID_HANDLE;
+}
+
+void ApplyPauseDisconnectLockForMissingPlayers(int activeMatchClients) {
+  if (!CanPauseTypeUseDisconnectLocks(g_PauseType)) {
+    return;
   }
+
+  if (activeMatchClients >= REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    g_MissingPlayerLockExpired = false;
+    ResetPauseDisconnectLocks();
+    return;
+  }
+
+  g_MissingPlayerLockExpired = false;
+  StartDisconnectLockExpiryTimer(true);
+}
+
+static bool RefreshPauseDisconnectLock(int activeMatchClients = -1) {
+  if (activeMatchClients < 0) {
+    activeMatchClients = CountActiveMatchClients();
+  }
+
+  bool hadDisconnectLockState = PauseHasActiveDisconnectLocks() || g_MissingPlayerLockExpired;
+  if (activeMatchClients >= REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    g_MissingPlayerLockExpired = false;
+    ResetPauseDisconnectLocks();
+    return hadDisconnectLockState;
+  }
+
   return false;
 }
 
-void ApplyPauseDisconnectLockForPlayer(Get5Team team, bool authResolved, const char[] auth) {
-  if (!IsPlayerTeam(team) || !CanPauseTypeUseDisconnectLocks(g_PauseType)) {
-    return;
-  }
-
-  if (!authResolved || auth[0] == '\0') {
-    int requiredHumans = CountHumanMatchTeamClients(team, true, false, true) + 1;
-    if (requiredHumans > g_PauseDisconnectUnknownAuthRequiredHumans[team]) {
-      g_PauseDisconnectUnknownAuthRequiredHumans[team] = requiredHumans;
-    }
-    return;
-  }
-
-  ArrayList missingPlayers = GetPauseDisconnectMissingPlayers(team);
-  if (missingPlayers.FindString(auth) < 0) {
-    missingPlayers.PushString(auth);
-  }
-}
-
-void ApplyPauseDisconnectLockFromDisconnectContext(Get5Team team, int humanCountBeforeDisconnect,
-                                                   int humanCountAfterDisconnect, bool authResolved,
-                                                   const char[] auth, int exclude = -1) {
-  if (!IsPlayerTeam(team) || !CanPauseTypeUseDisconnectLocks(g_PauseType) || humanCountBeforeDisconnect <= 0) {
-    return;
-  }
-
-  if (authResolved && auth[0] != '\0') {
-    if (IsAuthPresentOnCurrentMatchTeamSide(team, auth, exclude)) {
-      return;
-    }
-
-    ApplyPauseDisconnectLockForPlayer(team, true, auth);
-    StartDisconnectLockExpiryTimer();
-    return;
-  }
-
-  if (humanCountAfterDisconnect >= humanCountBeforeDisconnect) {
-    return;
-  }
-
-  if (humanCountBeforeDisconnect > g_PauseDisconnectUnknownAuthRequiredHumans[team]) {
-    g_PauseDisconnectUnknownAuthRequiredHumans[team] = humanCountBeforeDisconnect;
-  }
-  StartDisconnectLockExpiryTimer();
-}
-
-bool ClearPauseDisconnectLockForPlayerAuth(Get5Team team, const char[] auth) {
-  if (!IsPlayerTeam(team) || auth[0] == '\0') {
-    return false;
-  }
-
-  ArrayList missingPlayers = GetPauseDisconnectMissingPlayers(team);
-  int index = missingPlayers.FindString(auth);
-  if (index < 0) {
-    return false;
-  }
-
-  missingPlayers.Erase(index);
-  return true;
-}
-
-bool RefreshPauseDisconnectUnknownLockForTeamHumans(Get5Team team, int currentHumans) {
-  if (!IsPlayerTeam(team)) {
-    return false;
-  }
-
-  int requiredHumans = g_PauseDisconnectUnknownAuthRequiredHumans[team];
-  if (requiredHumans <= 0 || currentHumans < requiredHumans) {
-    return false;
-  }
-
-  g_PauseDisconnectUnknownAuthRequiredHumans[team] = 0;
-  return true;
-}
-
-bool PauseTeamDisconnectLockSatisfiedWithHumans(Get5Team team, int currentHumans) {
-  if (GetPauseDisconnectMissingPlayers(team).Length > 0) {
-    return false;
-  }
-
-  RefreshPauseDisconnectUnknownLockForTeamHumans(team, currentHumans);
-  return g_PauseDisconnectUnknownAuthRequiredHumans[team] == 0;
-}
-
-static bool RefreshPauseDisconnectUnknownLock(Get5Team team) {
-  return RefreshPauseDisconnectUnknownLockForTeamHumans(team,
-                                                        CountHumanMatchTeamClients(team, true, false, true));
-}
-
 bool ClearPauseDisconnectLockForReturnedPlayer(int client, Get5Team expectedTeam = Get5Team_None) {
-  if (!IsPlayer(client)) {
+  if (!IsActiveMatchClient(client)) {
     return false;
   }
 
   Get5Team currentTeam = CSTeamToGet5Team(GetClientTeam(client));
-  if (!IsPlayerTeam(currentTeam)) {
-    return false;
-  }
-
   if (expectedTeam != Get5Team_None && currentTeam != expectedTeam) {
     return false;
   }
 
-  bool clearedUnknownBaseline = RefreshPauseDisconnectUnknownLock(currentTeam);
-  bool clearedKnownAuth = false;
-
-  char auth[AUTH_LENGTH];
-  if (GetAuth(client, auth, sizeof(auth))) {
-    clearedKnownAuth = ClearPauseDisconnectLockForPlayerAuth(currentTeam, auth);
-  }
-
-  if ((clearedUnknownBaseline || clearedKnownAuth) && IsPaused()) {
+  bool cleared = RefreshPauseDisconnectLock();
+  if (cleared && IsPaused()) {
     HandleUnpauseVotesOnDisconnect();
   }
-
-  if ((clearedUnknownBaseline || clearedKnownAuth) && !PauseHasActiveDisconnectLocks()) {
-    if (g_DisconnectLockExpiryTimer != INVALID_HANDLE) {
-      delete g_DisconnectLockExpiryTimer;
-      g_DisconnectLockExpiryTimer = INVALID_HANDLE;
-    }
-  }
-
-  return clearedUnknownBaseline || clearedKnownAuth;
-}
-
-static bool PauseTeamDisconnectLockSatisfied(Get5Team team) {
-  // This predicate also refreshes and may clear the unknown-auth fallback once current-side humans recover.
-  return PauseTeamDisconnectLockSatisfiedWithHumans(team,
-                                                    CountHumanMatchTeamClients(team, true, false, true));
+  return cleared;
 }
 
 bool CanPlayersResumeCurrentPause() {
@@ -209,8 +151,7 @@ bool CanPlayersResumeCurrentPause() {
     return true;
   }
 
-  return PauseTeamDisconnectLockSatisfied(Get5Team_1) &&
-         PauseTeamDisconnectLockSatisfied(Get5Team_2);
+  return !PauseHasActiveDisconnectLocks() || RefreshPauseDisconnectLock();
 }
 
 static bool WaitingForPauseDisconnectRecovery() {
@@ -509,13 +450,9 @@ bool TriggerAutomaticTechPause(Get5Team team) {
   return false;
 }
 
-bool ShouldAutoTechPauseForDisconnect(Get5Team disconnectingTeam, int humanCountBeforeDisconnect,
-                                      int disconnectingTeamHumans) {
-  if (!IsPlayerTeam(disconnectingTeam)) {
-    return false;
-  }
-
-  return humanCountBeforeDisconnect > disconnectingTeamHumans;
+bool ShouldAutoTechPauseForMissingPlayers(int previousActiveMatchClients, int activeMatchClients) {
+  return previousActiveMatchClients > activeMatchClients &&
+         activeMatchClients < REQUIRED_ACTIVE_MATCH_CLIENTS;
 }
 
 Action Command_PauseOrUnpauseMatch(int client, const char[] command, int argc) {

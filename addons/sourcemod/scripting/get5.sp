@@ -191,9 +191,9 @@ bool g_TeamReadyForUnpause[MATCHTEAM_COUNT];
 bool g_ClientReadyForUnpause[MAXPLAYERS + 1];
 Handle g_UnpauseReminderTimer = INVALID_HANDLE;
 int g_LastUnpauseRequesterUserId = 0;
-ArrayList g_PauseDisconnectMissingPlayerAuths[MATCHTEAM_COUNT];
-int g_PauseDisconnectUnknownAuthRequiredHumans[MATCHTEAM_COUNT];
 Handle g_DisconnectLockExpiryTimer = INVALID_HANDLE;
+bool g_MissingPlayerLockExpired = false;
+int g_LastActiveMatchClientCount = -1;
 bool g_TeamGivenStopCommand[MATCHTEAM_COUNT];
 int g_TacticalPauseTimeUsed[MATCHTEAM_COUNT];
 int g_TacticalPausesUsed[MATCHTEAM_COUNT];
@@ -273,14 +273,6 @@ bool g_MapChangePending = false;
 bool g_PendingSideSwap = false;
 Handle g_PendingMapChangeTimer = INVALID_HANDLE;
 bool g_ClientPendingTeamCheck[MAXPLAYERS + 1];
-
-enum struct DisconnectCheckContext {
-  int client;
-  Get5Team team;
-  int humanCountBeforeDisconnect;
-  bool authResolved;
-  char auth[AUTH_LENGTH];
-}
 
 forward void FreezeClientForGoingLive(int client);
 forward void ClearGoingLiveFreeze();
@@ -692,7 +684,6 @@ static void InitDataStructures() {
     g_TeamPlayers[i] = new ArrayList(AUTH_LENGTH);
     // Same length.
     g_TeamCoaches[i] = new ArrayList(AUTH_LENGTH);
-    g_PauseDisconnectMissingPlayerAuths[i] = new ArrayList(AUTH_LENGTH);
   }
   DisableCoachingSupport();
   g_PlayerNames = new StringMap();
@@ -951,23 +942,27 @@ static Action Event_PlayerConnectFull(Event event, const char[] name, bool dontB
 
 static Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBroadcast) {
   int client = GetClientOfUserId(event.GetInt("userid"));
-  g_ClientPendingTeamCheck[client] = false;
-  g_ClientReadyForUnpause[client] = false;
-  g_GoingLiveFrozenClients[client] = false;
-  if (g_GameState == Get5State_None || !IsPlayer(client)) {
+  if (client > 0) {
+    g_ClientPendingTeamCheck[client] = false;
+    g_ClientReadyForUnpause[client] = false;
+    g_GoingLiveFrozenClients[client] = false;
+  }
+  if (g_GameState == Get5State_None) {
     return Plugin_Continue;
   }
-  Get5PlayerDisconnectedEvent disconnectEvent = new Get5PlayerDisconnectedEvent(g_MatchID, GetPlayerObject(client));
 
-  LogDebug("Calling Get5_OnPlayerDisconnected()");
-  Call_StartForward(g_OnPlayerDisconnected);
-  Call_PushCell(disconnectEvent);
-  Call_Finish();
-  EventLogger_LogAndDeleteEvent(disconnectEvent);
+  if (IsPlayer(client)) {
+    Get5PlayerDisconnectedEvent disconnectEvent = new Get5PlayerDisconnectedEvent(g_MatchID, GetPlayerObject(client));
 
-  // Because the disconnect event fires before the user leaves the server, we have to defer follow-up handling
-  // so disconnect-based pause locks, auto tech pause, and forfeit checks all see updated team counts.
-  CreateTimer(0.1, Timer_DisconnectCheck, CreateDisconnectCheckData(client), TIMER_FLAG_NO_MAPCHANGE | TIMER_DATA_HNDL_CLOSE);
+    LogDebug("Calling Get5_OnPlayerDisconnected()");
+    Call_StartForward(g_OnPlayerDisconnected);
+    Call_PushCell(disconnectEvent);
+    Call_Finish();
+    EventLogger_LogAndDeleteEvent(disconnectEvent);
+  }
+
+  // Defer so active CT/T client counts reflect the disconnect whether this event fired before or after removal.
+  CreateTimer(0.1, Timer_DisconnectCheck, client, TIMER_FLAG_NO_MAPCHANGE);
   return Plugin_Continue;
 }
 
@@ -978,35 +973,22 @@ static Action Event_PlayerTeam(Event event, const char[] name, bool dontBroadcas
 
   CreateTimer(0.1, Timer_CheckPauseDisconnectLockForReturnedPlayer, event.GetInt("userid"),
               TIMER_FLAG_NO_MAPCHANGE);
+  CreateTimer(0.1, Timer_ActiveMatchClientCountCheck, _, TIMER_FLAG_NO_MAPCHANGE);
   return Plugin_Continue;
-}
-
-static void CaptureDisconnectCheckContext(int client, DisconnectCheckContext context) {
-  context.client = client;
-  context.team = GetClientMatchTeam(client);
-  context.humanCountBeforeDisconnect =
-      IsPlayerTeam(context.team) ? CountHumanMatchTeamClients(context.team, true, false, true) : 0;
-  context.auth[0] = '\0';
-  context.authResolved = GetAuth(client, context.auth, sizeof(context.auth));
-}
-
-static DataPack CreateDisconnectCheckData(int client) {
-  DisconnectCheckContext context;
-  CaptureDisconnectCheckContext(client, context);
-  DataPack pack = new DataPack();
-  pack.WriteCell(context.client);
-  pack.WriteCell(view_as<int>(context.team));
-  pack.WriteCell(context.humanCountBeforeDisconnect);
-  pack.WriteCell(context.authResolved);
-  pack.WriteString(context.auth);
-  return pack;
 }
 
 static Action Timer_CheckPauseDisconnectLockForReturnedPlayer(Handle timer, int userId) {
   int client = GetClientOfUserId(userId);
-  if (IsPlayer(client)) {
+  if (IsActiveMatchClient(client)) {
     ClearPauseDisconnectLockForReturnedPlayer(client);
   }
+  return Plugin_Handled;
+}
+
+static Action Timer_ActiveMatchClientCountCheck(Handle timer) {
+  int activeMatchClients = CountActiveMatchClients();
+  int previousActiveMatchClients = UpdateActiveMatchClientCount(activeMatchClients);
+  HandleMissingPlayerPauseCheck(previousActiveMatchClients, activeMatchClients);
   return Plugin_Handled;
 }
 
@@ -1393,20 +1375,9 @@ static Action Command_BlockSuicide(int client, const char[] command, int argc) {
  * Game Events *not* related to the stats tracking system.
  */
 
-Action Timer_DisconnectCheck(Handle timer, DataPack pack) {
-  pack.Reset();
-  int disconnectingClient = pack.ReadCell();
-  Get5Team disconnectingTeam = view_as<Get5Team>(pack.ReadCell());
-  int humanCountBeforeDisconnect = pack.ReadCell();
-  bool authResolved = view_as<bool>(pack.ReadCell());
-  char disconnectAuth[AUTH_LENGTH];
-  pack.ReadString(disconnectAuth, sizeof(disconnectAuth));
-  bool isMatchPlayer = IsPlayerTeam(disconnectingTeam);
-
-  int disconnectingTeamHumans = IsPlayerTeam(disconnectingTeam)
-                                    ? CountHumanMatchTeamClients(disconnectingTeam, true, false, true,
-                                                                 disconnectingClient)
-                                    : 0;
+Action Timer_DisconnectCheck(Handle timer, int disconnectingClient) {
+  int activeMatchClients = CountActiveMatchClients(disconnectingClient);
+  int previousActiveMatchClients = UpdateActiveMatchClientCount(activeMatchClients);
 
   if (g_GameState == Get5State_Veto) {
     if (disconnectingClient == g_VetoCaptains[Get5Team_1]) {
@@ -1419,31 +1390,35 @@ Action Timer_DisconnectCheck(Handle timer, DataPack pack) {
     return Plugin_Handled;
   }
 
-  if (IsPaused() && isMatchPlayer) {
-    ApplyPauseDisconnectLockFromDisconnectContext(disconnectingTeam, humanCountBeforeDisconnect,
-                                                 disconnectingTeamHumans, authResolved, disconnectAuth,
-                                                 disconnectingClient);
+  HandleMissingPlayerPauseCheck(previousActiveMatchClients, activeMatchClients, disconnectingClient);
+  return Plugin_Handled;
+}
+
+static void HandleMissingPlayerPauseCheck(int previousActiveMatchClients, int activeMatchClients,
+                                          int exclude = -1) {
+  bool missingPlayerDecrement = ShouldAutoTechPauseForMissingPlayers(previousActiveMatchClients,
+                                                                     activeMatchClients);
+  if (activeMatchClients >= REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    ApplyPauseDisconnectLockForMissingPlayers(activeMatchClients);
+  } else if (missingPlayerDecrement && IsPaused()) {
+    ApplyPauseDisconnectLockForMissingPlayers(activeMatchClients);
   }
 
   if (g_GameState <= Get5State_Warmup || g_GameState > Get5State_Live || IsDoingRestoreOrMapChange()) {
-    // If we're in warmup or veto, the "time to ready" logic should be used instead of leave-surrender.
-    // Postgame/restore also should not trigger any of this logic.
-    return Plugin_Handled;
+    // Warmup uses ready-state checks; postgame/restore should not trigger live-match pause handling.
+    return;
   }
 
+  Get5Team pauseTeam = GetPauseTeamForActiveClientShortage(exclude);
   if (g_AutoTechPauseMissingPlayersCvar.BoolValue &&
-      ShouldAutoTechPauseForDisconnect(disconnectingTeam, humanCountBeforeDisconnect, disconnectingTeamHumans) &&
-      TriggerAutomaticTechPause(disconnectingTeam)) {
-    ApplyPauseDisconnectLockFromDisconnectContext(disconnectingTeam, humanCountBeforeDisconnect,
-                                                 disconnectingTeamHumans, authResolved, disconnectAuth,
-                                                 disconnectingClient);
+      missingPlayerDecrement &&
+      TriggerAutomaticTechPause(pauseTeam)) {
+    ApplyPauseDisconnectLockForMissingPlayers(activeMatchClients);
   }
 
   if (IsPaused()) {
     HandleUnpauseVotesOnDisconnect();
   }
-
-  return Plugin_Handled;
 }
 
 static Action Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast) {
@@ -1829,7 +1804,7 @@ void ResetMatchConfigVariables(bool backup = false) {
   g_PausingTeam = Get5Team_None;
   g_LatestPauseDuration = 0;
   g_PauseType = Get5PauseType_None;
-  ResetPauseDisconnectLocks();
+  ResetPauseDisconnectLocks(true);
   if (!backup) {
     // All hell breaks loose if these are reset during a backup.
     g_DoingBackupRestoreNow = false;
@@ -1905,7 +1880,7 @@ static Action Event_FreezeEnd(Event event, const char[] name, bool dontBroadcast
   g_LatestPauseDuration = -1;
   g_PauseType = Get5PauseType_None;
   g_PausingTeam = Get5Team_None;
-  ResetPauseDisconnectLocks();
+  ResetPauseDisconnectLocks(true);
   ResetUnpauseTracking();
 
   LOOP_TEAMS(t) {
@@ -2282,6 +2257,12 @@ void ChangeState(Get5State state) {
   EventLogger_LogAndDeleteEvent(event);
 
   g_GameState = state;
+  if (state == Get5State_Live) {
+    g_MissingPlayerLockExpired = false;
+    g_LastActiveMatchClientCount = CountActiveMatchClients();
+  } else if (state < Get5State_Live || state > Get5State_Live) {
+    g_LastActiveMatchClientCount = -1;
+  }
 }
 
 static Action Command_Status(int client, int args) {
@@ -2545,4 +2526,3 @@ void CheckAndCreateFolderPath(const ConVar cvar, const char[][] varsToReplace, c
   }
   Format(outputFolder, outputFolderSize, "%s", path);
 }
-
