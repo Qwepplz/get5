@@ -1,3 +1,1 @@
-适用于CSGOBetterBOT的Pug插件
-
-原作者：https://github.com/splewis/get5
+## Forked from https://github.com/splewis/get5
