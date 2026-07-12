@@ -625,7 +625,7 @@ static void RegisterAdminCommands() {
   RegAdminCmd("sm_ringer", Command_Ringer, ADMFLAG_CHANGEMAP, "Adds/removes a ringer to/from the home scrim team");
 
   RegConsoleCmd("sm_get5", Command_Get5AdminMenu, "Displays a helper menu");
-  RegConsoleCmd("sm_mm", Command_StartMenuMatch, "Starts a match using the locked setup");
+  RegConsoleCmd("sm_zz", Command_StartMenuMatch, "Starts a match using the locked setup");
 
   RegAdminCmd("get5_forceready", Command_AdminForceReady, ADMFLAG_CHANGEMAP, "Force readies all current teams");
   RegAdminCmd("get5_forcestart", Command_AdminForceReady, ADMFLAG_CHANGEMAP, "Force readies all current teams");
