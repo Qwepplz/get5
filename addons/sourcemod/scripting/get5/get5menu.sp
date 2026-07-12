@@ -618,6 +618,15 @@ static void CreateMatch(int client) {
   json_cleanup_and_delete(match);
 }
 
+Action Command_StartMenuMatch(int client, int args) {
+  if (!IsPlayer(client)) {
+    ReplyToCommand(client, "%t", "MenuCommandInGameOnly");
+    return Plugin_Handled;
+  }
+  CreateMatch(client);
+  return Plugin_Handled;
+}
+
 Action Command_Get5AdminMenu(int client, int args) {
   if (!IsPlayer(client)) {
     ReplyToCommand(client, "%t", "MenuCommandInGameOnly");
