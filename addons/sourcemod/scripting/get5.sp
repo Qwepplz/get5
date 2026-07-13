@@ -777,6 +777,7 @@ public void OnPluginStart() {
 
   /** Start any repeating timers **/
   CreateTimer(CHECK_READY_TIMER_INTERVAL, Timer_CheckReady, _, TIMER_REPEAT);
+  CreateTimer(QUICK_MATCH_TIMER_INTERVAL, Timer_QuickMatchMessage, _, TIMER_REPEAT);
   RestartInfoTimer();
   CheckForLatestVersion();
 }
@@ -836,6 +837,21 @@ static Action Timer_InfoMessages(Handle timer) {
     if (g_ResetCvarsTimer == INVALID_HANDLE && GetTvDelay() > 0) {
       // Only print this if the reset timer isn't running, which would mean it's the last map.
       Get5_MessageToAll("%t", "WaitingForGOTVBroadcastEnding");
+    }
+  }
+  return Plugin_Continue;
+}
+
+static Action Timer_QuickMatchMessage(Handle timer) {
+  if (g_GameState != Get5State_None || !InWarmup()) {
+    return Plugin_Continue;
+  }
+
+  char quickMatchCommand[32];
+  FormatChatCommand(quickMatchCommand, sizeof(quickMatchCommand), "!zz");
+  LOOP_CLIENTS(i) {
+    if (IsPlayer(i)) {
+      Get5_Message(i, "%t", "QuickMatchStartInfoMessage", quickMatchCommand);
     }
   }
   return Plugin_Continue;

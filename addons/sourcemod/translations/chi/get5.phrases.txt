@@ -20,6 +20,10 @@
     {
         "chi"            "当您准备好开始比赛时，请输入{1}。"
     }
+    "QuickMatchStartInfoMessage"
+    {
+        "chi"            "输入{1}开始比赛"
+    }
     "ReadyStatusHint"
     {
         "chi"            "当前已有 {1}/{2} 位所需参与者准备完毕。\n输入 {3} 表示准备，输入 {4} 取消准备。"

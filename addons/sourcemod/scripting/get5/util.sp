@@ -13,6 +13,7 @@
 #define GAME_TYPE_CLASSIC           0
 #define CHECK_READY_TIMER_INTERVAL  1.0
 #define INFO_MESSAGE_TIMER_INTERVAL 20.0
+#define QUICK_MATCH_TIMER_INTERVAL  30.0
 #define DEBUG_CVAR                  "get5_debug"
 #define MATCH_ID_LENGTH             64
 #define TEAM1_STARTING_SIDE         CS_TEAM_CT
