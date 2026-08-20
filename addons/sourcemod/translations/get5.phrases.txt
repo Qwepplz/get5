@@ -812,6 +812,11 @@
     {
         "en"        "A match is already loaded."
     }
+    "MenuMatchRequiresTenPlayers"
+    {
+        "#format"   "{1:i},{2:i}"
+        "en"        "At least {2} active players are required to start the match ({1}/{2})."
+    }
     "MenuErrorLoadingCvars"
     {
         "#format"   "{1:s}"

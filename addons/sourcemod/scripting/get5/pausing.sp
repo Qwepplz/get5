@@ -15,7 +15,6 @@ static bool CanPauseTypeUseDisconnectLocks(Get5PauseType type) {
   return type == Get5PauseType_Tactical || type == Get5PauseType_Tech;
 }
 
-#define REQUIRED_ACTIVE_MATCH_CLIENTS 10
 #define DISCONNECT_LOCK_EXPIRY_SECONDS 300.0
 
 bool IsActiveMatchClient(int client) {

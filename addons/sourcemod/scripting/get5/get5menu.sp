@@ -33,6 +33,8 @@
 #define SETUP_MENU_TEAMS_RESET "SETUP_MENU_TEAMS_RESET"
 #define SETUP_MENU_TEAMS_SWAP  "SETUP_MENU_TEAMS_SWAP"
 
+#define MATCH_START_REJECT_MESSAGE_COOLDOWN       30.0
+
 static void FillMenuPageWithBlanks(const Menu menu) {
   while (menu.ItemCount % 6 != 0) {
     menu.AddItem("", "", ITEMDRAW_SPACER);
@@ -525,6 +527,18 @@ static void CreateMatch(int client) {
     Get5_Message(client, "%t", "MenuMatchAlreadyLoaded");
     return;
   }
+
+  int activePlayers = CountActiveMatchClients();
+  if (activePlayers < REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    float now = GetEngineTime();
+    if (now >= g_NextMatchStartRejectMessage[client]) {
+      Get5_Message(client, "%t", "MenuMatchRequiresTenPlayers", activePlayers,
+                   REQUIRED_ACTIVE_MATCH_CLIENTS);
+      g_NextMatchStartRejectMessage[client] = now + MATCH_START_REJECT_MESSAGE_COOLDOWN;
+    }
+    return;
+  }
+
   NormalizeLockedSetupMenuValues();
   NormalizeSetupMenuRoundOptions();
 

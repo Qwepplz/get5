@@ -43,6 +43,8 @@
 
 #include "get5/util.sp"
 
+#define REQUIRED_ACTIVE_MATCH_CLIENTS 10
+
 /** ConVar handles **/
 ConVar g_AllowPauseCancellationCvar;
 ConVar g_AllowTechPauseCvar;
@@ -295,6 +297,7 @@ int g_SetupMenuTeam2Captain = -1;
 char g_SetupMenuTeamForTeam1[64] = "";
 char g_SetupMenuTeamForTeam2[64] = "";
 JSON_Object g_SetupMenuAvailableTeams;
+float g_NextMatchStartRejectMessage[MAXPLAYERS + 1];
 // int g_SetupMenuLeader = -1;
 
 // version check state
@@ -884,6 +887,7 @@ public void OnClientPutInServer(int client) {
   Stats_HookDamageForClient(client);  // Also needed for bots!
   g_ClientReadyForUnpause[client] = false;
   g_GoingLiveFrozenClients[client] = false;
+  g_NextMatchStartRejectMessage[client] = 0.0;
   if (IsFakeClient(client)) {
     return;
   }
