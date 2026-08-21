@@ -729,7 +729,7 @@
     "MenuMatchRequiresTenPlayers"
     {
         "#format"        "{1:i},{2:i}"
-        "chi"            "比赛人数不足，至少需要 {2} 名活跃玩家才能开始比赛（当前 {1}/{2}）。"
+        "chi"            "比赛人数不足，当前 {1} 名活跃玩家，至少需要 {2} 名才能开始比赛。"
     }
     "MenuErrorLoadingCvars"
     {
