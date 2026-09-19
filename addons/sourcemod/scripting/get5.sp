@@ -582,7 +582,7 @@ static void RegisterChatCommands() {
   MapChatCommand(Get5ChatCommand_Unready, "unready");
   MapChatCommand(Get5ChatCommand_ForceReady, "forceready");
   MapChatCommand(Get5ChatCommand_Tech, "tech");
-  MapChatCommand(Get5ChatCommand_Pause, "tac");
+  MapChatCommand(Get5ChatCommand_Pause, "p");
   MapChatCommand(Get5ChatCommand_Pause, "pause");
   MapChatCommand(Get5ChatCommand_Unpause, "unpause");
   MapChatCommand(Get5ChatCommand_Stay, "stay");
@@ -629,6 +629,7 @@ static void RegisterAdminCommands() {
 
   RegConsoleCmd("sm_get5", Command_Get5AdminMenu, "Displays a helper menu");
   RegConsoleCmd("sm_zz", Command_StartMenuMatch, "Starts a match using the locked setup");
+  RegConsoleCmd("sm_h", Command_Get5Help, "Displays Get5 pause commands");
 
   RegAdminCmd("get5_forceready", Command_AdminForceReady, ADMFLAG_CHANGEMAP, "Force readies all current teams");
   RegAdminCmd("get5_forcestart", Command_AdminForceReady, ADMFLAG_CHANGEMAP, "Force readies all current teams");
@@ -852,9 +853,12 @@ static Action Timer_QuickMatchMessage(Handle timer) {
 
   char quickMatchCommand[32];
   FormatChatCommand(quickMatchCommand, sizeof(quickMatchCommand), "!zz");
+  char helpCommand[32];
+  FormatChatCommand(helpCommand, sizeof(helpCommand), "!h");
   LOOP_CLIENTS(i) {
     if (IsPlayer(i)) {
       Get5_Message(i, "%t", "QuickMatchStartInfoMessage", quickMatchCommand);
+      Get5_Message(i, "%t", "QuickMatchHelpInfoMessage", helpCommand);
     }
   }
   return Plugin_Continue;

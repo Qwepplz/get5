@@ -24,6 +24,18 @@
     {
         "chi"            "输入{1}开始比赛"
     }
+    "QuickMatchHelpInfoMessage"
+    {
+        "chi"            "输入{1}获取帮助"
+    }
+    "PauseCommandHelpMessage"
+    {
+        "chi"            "{1} - 请求战术暂停"
+    }
+    "TechCommandHelpMessage"
+    {
+        "chi"            "{1} - 请求技术暂停"
+    }
     "ReadyStatusHint"
     {
         "chi"            "当前已有 {1}/{2} 位所需参与者准备完毕。\n输入 {3} 表示准备，输入 {4} 取消准备。"

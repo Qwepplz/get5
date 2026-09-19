@@ -1,3 +1,18 @@
+Action Command_Get5Help(int client, int args) {
+  if (!IsPlayer(client)) {
+    return Plugin_Handled;
+  }
+
+  char pauseCommands[64];
+  FormatChatCommand(pauseCommands, sizeof(pauseCommands), "!p / !pause");
+  Get5_Message(client, "%t", "PauseCommandHelpMessage", pauseCommands);
+
+  char techCommand[32];
+  FormatChatCommand(techCommand, sizeof(techCommand), "!tech");
+  Get5_Message(client, "%t", "TechCommandHelpMessage", techCommand);
+  return Plugin_Handled;
+}
+
 void AddAliasedCommand(const char[] command, ConCmd callback, const char[] description) {
   char smCommandBuffer[COMMAND_LENGTH];
   FormatEx(smCommandBuffer, sizeof(smCommandBuffer), "sm_%s", command);

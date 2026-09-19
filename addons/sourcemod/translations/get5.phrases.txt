@@ -30,6 +30,21 @@
         "#format"       "{1:s}"
         "en"            "Type {1} to start the match."
     }
+    "QuickMatchHelpInfoMessage"
+    {
+        "#format"       "{1:s}"
+        "en"            "Type {1} for help."
+    }
+    "PauseCommandHelpMessage"
+    {
+        "#format"       "{1:s}"
+        "en"            "{1} - Request a tactical pause."
+    }
+    "TechCommandHelpMessage"
+    {
+        "#format"       "{1:s}"
+        "en"            "{1} - Request a technical pause."
+    }
     "ReadyStatusHint"
     {
         "#format"       "{1:i},{2:i},{3:s},{4:s}"
