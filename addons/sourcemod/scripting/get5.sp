@@ -209,6 +209,7 @@ Get5Team g_PendingSurrenderTeam = Get5Team_None;
 
 /** Other state **/
 Get5State g_GameState = Get5State_None;
+bool g_AutoMatchStartConfigsReady = false;
 ArrayList g_MapsToPlay;
 ArrayList g_MapSides;
 ArrayList g_MapsLeftInVetoPool;
@@ -907,6 +908,9 @@ public void OnClientDisconnect(int client) {
   g_ClientPendingTeamCheck[client] = false;
   g_ClientReadyForUnpause[client] = false;
   g_GoingLiveFrozenClients[client] = false;
+  if (CountActiveMatchClients(client) < REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    CancelAutoMatchStart();
+  }
   if (g_GameState != Get5State_None) {
     CreateTimer(0.1, Timer_DisconnectCheck, client, TIMER_FLAG_NO_MAPCHANGE);
   }
@@ -992,6 +996,20 @@ static Action Event_PlayerDisconnect(Event event, const char[] name, bool dontBr
 }
 
 static Action Event_PlayerTeam(Event event, const char[] name, bool dontBroadcast) {
+  int oldTeam = event.GetInt("oldteam");
+  int newTeam = event.GetInt("team");
+  int client = GetClientOfUserId(event.GetInt("userid"));
+  bool isTrackedClient = IsValidClient(client) && !IsClientSourceTV(client) && !IsClientReplay(client);
+  bool wasActive = oldTeam == CS_TEAM_T || oldTeam == CS_TEAM_CT;
+  bool isActive = newTeam == CS_TEAM_T || newTeam == CS_TEAM_CT;
+
+  if (isTrackedClient && wasActive && !isActive &&
+      CountActiveMatchClients(client) < REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    CancelAutoMatchStart();
+  } else if (isTrackedClient && !wasActive && isActive) {
+    RequestFrame(Frame_UpdateAutoMatchStart);
+  }
+
   if (g_GameState == Get5State_None) {
     return Plugin_Continue;
   }
@@ -1021,6 +1039,8 @@ static Action Timer_ActiveMatchClientCountCheck(Handle timer) {
 // mentioned hibernate race conditions.
 public void OnMapStart() {
   LogDebug("OnMapStart");
+  g_AutoMatchStartConfigsReady = false;
+  CancelAutoMatchStart();
   if (g_GoingLiveFreezeActive) {
     ClearGoingLiveFreeze();
   }
@@ -1063,7 +1083,7 @@ public void OnConfigsExecuted() {
   // fail with "Gamerules lookup failed" probably due to some odd internal race-condition where the
   // game is not yet running when we attempt to determine its "is paused" or "is in warmup" state.
   // Putting it on a 1 second callback seems to solve this problem.
-  CreateTimer(1.0, Timer_ConfigsExecutedCallback);
+  CreateTimer(1.0, Timer_ConfigsExecutedCallback, _, TIMER_FLAG_NO_MAPCHANGE);
 }
 
 static Action Timer_ConfigsExecutedCallback(Handle timer) {
@@ -1081,6 +1101,8 @@ static Action Timer_ConfigsExecutedCallback(Handle timer) {
   if (CheckAutoLoadConfig()) {
     // If gamestate is none and a config was autoloaded, a match config will set all of the below
     // state.
+    g_AutoMatchStartConfigsReady = true;
+    UpdateAutoMatchStart();
     return Plugin_Handled;
   }
 
@@ -1093,10 +1115,18 @@ static Action Timer_ConfigsExecutedCallback(Handle timer) {
   if (g_GameState != Get5State_PendingRestore) {
     SetStartingTeams();
   }
+  g_AutoMatchStartConfigsReady = true;
+  UpdateAutoMatchStart();
   return Plugin_Handled;
 }
 
+public void OnMapEnd() {
+  g_AutoMatchStartConfigsReady = false;
+  CancelAutoMatchStart();
+}
+
 static Action Timer_CheckReady(Handle timer) {
+  UpdateAutoMatchStart();
   if (g_GameState == Get5State_None) {
     return Plugin_Continue;
   }
@@ -1954,7 +1984,11 @@ static Action Event_RoundStart(Event event, const char[] name, bool dontBroadcas
     RestartPauseTimer();
   }
 
-  if (g_GameState == Get5State_None || IsDoingRestoreOrMapChange()) {
+  if (g_GameState == Get5State_None) {
+    UpdateAutoMatchStart();
+    return Plugin_Continue;
+  }
+  if (IsDoingRestoreOrMapChange()) {
     // Get5_OnRoundStart() is fired from within the backup event when loading the valve backup.
     return Plugin_Continue;
   }
@@ -2267,6 +2301,10 @@ void ChangeState(Get5State state) {
   if (g_GameState == state) {
     LogDebug("Ignoring request to change game state. Already in state %d.", state);
     return;
+  }
+
+  if (g_GameState == Get5State_None && state != Get5State_None) {
+    CancelAutoMatchStart();
   }
 
   if (state != Get5State_GoingLive && g_GoingLiveFreezeActive) {

@@ -18,7 +18,7 @@ static bool CanPauseTypeUseDisconnectLocks(Get5PauseType type) {
 #define DISCONNECT_LOCK_EXPIRY_SECONDS 300.0
 
 bool IsActiveMatchClient(int client) {
-  if (!IsValidClient(client)) {
+  if (!IsValidClient(client) || IsClientSourceTV(client) || IsClientReplay(client)) {
     return false;
   }
 

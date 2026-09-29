@@ -55,36 +55,8 @@ stock int CountHumanClientsOnCSTeam(int team, int exclude = -1) {
   return count;
 }
 
-stock int CountHumanMatchTeamClients(const Get5Team team, bool includeCoaches = true,
-                                     bool requireAuthed = false, bool requireCurrentSide = false,
-                                     int exclude = -1) {
-  int count = 0;
-  Get5Side side = requireCurrentSide ? view_as<Get5Side>(Get5TeamToCSTeam(team)) : Get5Side_None;
-
-  LOOP_CLIENTS(i) {
-    if (i == exclude || !IsPlayer(i) || GetClientMatchTeam(i) != team) {
-      continue;
-    }
-
-    if (requireAuthed && !IsAuthedPlayer(i)) {
-      continue;
-    }
-
-    if (!includeCoaches && IsClientCoaching(i)) {
-      continue;
-    }
-
-    if (requireCurrentSide && view_as<Get5Side>(GetClientTeam(i)) != side) {
-      continue;
-    }
-
-    count++;
-  }
-  return count;
-}
-
 /**
- * Returns the number of human clients on a team.
+ * Returns the number of alive players on a side.
  */
 stock int CountAlivePlayersOnTeam(const Get5Side side) {
   int count = 0;
@@ -202,23 +174,6 @@ stock void FormatTimeString(char[] buffer, const int bufferLength, const char[] 
 
 stock void FormatCvarName(char[] buffer, const int bufferLength, const char[] cVar) {
   Format(buffer, bufferLength, "{GRAY}%s{NORMAL}", cVar);
-}
-
-stock void FormatPlayerName(char[] buffer, const int bufferLength, const int client, const Get5Team team) {
-  Get5Team resolvedTeam = team;
-  if (!IsPlayerTeam(resolvedTeam)) {
-    resolvedTeam = CSTeamToGet5Team(GetClientTeam(client));
-  }
-
-  // Used when injecting the team for coaching players, who are always on team spectator.
-  Get5Side side = view_as<Get5Side>(Get5_Get5TeamToCSTeam(resolvedTeam));
-  if (side == Get5Side_CT) {
-    FormatEx(buffer, bufferLength, "{LIGHT_BLUE}%N{NORMAL}", client);
-  } else if (side == Get5Side_T) {
-    FormatEx(buffer, bufferLength, "{GOLD}%N{NORMAL}", client);
-  } else {
-    FormatEx(buffer, bufferLength, "{PURPLE}%N{NORMAL}", client);
-  }
 }
 
 stock void ReplaceStringWithInt(char[] buffer, int len, const char[] replace, int value, bool caseSensitive = true) {

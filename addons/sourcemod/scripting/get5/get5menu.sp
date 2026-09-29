@@ -35,6 +35,9 @@
 
 #define MATCH_START_REJECT_MESSAGE_COOLDOWN       30.0
 
+static Handle g_AutoMatchStartTimer = INVALID_HANDLE;
+static bool g_AutoMatchStartAttempted = false;
+
 static void FillMenuPageWithBlanks(const Menu menu) {
   while (menu.ItemCount % 6 != 0) {
     menu.AddItem("", "", ITEMDRAW_SPACER);
@@ -522,21 +525,31 @@ static int EnabledIf(bool cond) {
   return cond ? ITEMDRAW_DEFAULT : ITEMDRAW_DISABLED;
 }
 
-static void CreateMatch(int client) {
+static bool CreateMatch(int client) {
+  bool automatic = client == 0;
   if (g_GameState != Get5State_None) {
-    Get5_Message(client, "%t", "MenuMatchAlreadyLoaded");
-    return;
+    if (automatic) {
+      LogError("Auto match start failed: a Get5 match is already loaded.");
+    } else {
+      Get5_Message(client, "%t", "MenuMatchAlreadyLoaded");
+    }
+    return false;
   }
 
   int activePlayers = CountActiveMatchClients();
   if (activePlayers < REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    if (automatic) {
+      LogError("Auto match start failed: only %d active clients are present; %d are required.", activePlayers,
+               REQUIRED_ACTIVE_MATCH_CLIENTS);
+      return false;
+    }
     float now = GetEngineTime();
     if (now >= g_NextMatchStartRejectMessage[client]) {
       Get5_Message(client, "%t", "MenuMatchRequiresTenPlayers", activePlayers,
                    REQUIRED_ACTIVE_MATCH_CLIENTS);
       g_NextMatchStartRejectMessage[client] = now + MATCH_START_REJECT_MESSAGE_COOLDOWN;
     }
-    return;
+    return false;
   }
 
   NormalizeLockedSetupMenuValues();
@@ -608,10 +621,14 @@ static void CreateMatch(int client) {
   char error[PLATFORM_MAX_PATH];
   JSON_Object cvars = LoadCvarsFile(error, DEFAULT_CONFIG_KEY);
   if (cvars == null) {
-    LocalizeLegacyTextForClient(client, error, sizeof(error));
-    Get5_Message(client, "%t", "MenuErrorLoadingCvars", error);
+    if (automatic) {
+      LogError("Auto match start failed to load cvars: %s", error);
+    } else {
+      LocalizeLegacyTextForClient(client, error, sizeof(error));
+      Get5_Message(client, "%t", "MenuErrorLoadingCvars", error);
+    }
     json_cleanup_and_delete(match);
-    return;
+    return false;
   }
 
   cvars.SetString("mp_friendlyfire", g_SetupMenuFriendlyFire ? "1" : "0");
@@ -619,17 +636,75 @@ static void CreateMatch(int client) {
   cvars.SetString("mp_overtime_enable", g_SetupMenuOvertime ? "1" : "0");
   match.SetObject("cvars", cvars);
 
+  bool loaded = false;
   if (!match.WriteToFile(path)) {
-    Get5_Message(client, "%t", "MenuFailedWriteMatchConfigFile", path);
-  } else {
-    if (!LoadMatchConfig(path, error)) {
+    if (automatic) {
+      LogError("Auto match start failed to write generated match config '%s'.", path);
+    } else {
+      Get5_Message(client, "%t", "MenuFailedWriteMatchConfigFile", path);
+    }
+  } else if (!LoadMatchConfig(path, error)) {
+    if (automatic) {
+      LogError("Auto match start failed to load generated match config: %s", error);
+    } else {
       LocalizeLegacyTextForClient(client, error, sizeof(error));
       Get5_Message(client, "%t", "MenuFailedStartMatch", error);
-    } else {
-      DeleteFileIfExists(path);
     }
+  } else {
+    DeleteFileIfExists(path);
+    loaded = true;
   }
   json_cleanup_and_delete(match);
+  return loaded;
+}
+
+static bool IsAutoMatchStartStage() {
+  return g_AutoMatchStartConfigsReady && g_GameState == Get5State_None && !IsDoingRestoreOrMapChange() && InWarmup();
+}
+
+void CancelAutoMatchStart() {
+  if (g_AutoMatchStartTimer != INVALID_HANDLE) {
+    delete g_AutoMatchStartTimer;
+    g_AutoMatchStartTimer = INVALID_HANDLE;
+  }
+  g_AutoMatchStartAttempted = false;
+}
+
+void UpdateAutoMatchStart() {
+  if (!IsAutoMatchStartStage() || CountActiveMatchClients() < REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    CancelAutoMatchStart();
+    return;
+  }
+
+  if (g_AutoMatchStartAttempted || g_AutoMatchStartTimer != INVALID_HANDLE) {
+    return;
+  }
+
+  g_AutoMatchStartTimer = CreateTimer(5.0, Timer_AutoMatchStart, _, TIMER_FLAG_NO_MAPCHANGE);
+  if (g_AutoMatchStartTimer == INVALID_HANDLE) {
+    g_AutoMatchStartAttempted = true;
+    LogError("Auto match start failed to create its 5-second timer.");
+  }
+}
+
+Action Timer_AutoMatchStart(Handle timer) {
+  if (timer != g_AutoMatchStartTimer) {
+    return Plugin_Stop;
+  }
+  g_AutoMatchStartTimer = INVALID_HANDLE;
+
+  if (!IsAutoMatchStartStage() || CountActiveMatchClients() < REQUIRED_ACTIVE_MATCH_CLIENTS) {
+    CancelAutoMatchStart();
+    return Plugin_Stop;
+  }
+
+  g_AutoMatchStartAttempted = true;
+  CreateMatch(0);
+  return Plugin_Stop;
+}
+
+void Frame_UpdateAutoMatchStart(any data) {
+  UpdateAutoMatchStart();
 }
 
 Action Command_StartMenuMatch(int client, int args) {
