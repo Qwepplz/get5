@@ -706,6 +706,7 @@ bool RestoreFromBackup(const char[] path, char[] error) {
       // We are restarting to the same map for prelive or loading from a none-live state; just go back into
       // warmup and let players ready-up again, either for a restore or for knife/live.
       // Ready status is reset when loading a match config.
+      ResetPauseDisconnectLocks();
       UnpauseGame();
       // If we load a valve backup in non-live, we have to go to ready-up, otherwise it's a prelive and we go to warmup.
       ChangeState(valveBackup ? Get5State_PendingRestore : Get5State_Warmup);
@@ -744,6 +745,7 @@ bool RestoreFromBackup(const char[] path, char[] error) {
 }
 
 void RestoreGet5Backup(bool restartRecording) {
+  ResetPauseDisconnectLocks();
   g_DoingBackupRestoreNow = true;  // reset after the backup has completed, suppresses various
                                    // events and hooks until then.
   // If you load a backup during a live round, the game might get stuck if there are only bots

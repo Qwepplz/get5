@@ -30,7 +30,7 @@
     }
     "PauseCommandHelpMessage"
     {
-        "chi"            "{1} - 请求战术暂停"
+        "chi"            "{1} - 请求技术暂停"
     }
     "TechCommandHelpMessage"
     {
@@ -335,6 +335,15 @@
         "#format"        "{1:s}"
         "chi"            "双方队伍必须在{1}内准备就绪，否则比赛将以平局结束。"
     }
+    "WarmupRequiresTenReadyPlayersOrTie"
+    {
+        "#format"        "{1:s}"
+        "chi"            "必须在{1}内由恰好 10 名在场参赛者准备就绪，否则比赛将以平局结束。"
+    }
+    "WarmupForceReadyDisabled"
+    {
+        "chi"            "热身必须有 10 名在场参赛者准备就绪，管理员不能强制准备。"
+    }
     "PausesNotEnabled"
     {
         "chi"            "暂停功能未启用。"
@@ -363,6 +372,10 @@
     {
         "chi"            "等待解除暂停"
     }
+    "AwaitingDisconnectPauseVotes"
+    {
+        "chi"            "等待所有在场真人投票"
+    }
     "PausedByAdministrator"
     {
         "chi"            "管理员已暂停比赛。"
@@ -374,6 +387,14 @@
     "UserCannotUnpauseAdmin"
     {
         "chi"            "此次暂停由管理员发起，因此也必须由管理员解除。"
+    }
+    "DisconnectPauseConsoleUnpauseDenied"
+    {
+        "chi"            "服务器控制台不能解除断线暂停；须有 10 人在场且所有当前真人投票同意。"
+    }
+    "DisconnectPauseConsolePauseDenied"
+    {
+        "chi"            "服务器控制台不能覆盖断线暂停。"
     }
     "PauseRequestCanceled"
     {
@@ -392,12 +413,12 @@
     "TechPauseNoTimeRemaining"
     {
         "#format"        "{1:s}"
-        "chi"            "{1}已没有剩余技术暂停时间，请改用战术暂停。"
+        "chi"            "{1}已没有剩余技术暂停时间。"
     }
     "TechPauseNoPausesRemaining"
     {
         "#format"        "{1:s}"
-        "chi"            "{1}已没有剩余技术暂停次数，请改用战术暂停。"
+        "chi"            "{1}已没有剩余技术暂停次数。"
     }
     "TechPauseAutomaticallyStarted"
     {
@@ -1131,17 +1152,25 @@
     {
         "chi"            "等待场上人数恢复到 10 人"
     }
+    "DisconnectPauseMissingPlayersShutdownWarning"
+    {
+        "chi"            "场上人数不足 10 人。若持续 10 分钟，服务器将关闭。"
+    }
+    "DisconnectPauseShutdownNow"
+    {
+        "chi"            "场上人数持续不足 10 人已达 10 分钟，服务器即将关闭。"
+    }
     "TechPauseRunoutRecoveryPendingInfoMessage"
     {
-        "chi"            "技术暂停时间已到，但场上人数恢复到 10 人前仍会保持暂停。"
-    }
-    "DisconnectLockExpired"
-    {
-        "chi"            "缺人锁已过期，现在可以取消暂停。"
+        "chi"            "技术暂停时长已到。场上人数恢复到 10 人前不能投票解除此次断线暂停。"
     }
     "WaitingForAffectedTeamsToRecoverBeforeUnpause"
     {
-        "chi"            "场上人数恢复到 10 人前，比赛不能解除暂停。"
+        "chi"            "场上人数达到 10 人后才能投票解除此次断线暂停。"
+    }
+    "DisconnectPauseVoteRequiredInfoMessage"
+    {
+        "chi"            "所有当前在场真人必须投票，才能解除此次断线暂停。"
     }
     "SmRingerUsage"
     {

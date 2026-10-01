@@ -55,6 +55,30 @@ bool IsSpectatorsReady() {
   return IsTeamReady(Get5Team_Spec);
 }
 
+static int CountWarmupParticipants(Get5Team team, bool readyOnly) {
+  int count = 0;
+  LOOP_CLIENTS(i) {
+    if (!IsActiveMatchClient(i) || CSTeamToGet5Team(GetClientTeam(i)) != team) {
+      continue;
+    }
+    if (IsFakeClient(i)) {
+      count++;
+    } else if (IsPlayer(i) && GetClientMatchTeam(i) == team && !IsClientCoaching(i) &&
+               (!readyOnly || IsClientReady(i))) {
+      count++;
+    }
+  }
+  return count;
+}
+
+bool AreWarmupParticipantsReady() {
+  int participants = CountWarmupParticipants(Get5Team_1, false) +
+                     CountWarmupParticipants(Get5Team_2, false);
+  int ready = CountWarmupParticipants(Get5Team_1, true) + CountWarmupParticipants(Get5Team_2, true);
+  return CountActiveMatchClients() == REQUIRED_ACTIVE_MATCH_CLIENTS &&
+         participants == REQUIRED_ACTIVE_MATCH_CLIENTS && ready == REQUIRED_ACTIVE_MATCH_CLIENTS;
+}
+
 bool IsTeamReady(Get5Team team) {
   if (g_GameState == Get5State_Live) {
     return true;
@@ -62,6 +86,11 @@ bool IsTeamReady(Get5Team team) {
 
   if (team == Get5Team_None) {
     return true;
+  }
+
+  if (g_GameState == Get5State_Warmup && IsPlayerTeam(team)) {
+    int players = CountWarmupParticipants(team, false);
+    return players == CountWarmupParticipants(team, true) && players >= GetRequiredPlayersPerTeam(team);
   }
 
   int minPlayers = GetRequiredPlayersPerTeam(team);
@@ -178,13 +207,21 @@ void PrintReadyStatusHint() {
     return;
   }
 
-  bool waitingForSpectators = g_GameState == Get5State_Warmup && IsTeamsReady() && !IsSpectatorsReady();
+  bool waitingForSpectators = g_GameState == Get5State_Warmup && AreWarmupParticipantsReady() &&
+                              IsTeamsReady() && !IsSpectatorsReady();
 
-  int totalReady = GetEffectiveTeamReadyCount(Get5Team_1) + GetEffectiveTeamReadyCount(Get5Team_2);
-  int totalTarget = GetTeamReadyTargetCount(Get5Team_1) + GetTeamReadyTargetCount(Get5Team_2);
-  if (g_MinSpectatorsToReady > 0) {
-    totalReady += GetEffectiveTeamReadyCount(Get5Team_Spec);
-    totalTarget += GetTeamReadyTargetCount(Get5Team_Spec);
+  int totalReady;
+  int totalTarget;
+  if (g_GameState == Get5State_Warmup) {
+    totalReady = CountWarmupParticipants(Get5Team_1, true) + CountWarmupParticipants(Get5Team_2, true);
+    totalTarget = REQUIRED_ACTIVE_MATCH_CLIENTS;
+  } else {
+    totalReady = GetEffectiveTeamReadyCount(Get5Team_1) + GetEffectiveTeamReadyCount(Get5Team_2);
+    totalTarget = GetTeamReadyTargetCount(Get5Team_1) + GetTeamReadyTargetCount(Get5Team_2);
+    if (g_MinSpectatorsToReady > 0) {
+      totalReady += GetEffectiveTeamReadyCount(Get5Team_Spec);
+      totalTarget += GetTeamReadyTargetCount(Get5Team_Spec);
+    }
   }
 
   if (totalTarget < 1) {
@@ -214,6 +251,10 @@ void PrintReadyStatusHint() {
 
 Action Command_AdminForceReady(int client, int args) {
   if (!IsReadyGameState()) {
+    return Plugin_Handled;
+  }
+  if (g_GameState == Get5State_Warmup) {
+    ReplyToCommand(client, "%t", "WarmupForceReadyDisabled");
     return Plugin_Handled;
   }
 

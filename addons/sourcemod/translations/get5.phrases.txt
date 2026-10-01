@@ -38,7 +38,7 @@
     "PauseCommandHelpMessage"
     {
         "#format"       "{1:s}"
-        "en"            "{1} - Request a tactical pause."
+        "en"            "{1} - Request a technical pause."
     }
     "TechCommandHelpMessage"
     {
@@ -107,6 +107,15 @@
         "#format"       "{1:s}"
         "en"            "Teams must be ready within {1} or the match will end in a tie."
     }
+    "WarmupRequiresTenReadyPlayersOrTie"
+    {
+        "#format"       "{1:s}"
+        "en"            "Exactly 10 active participants must be ready within {1}, or the match will end in a tie."
+    }
+    "WarmupForceReadyDisabled"
+    {
+        "en"            "Warmup requires 10 active participants to be ready; administrator force ready is disabled."
+    }
     "MaxPausesUsedInfoMessage"
     {
         "#format"       "{1:d},{2:s}"
@@ -155,9 +164,21 @@
     {
         "en"            "Awaiting unpause"
     }
+    "AwaitingDisconnectPauseVotes"
+    {
+        "en"            "Awaiting all active human votes"
+    }
     "AwaitingPlayerRecovery"
     {
-        "en"            "Awaiting 10 active players."
+        "en"            "Awaiting 10 active players"
+    }
+    "DisconnectPauseMissingPlayersShutdownWarning"
+    {
+        "en"            "Fewer than 10 active players. If this continues for 10 minutes, the server will shut down."
+    }
+    "DisconnectPauseShutdownNow"
+    {
+        "en"            "Fewer than 10 active players for 10 minutes. Shutting down the server now."
     }
     "PausedByAdministrator"
     {
@@ -170,6 +191,14 @@
     "UserCannotUnpauseAdmin"
     {
         "en"            "As an admin started this pause, it must also be unpaused by an admin."
+    }
+    "DisconnectPauseConsoleUnpauseDenied"
+    {
+        "en"            "The server console cannot end a disconnect pause. Wait for 10 active players and unanimous human votes."
+    }
+    "DisconnectPauseConsolePauseDenied"
+    {
+        "en"            "The server console cannot replace a disconnect pause."
     }
     "PauseRequestCanceled"
     {
@@ -192,21 +221,17 @@
     }
     "TechPauseRunoutRecoveryPendingInfoMessage"
     {
-        "en"            "Maximum technical pause length has been reached, but the pause is still locked until the match has 10 active players."
-    }
-    "DisconnectLockExpired"
-    {
-        "en"            "Missing-player lock has expired. Players may now unpause."
+        "en"            "Maximum technical pause length has been reached. Voting remains unavailable until 10 players are active."
     }
     "TechPauseNoTimeRemaining"
     {
         "#format"       "{1:s}"
-        "en"            "{1} has no more tech pause time. Please use tactical pauses."
+        "en"            "{1} has no more technical pause time."
     }
     "TechPauseNoPausesRemaining"
     {
         "#format"       "{1:s}"
-        "en"            "{1} has no more tech pauses. Please use tactical pauses."
+        "en"            "{1} has no more technical pauses."
     }
     "TechPauseAutomaticallyStarted"
     {
@@ -225,7 +250,11 @@
     }
     "WaitingForAffectedTeamsToRecoverBeforeUnpause"
     {
-        "en"            "The match cannot be unpaused until it has 10 active players."
+        "en"            "Voting to end a disconnect pause requires 10 active players."
+    }
+    "DisconnectPauseVoteRequiredInfoMessage"
+    {
+        "en"            "All active human players must vote to end this disconnect pause."
     }
     "PrereleaseVersionWarning"
     {

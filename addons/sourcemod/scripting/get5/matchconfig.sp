@@ -138,6 +138,7 @@ bool LoadMatchConfig(const char[] config, char[] error, bool restoreBackup = fal
     StopRecording();  // Ensure no recording is running when starting a match, as that prevents Get5 from starting one.
     ExecCfg(g_WarmupCfgCvar);
     StartWarmup();
+    ResetPauseDisconnectLocks();
     if (IsPaused()) {
       LogDebug("Match was paused when loading match config. Unpausing.");
       UnpauseGame();

@@ -192,8 +192,9 @@ bool g_TeamReadyForUnpause[MATCHTEAM_COUNT];
 bool g_ClientReadyForUnpause[MAXPLAYERS + 1];
 Handle g_UnpauseReminderTimer = INVALID_HANDLE;
 int g_LastUnpauseRequesterUserId = 0;
-Handle g_DisconnectLockExpiryTimer = INVALID_HANDLE;
-bool g_MissingPlayerLockExpired = false;
+Handle g_DisconnectShutdownTimer = INVALID_HANDLE;
+bool g_DisconnectPauseActive = false;
+float g_DisconnectShutdownDeadline = 0.0;
 int g_LastActiveMatchClientCount = -1;
 bool g_TeamGivenStopCommand[MATCHTEAM_COUNT];
 int g_TacticalPauseTimeUsed[MATCHTEAM_COUNT];
@@ -905,10 +906,16 @@ public void OnClientPutInServer(int client) {
 }
 
 public void OnClientDisconnect(int client) {
+  SetClientReady(client, false);
   g_ClientPendingTeamCheck[client] = false;
   g_ClientReadyForUnpause[client] = false;
   g_GoingLiveFrozenClients[client] = false;
-  if (CountActiveMatchClients(client) < REQUIRED_ACTIVE_MATCH_CLIENTS) {
+  int activeAfterDisconnect = CountActiveMatchClients(client);
+  if (g_GameState == Get5State_Live && IsActiveMatchClient(client) &&
+      activeAfterDisconnect < REQUIRED_ACTIVE_MATCH_CLIENTS && !IsDoingRestoreOrMapChange()) {
+    ApplyPauseDisconnectLockForMissingPlayers(activeAfterDisconnect);
+  }
+  if (activeAfterDisconnect < REQUIRED_ACTIVE_MATCH_CLIENTS) {
     CancelAutoMatchStart();
   }
   if (g_GameState != Get5State_None) {
@@ -1003,11 +1010,27 @@ static Action Event_PlayerTeam(Event event, const char[] name, bool dontBroadcas
   bool wasActive = oldTeam == CS_TEAM_T || oldTeam == CS_TEAM_CT;
   bool isActive = newTeam == CS_TEAM_T || newTeam == CS_TEAM_CT;
 
+  if (IsPlayer(client) && oldTeam != newTeam && (wasActive || isActive)) {
+    if (g_GameState == Get5State_Warmup) {
+      SetClientReady(client, false);
+    } else if (g_GameState == Get5State_Live) {
+      g_ClientReadyForUnpause[client] = false;
+    }
+  }
+
   if (isTrackedClient && wasActive && !isActive &&
       CountActiveMatchClients(client) < REQUIRED_ACTIVE_MATCH_CLIENTS) {
     CancelAutoMatchStart();
+    if (g_GameState == Get5State_Live && !IsDoingRestoreOrMapChange()) {
+      ApplyPauseDisconnectLockForMissingPlayers(CountActiveMatchClients(client));
+    }
   } else if (isTrackedClient && !wasActive && isActive) {
     RequestFrame(Frame_UpdateAutoMatchStart);
+    int activeAfterJoin = CountActiveMatchClients(client) + 1;
+    if (g_GameState == Get5State_Live && activeAfterJoin >= REQUIRED_ACTIVE_MATCH_CLIENTS &&
+        !IsDoingRestoreOrMapChange()) {
+      ApplyPauseDisconnectLockForMissingPlayers(activeAfterJoin);
+    }
   }
 
   if (g_GameState == Get5State_None) {
@@ -1123,9 +1146,11 @@ static Action Timer_ConfigsExecutedCallback(Handle timer) {
 public void OnMapEnd() {
   g_AutoMatchStartConfigsReady = false;
   CancelAutoMatchStart();
+  ResetPauseDisconnectLocks();
 }
 
 static Action Timer_CheckReady(Handle timer) {
+  CheckDisconnectShutdownDeadline();
   UpdateAutoMatchStart();
   if (g_GameState == Get5State_None) {
     return Plugin_Continue;
@@ -1159,7 +1184,7 @@ static Action Timer_CheckReady(Handle timer) {
   } else if (g_GameState == Get5State_Warmup) {
     PrintReadyStatusHint();
     // Wait for both players and spectators before going live
-    if (CheckReadyWaitingTimes() && IsSpectatorsReady()) {
+    if (CheckReadyWaitingTimes() && AreWarmupParticipantsReady() && IsSpectatorsReady()) {
       LogDebug("Timer_CheckReady: all teams ready to start");
       StartGame(g_MapSides.Get(g_MapNumber) == SideChoice_KnifeRound);
     }
@@ -1172,8 +1197,9 @@ static bool CheckReadyWaitingTimes() {
   g_ReadyTimeWaitingUsed++;
   bool team1Ready = IsTeamReady(Get5Team_1);
   bool team2Ready = IsTeamReady(Get5Team_2);
+  bool warmupParticipantsReady = g_GameState != Get5State_Warmup || AreWarmupParticipantsReady();
 
-  if (team1Ready && team2Ready) {
+  if (team1Ready && team2Ready && warmupParticipantsReady) {
     return true;
   }
 
@@ -1190,7 +1216,9 @@ static bool CheckReadyWaitingTimes() {
       ConvertSecondsToMinutesAndSeconds(timeLeft, formattedTimeLeft, sizeof(formattedTimeLeft));
       FormatTimeString(formattedTimeLeft, sizeof(formattedTimeLeft), formattedTimeLeft);
 
-      if (!team1Ready && !team2Ready) {
+      if (team1Ready && team2Ready && !warmupParticipantsReady) {
+        Get5_MessageToAll("%t", "WarmupRequiresTenReadyPlayersOrTie", formattedTimeLeft);
+      } else if (!team1Ready && !team2Ready) {
         Get5_MessageToAll("%t", "TeamsMustBeReadyOrTie", formattedTimeLeft);
       } else if (!team1Ready) {
         Get5_MessageToAll("%t", "TeamMustBeReadyOrForfeit", g_FormattedTeamNames[Get5Team_1], formattedTimeLeft);
@@ -1270,6 +1298,7 @@ static Action Command_EndMatch(int client, int args) {
     }
   }
 
+  ResetPauseDisconnectLocks();
   if (IsPaused()) {
     UnpauseGame();
   }
@@ -1472,7 +1501,7 @@ static void HandleMissingPlayerPauseCheck(int previousActiveMatchClients, int ac
     return;
   }
 
-  if (IsPaused()) {
+  if (g_PauseType != Get5PauseType_None || IsPaused()) {
     ApplyPauseDisconnectLockForMissingPlayers(activeMatchClients);
     HandleUnpauseVotesOnDisconnect();
     return;
@@ -1514,6 +1543,7 @@ static Action Event_MatchOver(Event event, const char[] name, bool dontBroadcast
 
   if (g_GameState == Get5State_Live) {
     // If someone called for a pause in the last round; cancel it.
+    ResetPauseDisconnectLocks();
     if (IsPaused()) {
       UnpauseGame();
     }
@@ -1867,7 +1897,7 @@ void ResetMatchConfigVariables(bool backup = false) {
   g_PausingTeam = Get5Team_None;
   g_LatestPauseDuration = 0;
   g_PauseType = Get5PauseType_None;
-  ResetPauseDisconnectLocks(true);
+  ResetPauseDisconnectLocks();
   if (!backup) {
     // All hell breaks loose if these are reset during a backup.
     g_DoingBackupRestoreNow = false;
@@ -1943,7 +1973,7 @@ static Action Event_FreezeEnd(Event event, const char[] name, bool dontBroadcast
   g_LatestPauseDuration = -1;
   g_PauseType = Get5PauseType_None;
   g_PausingTeam = Get5Team_None;
-  ResetPauseDisconnectLocks(true);
+  ResetPauseDisconnectLocks();
   ResetUnpauseTracking();
 
   LOOP_TEAMS(t) {
@@ -2303,6 +2333,13 @@ void ChangeState(Get5State state) {
     return;
   }
 
+  if (state == Get5State_Warmup) {
+    ResetReadyStatus();
+  }
+  if (g_GameState == Get5State_Live || state == Get5State_Live) {
+    ResetPauseDisconnectLocks();
+  }
+
   if (g_GameState == Get5State_None && state != Get5State_None) {
     CancelAutoMatchStart();
   }
@@ -2329,7 +2366,6 @@ void ChangeState(Get5State state) {
 
   g_GameState = state;
   if (state == Get5State_Live) {
-    g_MissingPlayerLockExpired = false;
     g_LastActiveMatchClientCount = CountActiveMatchClients();
   } else if (state < Get5State_Live || state > Get5State_Live) {
     g_LastActiveMatchClientCount = -1;
